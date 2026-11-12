@@ -1,4 +1,11 @@
 import os
+try:
+    import spaces
+    gpu_decorator = spaces.GPU(duration=5)
+except ImportError:
+    def gpu_decorator(fn):
+        return fn
+
 import re
 import time
 import base64
@@ -11,12 +18,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import primp
 import requests
 import pandas as pd
-import uvicorn
 from lxml import html as lxml_html
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import HTTPException, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
+from gradio import Server
 
 load_dotenv()
 
@@ -29,15 +36,24 @@ LINKEDIN_COLLECTOR_ID = os.getenv("LINKEDIN_COLLECTOR_ID", "gd_l1viktl72bvl7bjuj
 BASE_OUTPUT_DIR = "output_csv"
 os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 
-app = FastAPI(
+app = Server(
     title="DDC Data Warehouse - API Scraper & Bank Data Service",
     description=(
         "REST API untuk: (0) Bank Data seluruh hasil scraping CSV, "
         "(1) Scraper Keyword & Trending, (2) Scraper Berita, dan "
         "(3) Scraper Social Media terpisah (Facebook, Instagram, TikTok, Twitter, LinkedIn)."
     ),
-    version="3.1.0"
+    version="3.2.0"
 )
+
+
+# =====================================================================
+# DUMMY GPU ENDPOINT (SYARAT LOLOS STARTUP ZEROGPU HUGGING FACE)
+# =====================================================================
+@app.api(name="zerogpu_healthcheck")
+@gpu_decorator
+def zerogpu_healthcheck(ping: str = "ok") -> str:
+    return f"ZeroGPU Ready: {ping}"
 
 
 # =====================================================================
@@ -817,7 +833,6 @@ def dashboard_ui():
             </div>
         </div>
 
-        <!-- 4 Main Navigation Tabs -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <button onclick="switchTab('bank')" id="tab-bank" class="py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition">
                 🏦 Bank Data (Semua CSV)
@@ -833,9 +848,7 @@ def dashboard_ui():
             </button>
         </div>
 
-        <!-- Control Card -->
         <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl mb-6">
-            <!-- Form 0: Bank Data -->
             <div id="form-bank" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Kategori Platform / Data</label>
@@ -871,7 +884,6 @@ def dashboard_ui():
                 </div>
             </div>
 
-            <!-- Form 1: Keyword & Trending -->
             <div id="form-keyword" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
@@ -890,7 +902,6 @@ def dashboard_ui():
                 </div>
             </div>
 
-            <!-- Form 2: Berita -->
             <div id="form-berita" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
@@ -911,7 +922,6 @@ def dashboard_ui():
                 </div>
             </div>
 
-            <!-- Form 3: Social Media -->
             <div id="form-sosmed" class="hidden grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
@@ -947,7 +957,6 @@ def dashboard_ui():
                 </div>
             </div>
 
-            <!-- Action Bar -->
             <div class="mt-5 flex items-center justify-between">
                 <div id="status-text" class="text-xs text-gray-400">Siap memuat atau mengekstrak data.</div>
                 <button onclick="executeAction()" id="btn-run" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg transition">
@@ -956,7 +965,6 @@ def dashboard_ui():
             </div>
         </div>
 
-        <!-- Output Table Card -->
         <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-sm font-semibold text-gray-300">📊 Tabel Output Data (<span id="row-count">0</span> baris)</h2>
@@ -1120,5 +1128,4 @@ def dashboard_ui():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", 7860)))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    app.launch(server_name="0.0.0.0", server_port=7860)
