@@ -11,12 +11,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import primp
 import requests
 import pandas as pd
-import gradio as gr
 import uvicorn
 from lxml import html as lxml_html
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -30,14 +29,14 @@ LINKEDIN_COLLECTOR_ID = os.getenv("LINKEDIN_COLLECTOR_ID", "gd_l1viktl72bvl7bjuj
 BASE_OUTPUT_DIR = "output_csv"
 os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 
-api = FastAPI(
+app = FastAPI(
     title="DDC Data Warehouse - API Scraper & Bank Data Service",
     description=(
-        "REST API untuk: (1) Bank Data seluruh hasil scraping CSV, "
-        "(2) Scraper Keyword & Trending, (3) Scraper Berita, dan "
-        "(4) Scraper Social Media terpisah (Facebook, Instagram, TikTok, Twitter, LinkedIn)."
+        "REST API untuk: (0) Bank Data seluruh hasil scraping CSV, "
+        "(1) Scraper Keyword & Trending, (2) Scraper Berita, dan "
+        "(3) Scraper Social Media terpisah (Facebook, Instagram, TikTok, Twitter, LinkedIn)."
     ),
-    version="3.0.0"
+    version="3.1.0"
 )
 
 
@@ -94,7 +93,7 @@ def scan_bank_data(category: str = "semua", tool: str = "semua") -> list[dict]:
             continue
         for root, _, files in os.walk(root_dir):
             for f in files:
-                if f.endswith(".csv"):
+                if f.endswith(".csv") and not f.startswith("bank_data_export_"):
                     full_p = os.path.normpath(os.path.join(root, f))
                     if full_p in seen_paths:
                         continue
@@ -123,50 +122,52 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
 
 
 # =====================================================================
-# ENDPOINT API BANK DATA (UNTUK DATA WAREHOUSE)
+# 0. ENDPOINT API BANK DATA (DATA WAREHOUSE)
 # =====================================================================
-@api.get("/api/v1/bank-data/catalog", tags=["0. Bank Data (Data Warehouse)"])
+@app.get("/api/v1/bank-data/catalog", tags=["0. Bank Data (Data Warehouse)"])
 def api_bank_data_catalog(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
     tool: Literal["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"] = "semua"
 ):
-    """Melihat daftar seluruh file CSV hasil scraping yang ada di Bank Data."""
     files = scan_bank_data(category=category, tool=tool)
     return {"status": "success", "total_files": len(files), "catalog": files}
 
 
-@api.get("/api/v1/bank-data/records", tags=["0. Bank Data (Data Warehouse)"])
+@app.get("/api/v1/bank-data/records", tags=["0. Bank Data (Data Warehouse)"])
 def api_bank_data_records(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
     tool: Literal["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"] = "semua",
-    filename: Optional[str] = Query(None, description="Nama file spesifik (opsional)"),
-    search_query: Optional[str] = Query(None, description="Filter teks di dalam tabel (opsional)"),
-    limit: int = Query(100, ge=1, le=5000)
+    filename: Optional[str] = Query(None, description="Filter nama file CSV spesifik"),
+    search_query: Optional[str] = Query(None, description="Cari kata kunci di dalam isi data"),
+    limit: int = Query(200, ge=1, le=5000)
 ):
-    """Mengambil isi baris data (JSON) dari Bank Data berdasarkan kategori/tool/file/kata kunci."""
     files = scan_bank_data(category=category, tool=tool)
     if filename:
         files = [f for f in files if f["filename"] == filename or f["id"] == filename]
 
     if not files:
-        raise HTTPException(status_code=404, detail="Data tidak ditemukan di Bank Data")
+        return {"status": "success", "files_merged": 0, "total_matching_rows": 0, "returned_rows": 0, "csv": None, "data": []}
 
     dfs = []
     for f in files:
         try:
             df = pd.read_csv(f["filepath"])
-            df["_source_file"] = f["filename"]
+            df.insert(0, "_source_file", f["filename"])
             dfs.append(df)
         except Exception:
             continue
 
     if not dfs:
-        return {"status": "success", "total_rows": 0, "data": []}
+        return {"status": "success", "files_merged": 0, "total_matching_rows": 0, "returned_rows": 0, "csv": None, "data": []}
 
     merged = pd.concat(dfs, ignore_index=True).fillna("")
-    if search_query:
-        mask = merged.astype(str).apply(lambda x: x.str.contains(search_query, case=False, na=False)).any(axis=1)
+    if search_query and search_query.strip():
+        q_clean = search_query.strip()
+        mask = merged.astype(str).apply(lambda x: x.str.contains(q_clean, case=False, na=False)).any(axis=1)
         merged = merged[mask]
+
+    export_path = os.path.join(BASE_OUTPUT_DIR, f"bank_data_export_{category}_{tool}.csv")
+    merged.to_csv(export_path, index=False)
 
     records = merged.head(limit).to_dict(orient="records")
     return {
@@ -176,15 +177,16 @@ def api_bank_data_records(
         "files_merged": len(dfs),
         "total_matching_rows": len(merged),
         "returned_rows": len(records),
+        "csv": export_path,
         "data": records
     }
 
 
-@api.get("/api/v1/bank-data/download", tags=["0. Bank Data (Data Warehouse)"])
-def api_bank_data_download(filepath: str = Query(..., description="Path file dari catalog")):
-    if not os.path.exists(filepath):
+@app.get("/api/v1/download", tags=["0. Bank Data (Data Warehouse)"])
+def download_csv_file(path: str = Query(..., description="Path file CSV")):
+    if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File CSV tidak ditemukan")
-    return FileResponse(filepath, filename=os.path.basename(filepath), media_type="text/csv")
+    return FileResponse(path, filename=os.path.basename(path), media_type="text/csv")
 
 
 # =====================================================================
@@ -247,21 +249,61 @@ def _diffbot_extract_article(target_url: str) -> dict:
 
 
 # =====================================================================
-# SCHEMAS & ENDPOINT 1: KEYWORD & TRENDING
+# SCHEMAS REQUEST (PYDANTIC V2 CLEAN)
 # =====================================================================
 class KeywordSearchRequest(BaseModel):
-    keyword: str = Field(..., example="karhutla")
-    geo: str = Field("ID", example="ID")
-    max_results: int = Field(15, ge=1, le=100)
+    keyword: str = "karhutla"
+    geo: str = "ID"
+    max_results: int = Field(default=15, ge=1, le=100)
 
 
 class TrendingRequest(BaseModel):
-    kategori: str = Field("teknologi", example="teknologi")
-    geo: str = Field("ID", example="ID")
-    max_results: int = Field(15, ge=1, le=100)
+    kategori: str = "teknologi"
+    geo: str = "ID"
+    max_results: int = Field(default=15, ge=1, le=100)
 
 
-@api.post("/api/v1/keyword/search", tags=["1. Keyword & Trending"])
+class BeritaBaseRequest(BaseModel):
+    keyword_or_url: str = "prabowo"
+    max_results: int = Field(default=10, ge=1, le=200)
+
+
+class FacebookRequest(BaseModel):
+    keyword_or_url: str = "https://www.facebook.com/kompascom"
+    engine: Literal["apify", "diffbot"] = "apify"
+    mode_apify: Literal["full_39_kolom", "bersih"] = "full_39_kolom"
+    max_results: int = Field(default=10, ge=1, le=100)
+
+
+class InstagramRequest(BaseModel):
+    keyword_or_hashtag: str = "kebakaranhutan"
+    engine: Literal["apify", "diffbot"] = "apify"
+    mode_apify: Literal["full_29_kolom", "bersih"] = "full_29_kolom"
+    max_results: int = Field(default=10, ge=1, le=100)
+
+
+class TikTokRequest(BaseModel):
+    keyword_or_hashtag: str = "karhutla"
+    engine: Literal["apify", "diffbot"] = "apify"
+    max_results: int = Field(default=10, ge=1, le=100)
+
+
+class TwitterRequest(BaseModel):
+    keyword: str = "prabowo"
+    engine: Literal["apify", "diffbot"] = "apify"
+    max_results: int = Field(default=10, ge=1, le=100)
+
+
+class LinkedInRequest(BaseModel):
+    keyword: str = "Backend Developer"
+    region_indonesia: bool = True
+    max_results: int = Field(default=5, ge=1, le=1000)
+
+
+# =====================================================================
+# 1. ENDPOINT KEYWORD & TRENDING
+# =====================================================================
+@app.post("/api/v1/keyword/search", tags=["1. Keyword & Trending"])
 def scrape_keyword_search(req: KeywordSearchRequest):
     rows = []
     if APIFY_TOKEN:
@@ -298,7 +340,7 @@ def scrape_keyword_search(req: KeywordSearchRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/keyword/trending", tags=["1. Keyword & Trending"])
+@app.post("/api/v1/keyword/trending", tags=["1. Keyword & Trending"])
 def scrape_trending_topics(req: TrendingRequest):
     rows = []
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -320,14 +362,9 @@ def scrape_trending_topics(req: TrendingRequest):
 
 
 # =====================================================================
-# SCHEMAS & ENDPOINT 2: BERITA (NEWSDATA, DIFFBOT, BRIGHTDATA, KOMBINE)
+# 2. ENDPOINT BERITA (NEWSDATA, DIFFBOT, BRIGHTDATA, KOMBINE)
 # =====================================================================
-class BeritaBaseRequest(BaseModel):
-    keyword_or_url: str = Field(..., example="prabowo")
-    max_results: int = Field(10, ge=1, le=200)
-
-
-@api.post("/api/v1/berita/newsdata", tags=["2. Berita"])
+@app.post("/api/v1/berita/newsdata", tags=["2. Berita"])
 def scrape_berita_newsdata(req: BeritaBaseRequest):
     if not NEWSDATA_KEY:
         raise HTTPException(status_code=400, detail="NEWSDATA_API_KEY belum diatur di Settings -> Variables and secrets")
@@ -362,7 +399,7 @@ def scrape_berita_newsdata(req: BeritaBaseRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/berita/diffbot", tags=["2. Berita"])
+@app.post("/api/v1/berita/diffbot", tags=["2. Berita"])
 def scrape_berita_diffbot(req: BeritaBaseRequest):
     if not DIFFBOT_TOKEN:
         raise HTTPException(status_code=400, detail="DIFFBOT_TOKEN belum diatur di Settings -> Variables and secrets")
@@ -388,7 +425,7 @@ def scrape_berita_diffbot(req: BeritaBaseRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/berita/brightdata", tags=["2. Berita"])
+@app.post("/api/v1/berita/brightdata", tags=["2. Berita"])
 def scrape_berita_brightdata(req: BeritaBaseRequest):
     urls = [req.keyword_or_url] if req.keyword_or_url.startswith("http") else harvest_urls_by_dork(
         f"{req.keyword_or_url} berita indonesia", req.max_results
@@ -420,7 +457,7 @@ def scrape_berita_brightdata(req: BeritaBaseRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/berita/kombine", tags=["2. Berita"])
+@app.post("/api/v1/berita/kombine", tags=["2. Berita"])
 def scrape_berita_kombine(req: BeritaBaseRequest):
     base_resp = scrape_berita_newsdata(req)
     rows = base_resp["data"]
@@ -436,41 +473,9 @@ def scrape_berita_kombine(req: BeritaBaseRequest):
 
 
 # =====================================================================
-# SCHEMAS & ENDPOINT 3: SOCIAL MEDIA (FB, IG, TIKTOK, TWITTER, LINKEDIN)
+# 3. ENDPOINT SOCIAL MEDIA (FB, IG, TIKTOK, TWITTER, LINKEDIN)
 # =====================================================================
-class FacebookRequest(BaseModel):
-    keyword_or_url: str = Field(..., example="https://www.facebook.com/kompascom")
-    engine: Literal["apify", "diffbot"] = Field("apify")
-    mode_apify: Literal["full_39_kolom", "bersih"] = Field("full_39_kolom")
-    max_results: int = Field(10, ge=1, le=100)
-
-
-class InstagramRequest(BaseModel):
-    keyword_or_hashtag: str = Field(..., example="kebakaranhutan")
-    engine: Literal["apify", "diffbot"] = Field("apify")
-    mode_apify: Literal["full_29_kolom", "bersih"] = Field("full_29_kolom")
-    max_results: int = Field(10, ge=1, le=100)
-
-
-class TikTokRequest(BaseModel):
-    keyword_or_hashtag: str = Field(..., example="karhutla")
-    engine: Literal["apify", "diffbot"] = Field("apify")
-    max_results: int = Field(10, ge=1, le=100)
-
-
-class TwitterRequest(BaseModel):
-    keyword: str = Field(..., example="prabowo")
-    engine: Literal["apify", "diffbot"] = Field("apify")
-    max_results: int = Field(10, ge=1, le=100)
-
-
-class LinkedInRequest(BaseModel):
-    keyword: str = Field(..., example="Backend Developer")
-    region_indonesia: bool = Field(True)
-    max_results: int = Field(5, ge=1, le=1000)
-
-
-@api.post("/api/v1/sosmed/facebook", tags=["3. Social Media"])
+@app.post("/api/v1/sosmed/facebook", tags=["3. Social Media"])
 def scrape_facebook(req: FacebookRequest):
     rows = []
     if req.engine == "apify":
@@ -557,7 +562,7 @@ def scrape_facebook(req: FacebookRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/sosmed/instagram", tags=["3. Social Media"])
+@app.post("/api/v1/sosmed/instagram", tags=["3. Social Media"])
 def scrape_instagram(req: InstagramRequest):
     rows = []
     clean_tag = req.keyword_or_hashtag.replace("#", "").replace(" ", "")
@@ -632,7 +637,7 @@ def scrape_instagram(req: InstagramRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/sosmed/tiktok", tags=["3. Social Media"])
+@app.post("/api/v1/sosmed/tiktok", tags=["3. Social Media"])
 def scrape_tiktok(req: TikTokRequest):
     rows = []
     clean_tag = req.keyword_or_hashtag.replace("#", "").replace(" ", "")
@@ -672,7 +677,7 @@ def scrape_tiktok(req: TikTokRequest):
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
-@api.post("/api/v1/sosmed/twitter", tags=["3. Social Media"])
+@app.post("/api/v1/sosmed/twitter", tags=["3. Social Media"])
 def scrape_twitter(req: TwitterRequest):
     rows = []
     if req.engine == "apify":
@@ -749,7 +754,7 @@ def _extract_single_linkedin_brightdata(url_target: str) -> Optional[dict]:
         return None
 
 
-@api.post("/api/v1/sosmed/linkedin", tags=["3. Social Media"])
+@app.post("/api/v1/sosmed/linkedin", tags=["3. Social Media"])
 def scrape_linkedin_service(req: LinkedInRequest):
     if not BRIGHTDATA_TOKEN:
         raise HTTPException(status_code=400, detail="BRIGHTDATA_TOKEN belum diatur")
@@ -780,174 +785,340 @@ def scrape_linkedin_service(req: LinkedInRequest):
 
 
 # =====================================================================
-# GRADIO UI CALLBACKS (UNTUK PM & DEMO LANGSUNG)
+# WEB DASHBOARD PORTAL UNTUK PM (DI ROOT "/")
 # =====================================================================
-def ui_load_bank_data(category, tool, search_text):
-    files = scan_bank_data(category=category, tool=tool)
-    if not files:
-        return pd.DataFrame([{"Info": "Tidak ada file CSV untuk filter ini."}]), None, "0 file ditemukan"
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def dashboard_ui():
+    return """
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDC Data Warehouse - Scraper & Bank Data Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0f111a] text-gray-200 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-800 pb-4 mb-6 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span>🧩</span> DDC Data Warehouse — Scraper & Bank Data Portal
+                </h1>
+                <p class="text-sm text-gray-400 mt-1">Pusat Bank Data Hasil Scraping & Ekstraksi API Real-Time</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="/api/v1/bank-data/catalog" target="_blank" class="px-3.5 py-2 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 text-xs font-medium rounded-lg border border-indigo-700 transition">
+                    🗂️ JSON Catalog Bank Data
+                </a>
+                <a href="/docs" target="_blank" class="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-xs font-medium rounded-lg border border-gray-700 transition">
+                    ⚙️ Dokumentasi Swagger API (/docs)
+                </a>
+            </div>
+        </div>
 
-    dfs = []
-    for f in files:
-        try:
-            d = pd.read_csv(f["filepath"])
-            d.insert(0, "File_Sumber", f["filename"])
-            dfs.append(d)
-        except Exception:
-            continue
+        <!-- 4 Main Navigation Tabs -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <button onclick="switchTab('bank')" id="tab-bank" class="py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition">
+                🏦 Bank Data (Semua CSV)
+            </button>
+            <button onclick="switchTab('keyword')" id="tab-keyword" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
+                🔍 1. Scraper - Keyword
+            </button>
+            <button onclick="switchTab('berita')" id="tab-berita" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
+                📰 2. Scraper - Berita
+            </button>
+            <button onclick="switchTab('sosmed')" id="tab-sosmed" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
+                📱 3. Scraper - Social Media
+            </button>
+        </div>
 
-    if not dfs:
-        return pd.DataFrame([{"Info": "Gagal membaca CSV."}]), None, "Error"
+        <!-- Control Card -->
+        <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl mb-6">
+            <!-- Form 0: Bank Data -->
+            <div id="form-bank" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Kategori Platform / Data</label>
+                    <select id="bd-cat" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="berita">Berita</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="twitter">Twitter / X</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="keyword_trending">Keyword & Trending</option>
+                        <option value="semua">Semua Kategori (Gabungan)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Filter Engine / Tool</label>
+                    <select id="bd-tool" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="semua">Semua Tool</option>
+                        <option value="apify">Apify</option>
+                        <option value="diffbot">Diffbot</option>
+                        <option value="newsdata">Newsdata</option>
+                        <option value="brightdata">Bright Data</option>
+                        <option value="kombine">Kombine</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Cari Kata Kunci (Opsional)</label>
+                    <input id="bd-search" type="text" placeholder="Contoh: prabowo, mbg, teknologi..." class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Batas Baris Ditampilkan</label>
+                    <input id="bd-limit" type="number" value="200" min="10" max="2000" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+            </div>
 
-    merged = pd.concat(dfs, ignore_index=True).fillna("")
-    if search_text.strip():
-        mask = merged.astype(str).apply(lambda x: x.str.contains(search_text.strip(), case=False, na=False)).any(axis=1)
-        merged = merged[mask]
+            <!-- Form 1: Keyword & Trending -->
+            <div id="form-keyword" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
+                    <select id="kw-mode" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
+                        <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">Keyword / Kategori</label>
+                    <input id="kw-input" type="text" value="karhutla" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
+                    <input id="kw-limit" type="number" value="15" min="1" max="100" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+            </div>
 
-    export_path = os.path.join(BASE_OUTPUT_DIR, f"bank_data_export_{category}_{tool}.csv")
-    merged.to_csv(export_path, index=False)
-    info = f"✅ Menampilkan {len(merged)} baris dari {len(dfs)} file CSV di Bank Data."
-    return merged.head(300), export_path, info
+            <!-- Form 2: Berita -->
+            <div id="form-berita" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
+                    <select id="br-engine" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot Fulltext)</option>
+                        <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
+                        <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
+                        <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">Topik Berita / URL Artikel</label>
+                    <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Jumlah Artikel</label>
+                    <input id="br-limit" type="number" value="10" min="1" max="100" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+            </div>
 
+            <!-- Form 3: Social Media -->
+            <div id="form-sosmed" class="hidden grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
+                    <select id="sm-platform" onchange="toggleSosmedOptions()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="twitter">Twitter / X</option>
+                        <option value="linkedin">LinkedIn (Bright Data)</option>
+                    </select>
+                </div>
+                <div id="sm-engine-box">
+                    <label class="block text-xs text-gray-400 mb-1">Engine</label>
+                    <select id="sm-engine" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="apify">Apify Actor</option>
+                        <option value="diffbot">Diffbot Analyze</option>
+                    </select>
+                </div>
+                <div id="sm-mode-box">
+                    <label class="block text-xs text-gray-400 mb-1">Format Kolom Tabel</label>
+                    <select id="sm-mode" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="full">Full Kolom Asli (29/39 Kolom)</option>
+                        <option value="bersih">Standar Bersih (9 Kolom)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
+                    <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
+                    <input id="sm-limit" type="number" value="10" min="1" max="100" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+            </div>
 
-def ui_run_keyword(mode, keyword, limit):
-    try:
-        if mode == "Keyword Search (Related Queries)":
-            res = scrape_keyword_search(KeywordSearchRequest(keyword=keyword, max_results=int(limit)))
-        else:
-            res = scrape_trending_topics(TrendingRequest(kategori=keyword, max_results=int(limit)))
-        df = pd.DataFrame(res["data"]) if res["data"] else pd.DataFrame([{"Info": "Data kosong"}])
-        return df, res["csv"], f"✅ Sukses menarik {res['total']} data."
-    except Exception as e:
-        return pd.DataFrame([{"Error": str(e)}]), None, f"❌ Error: {e}"
+            <!-- Action Bar -->
+            <div class="mt-5 flex items-center justify-between">
+                <div id="status-text" class="text-xs text-gray-400">Siap memuat atau mengekstrak data.</div>
+                <button onclick="executeAction()" id="btn-run" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg transition">
+                    📂 Muat Bank Data
+                </button>
+            </div>
+        </div>
 
+        <!-- Output Table Card -->
+        <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-semibold text-gray-300">📊 Tabel Output Data (<span id="row-count">0</span> baris)</h2>
+                <a id="btn-download" href="#" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">
+                    📥 Download CSV
+                </a>
+            </div>
+            <div class="overflow-x-auto max-h-[500px] border border-gray-800 rounded-xl">
+                <table class="w-full text-left text-xs text-gray-300">
+                    <thead id="table-head" class="bg-[#0f111a] text-gray-400 uppercase sticky top-0"></thead>
+                    <tbody id="table-body" class="divide-y divide-gray-800">
+                        <tr><td class="p-6 text-center text-gray-500">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-def ui_run_berita(engine, keyword, limit):
-    try:
-        req = BeritaBaseRequest(keyword_or_url=keyword, max_results=int(limit))
-        if engine == "kombine":
-            res = scrape_berita_kombine(req)
-        elif engine == "newsdata":
-            res = scrape_berita_newsdata(req)
-        elif engine == "diffbot":
-            res = scrape_berita_diffbot(req)
-        else:
-            res = scrape_berita_brightdata(req)
-        df = pd.DataFrame(res["data"]) if res["data"] else pd.DataFrame([{"Info": "Data kosong"}])
-        return df, res["csv"], f"✅ Sukses menarik {res['total']} artikel berita ({engine})."
-    except Exception as e:
-        return pd.DataFrame([{"Error": str(e)}]), None, f"❌ Error: {e}"
+    <script>
+        let currentTab = 'bank';
 
+        function switchTab(tab) {
+            currentTab = tab;
+            ['bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
+                document.getElementById('form-' + t).classList.add('hidden');
+                document.getElementById('form-' + t).classList.remove('grid');
+                document.getElementById('tab-' + t).className = "py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition";
+            });
+            document.getElementById('form-' + tab).classList.remove('hidden');
+            document.getElementById('form-' + tab).classList.add('grid');
+            document.getElementById('tab-' + tab).className = "py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition";
+            document.getElementById('btn-run').innerText = (tab === 'bank') ? "📂 Muat Bank Data" : "🚀 Jalankan Scraper";
+        }
 
-def ui_run_sosmed(platform, engine, mode_kolom, keyword, limit):
-    try:
-        lim = int(limit)
-        if platform == "linkedin":
-            res = scrape_linkedin_service(LinkedInRequest(keyword=keyword, region_indonesia=True, max_results=lim))
-        elif platform == "facebook":
-            m = "full_39_kolom" if mode_kolom == "Full Kolom Asli" else "bersih"
-            res = scrape_facebook(FacebookRequest(keyword_or_url=keyword, engine=engine, mode_apify=m, max_results=lim))
-        elif platform == "instagram":
-            m = "full_29_kolom" if mode_kolom == "Full Kolom Asli" else "bersih"
-            res = scrape_instagram(InstagramRequest(keyword_or_hashtag=keyword, engine=engine, mode_apify=m, max_results=lim))
-        elif platform == "tiktok":
-            res = scrape_tiktok(TikTokRequest(keyword_or_hashtag=keyword, engine=engine, max_results=lim))
-        else:
-            res = scrape_twitter(TwitterRequest(keyword=keyword, engine=engine, max_results=lim))
+        function toggleSosmedOptions() {
+            const pf = document.getElementById('sm-platform').value;
+            document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
+            document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
+        }
 
-        df = pd.DataFrame(res["data"]) if res["data"] else pd.DataFrame([{"Info": "Data kosong"}])
-        return df, res["csv"], f"✅ Sukses menarik {res['total']} data {platform.upper()}."
-    except Exception as e:
-        return pd.DataFrame([{"Error": str(e)}]), None, f"❌ Error: {e}"
+        async function executeAction() {
+            const btn = document.getElementById('btn-run');
+            const status = document.getElementById('status-text');
+            const dlBtn = document.getElementById('btn-download');
+            btn.disabled = true;
+            dlBtn.classList.add('hidden');
 
+            try {
+                if (currentTab === 'bank') {
+                    btn.innerText = "⏳ Memuat Bank Data...";
+                    const cat = document.getElementById('bd-cat').value;
+                    const tool = document.getElementById('bd-tool').value;
+                    const q = document.getElementById('bd-search').value;
+                    const lim = document.getElementById('bd-limit').value;
+                    const url = `/api/v1/bank-data/records?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&search_query=${encodeURIComponent(q)}&limit=${lim}`;
 
-# =====================================================================
-# GRADIO BLOCKS INTERFACE
-# =====================================================================
-with gr.Blocks(title="DDC Data Warehouse & Scraper Portal", theme=gr.themes.Soft()) as demo:
-    gr.Markdown(
-        """
-        # 🧩 DDC Data Warehouse — Portal Scraper & Bank Data
-        **Akses REST API / Dokumentasi Swagger untuk Backend:** Klik [**`/docs` (Swagger UI)**](/docs) | **Endpoint Bank Data JSON:** [`/api/v1/bank-data/catalog`](/api/v1/bank-data/catalog) & [`/api/v1/bank-data/records`](/api/v1/bank-data/records)
-        """
-    )
+                    const res = await fetch(url);
+                    const json = await res.json();
+                    renderTable(json.data || []);
+                    document.getElementById('row-count').innerText = json.returned_rows || 0;
+                    status.innerText = `✅ Bank Data: Menampilkan ${json.returned_rows} dari total ${json.total_matching_rows} baris (${json.files_merged} file CSV digabungkan).`;
+                    if (json.csv) {
+                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
+                        dlBtn.classList.remove('hidden');
+                    }
+                } else {
+                    btn.innerText = "⏳ Sedang Scraping...";
+                    status.innerText = "Menghubungi API eksternal, mohon tunggu 5-40 detik...";
+                    let endpoint = '';
+                    let payload = {};
 
-    with gr.Tabs():
-        # TAB 0: BANK DATA (SEMUA HASIL SCRAPING)
-        with gr.Tab("🏦 Bank Data (Semua Hasil Scraping)"):
-            gr.Markdown("Menampilkan seluruh kumpulan data `.csv` dari folder `coba/` (Apify, Diffbot, Newsdata, Bright Data, Kombine) maupun hasil baru.")
-            with gr.Row():
-                bd_cat = gr.Dropdown(
-                    choices=["semua", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin", "keyword_trending"],
-                    value="berita",
-                    label="Kategori Platform / Data"
-                )
-                bd_tool = gr.Dropdown(
-                    choices=["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"],
-                    value="semua",
-                    label="Filter Tool / Engine"
-                )
-                bd_search = gr.Textbox(label="Cari Kata Kunci di Dalam Bank Data (Opsional)", placeholder="Contoh: prabowo, mbg, teknologi...")
-                bd_btn = gr.Button("📂 Muat & Gabungkan Bank Data", variant="primary")
+                    if (currentTab === 'keyword') {
+                        endpoint = document.getElementById('kw-mode').value;
+                        const val = document.getElementById('kw-input').value;
+                        const lim = parseInt(document.getElementById('kw-limit').value);
+                        payload = endpoint.includes('trending')
+                            ? { kategori: val, geo: "ID", max_results: lim }
+                            : { keyword: val, geo: "ID", max_results: lim };
+                    } else if (currentTab === 'berita') {
+                        endpoint = document.getElementById('br-engine').value;
+                        payload = {
+                            keyword_or_url: document.getElementById('br-input').value,
+                            max_results: parseInt(document.getElementById('br-limit').value)
+                        };
+                    } else {
+                        const pf = document.getElementById('sm-platform').value;
+                        const eng = document.getElementById('sm-engine').value;
+                        const mode = document.getElementById('sm-mode').value;
+                        const val = document.getElementById('sm-input').value;
+                        const lim = parseInt(document.getElementById('sm-limit').value);
+                        endpoint = '/api/v1/sosmed/' + pf;
 
-            with gr.Row():
-                bd_status = gr.Markdown("Klik tombol di atas untuk memuat data.")
-                bd_file = gr.File(label="Download Gabungan CSV")
-            bd_table = gr.Dataframe(label="Tabel Bank Data", interactive=False)
-            bd_btn.click(ui_load_bank_data, inputs=[bd_cat, bd_tool, bd_search], outputs=[bd_table, bd_file, bd_status])
+                        if (pf === 'linkedin') {
+                            payload = { keyword: val, region_indonesia: true, max_results: lim };
+                        } else if (pf === 'facebook') {
+                            payload = { keyword_or_url: val, engine: eng, mode_apify: mode === 'full' ? 'full_39_kolom' : 'bersih', max_results: lim };
+                        } else if (pf === 'instagram') {
+                            payload = { keyword_or_hashtag: val, engine: eng, mode_apify: mode === 'full' ? 'full_29_kolom' : 'bersih', max_results: lim };
+                        } else if (pf === 'tiktok') {
+                            payload = { keyword_or_hashtag: val, engine: eng, max_results: lim };
+                        } else {
+                            payload = { keyword: val, engine: eng, max_results: lim };
+                        }
+                    }
 
-        # TAB 1: KEYWORD & TRENDING
-        with gr.Tab("🔍 1. Scraper - Keyword & Trending"):
-            with gr.Row():
-                kw_mode = gr.Radio(
-                    choices=["Keyword Search (Related Queries)", "Trending Topic (Rising Queries)"],
-                    value="Keyword Search (Related Queries)",
-                    label="Mode"
-                )
-                kw_input = gr.Textbox(value="karhutla", label="Keyword / Kategori")
-                kw_limit = gr.Slider(1, 50, value=15, step=1, label="Jumlah Target")
-                kw_btn = gr.Button("🚀 Scrape Keyword", variant="primary")
-            kw_status = gr.Markdown()
-            kw_file = gr.File(label="Download CSV")
-            kw_table = gr.Dataframe(interactive=False)
-            kw_btn.click(ui_run_keyword, inputs=[kw_mode, kw_input, kw_limit], outputs=[kw_table, kw_file, kw_status])
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await res.json();
+                    if (!res.ok) throw new Error(json.detail || 'Error API');
 
-        # TAB 2: BERITA
-        with gr.Tab("📰 2. Scraper - Berita"):
-            with gr.Row():
-                br_engine = gr.Dropdown(
-                    choices=["kombine", "newsdata", "diffbot", "brightdata"],
-                    value="kombine",
-                    label="Engine Berita (Struktur Tabel Otomatis Menyesuaikan Laporan)"
-                )
-                br_input = gr.Textbox(value="prabowo", label="Topik Berita / URL")
-                br_limit = gr.Slider(1, 50, value=10, step=1, label="Jumlah Artikel")
-                br_btn = gr.Button("🚀 Scrape Berita", variant="primary")
-            br_status = gr.Markdown()
-            br_file = gr.File(label="Download CSV")
-            br_table = gr.Dataframe(interactive=False)
-            br_btn.click(ui_run_berita, inputs=[br_engine, br_input, br_limit], outputs=[br_table, br_file, br_status])
+                    renderTable(json.data || []);
+                    document.getElementById('row-count').innerText = json.total || 0;
+                    status.innerText = "✅ Selesai! Tersimpan otomatis ke Bank Data: " + (json.csv || "-");
+                    if (json.csv) {
+                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
+                        dlBtn.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                status.innerText = "❌ Error: " + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = (currentTab === 'bank') ? "📂 Muat Bank Data" : "🚀 Jalankan Scraper";
+            }
+        }
 
-        # TAB 3: SOCIAL MEDIA & LINKEDIN
-        with gr.Tab("📱 3. Scraper - Social Media (Terpisah)"):
-            with gr.Row():
-                sm_pf = gr.Dropdown(
-                    choices=["instagram", "facebook", "tiktok", "twitter", "linkedin"],
-                    value="instagram",
-                    label="Platform Social Media"
-                )
-                sm_eng = gr.Dropdown(choices=["apify", "diffbot"], value="apify", label="Engine (Khusus Non-LinkedIn)")
-                sm_mode = gr.Radio(choices=["Full Kolom Asli", "Standar Bersih (9 Kolom)"], value="Full Kolom Asli", label="Skema Kolom (IG/FB)")
-                sm_input = gr.Textbox(value="kebakaranhutan", label="Keyword / Hashtag / URL Page")
-                sm_limit = gr.Slider(1, 50, value=10, step=1, label="Jumlah Data")
-            sm_btn = gr.Button("🚀 Scrape Social Media", variant="primary")
-            sm_status = gr.Markdown()
-            sm_file = gr.File(label="Download CSV")
-            sm_table = gr.Dataframe(interactive=False)
-            sm_btn.click(ui_run_sosmed, inputs=[sm_pf, sm_eng, sm_mode, sm_input, sm_limit], outputs=[sm_table, sm_file, sm_status])
+        function renderTable(rows) {
+            const thead = document.getElementById('table-head');
+            const tbody = document.getElementById('table-body');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
 
-# Mount Gradio UI ke dalam FastAPI App pada path "/"
-app = gr.mount_gradio_app(api, demo, path="/")
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td class="p-6 text-center text-gray-500">Data tidak ditemukan.</td></tr>';
+                return;
+            }
+
+            const cols = Object.keys(rows[0]);
+            thead.innerHTML = '<tr>' + cols.map(c => `<th class="px-4 py-3 border-b border-gray-800 whitespace-nowrap">${c}</th>`).join('') + '</tr>';
+
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#1f2437] transition";
+                tr.innerHTML = cols.map(c => {
+                    let val = r[c] !== null && r[c] !== undefined ? String(r[c]) : '';
+                    if (val.length > 90) val = val.substring(0, 90) + '...';
+                    return `<td class="px-4 py-2.5 whitespace-nowrap">${val}</td>`;
+                }).join('');
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.onload = () => executeAction();
+    </script>
+</body>
+</html>
+"""
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", 7860)))
+    uvicorn.run(app, host="0.0.0.0", port=port)
