@@ -43,13 +43,10 @@ app = Server(
         "(1) Scraper Keyword & Trending, (2) Scraper Berita, dan "
         "(3) Scraper Social Media terpisah (Facebook, Instagram, TikTok, Twitter, LinkedIn)."
     ),
-    version="3.2.0"
+    version="3.3.0"
 )
 
 
-# =====================================================================
-# DUMMY GPU ENDPOINT (SYARAT LOLOS STARTUP ZEROGPU HUGGING FACE)
-# =====================================================================
 @app.api(name="zerogpu_healthcheck")
 @gpu_decorator
 def zerogpu_healthcheck(ping: str = "ok") -> str:
@@ -57,11 +54,12 @@ def zerogpu_healthcheck(ping: str = "ok") -> str:
 
 
 # =====================================================================
-# MODUL BANK DATA (AUTO-INDEXER SEMUA CSV DI REPO & OUTPUT BARU)
+# MODUL BANK DATA & FILTER ENGINE YANG DIPERBAIKI
 # =====================================================================
 def detect_csv_metadata(filepath: str) -> dict:
     norm_path = filepath.replace("\\", "/").lower()
     fname = os.path.basename(filepath)
+    fname_lower = fname.lower()
 
     if "linkedin" in norm_path:
         category = "linkedin"
@@ -78,28 +76,59 @@ def detect_csv_metadata(filepath: str) -> dict:
     else:
         category = "berita"
 
+    tools_matched = set()
+    if "kombine" in norm_path:
+        tools_matched.add("kombine")
     if "apify" in norm_path:
-        tool = "apify"
-    elif "diffbot" in norm_path:
-        tool = "diffbot"
-    elif "newsdata" in norm_path:
-        tool = "newsdata"
-    elif "brightdata" in norm_path or "linkedin" in norm_path:
-        tool = "brightdata"
+        tools_matched.add("apify")
+    if "diffbot" in norm_path:
+        tools_matched.add("diffbot")
+    if "newsdata" in norm_path:
+        tools_matched.add("newsdata")
+    if "brightdata" in norm_path or "linkedin" in norm_path:
+        tools_matched.add("brightdata")
+
+    if not tools_matched:
+        tools_matched.add("kombine")
+
+    if "kombine_" in fname_lower:
+        primary_tool = "kombine"
+    elif "apify" in fname_lower or "/apify/" in norm_path:
+        primary_tool = "apify"
+    elif "diffbot" in fname_lower or "/diffbot/" in norm_path:
+        primary_tool = "diffbot"
+    elif "newsdata" in fname_lower or "/newsdata/" in norm_path:
+        primary_tool = "newsdata"
+    elif "brightdata" in fname_lower or "/brightdata/" in norm_path or "linkedin" in fname_lower:
+        primary_tool = "brightdata"
     else:
-        tool = "kombine"
+        primary_tool = "kombine"
+
+    is_raw_apify = (
+        category in ("facebook", "instagram")
+        and "apify" in tools_matched
+        and "bersih" not in fname_lower
+        and "master" not in fname_lower
+        and "fix" not in fname_lower
+    )
 
     return {
         "id": norm_path,
         "filename": fname,
         "filepath": filepath,
         "category": category,
-        "tool": tool,
+        "tool": primary_tool,
+        "tools_matched": list(tools_matched),
+        "is_raw_schema": is_raw_apify,
         "size_kb": round(os.path.getsize(filepath) / 1024, 2)
     }
 
 
-def scan_bank_data(category: str = "semua", tool: str = "semua") -> list[dict]:
+def scan_bank_data(
+    category: str = "semua",
+    tool: str = "semua",
+    schema_mode: str = "semua"
+) -> list[dict]:
     catalog = []
     search_roots = ["coba", BASE_OUTPUT_DIR]
     seen_paths = set()
@@ -115,14 +144,74 @@ def scan_bank_data(category: str = "semua", tool: str = "semua") -> list[dict]:
                         continue
                     seen_paths.add(full_p)
                     meta = detect_csv_metadata(full_p)
+
                     if category != "semua" and meta["category"] != category:
                         continue
-                    if tool != "semua" and meta["tool"] != tool:
+                    if tool != "semua" and tool not in meta["tools_matched"]:
                         continue
+                    if schema_mode == "standar" and meta["is_raw_schema"]:
+                        continue
+                    if schema_mode == "mentah" and not meta["is_raw_schema"]:
+                        continue
+
                     catalog.append(meta)
 
     catalog.sort(key=lambda x: x["filename"])
     return catalog
+
+
+def unify_dataframe_columns(df: pd.DataFrame, category: str, meta: dict) -> pd.DataFrame:
+    """
+    Menyatukan perbedaan huruf besar/kecil dan variasi nama kolom lintas tool
+    agar saat digabung (pd.concat) tidak menghasilkan kolom duplikat/kosong.
+    """
+    col_map = {}
+    for c in df.columns:
+        cl = c.strip().lower()
+        if cl in ("tool", "tools"):
+            col_map[c] = "tool"
+        elif cl == "platform":
+            col_map[c] = "platform"
+        elif cl in ("tanggal", "time", "timestamp", "createtimeiso"):
+            col_map[c] = "tanggal"
+        elif cl in ("sumber", "sitename"):
+            col_map[c] = "sumber"
+        elif cl in ("judul", "title"):
+            col_map[c] = "judul"
+        elif cl in ("penulis", "penulis berita", "author"):
+            col_map[c] = "penulis"
+        elif cl in ("isi_berita", "content"):
+            col_map[c] = "isi_berita"
+        elif cl in ("sentimen_diffbot", "sentiment"):
+            col_map[c] = "sentimen_diffbot"
+        elif cl in ("link", "url", "webvideourl", "facebookurl", "facebookuel"):
+            col_map[c] = "link"
+        elif cl in ("username", "pagename", "owner full name", "ownerusername"):
+            col_map[c] = "username"
+        elif cl in ("teks", "text", "caption", "full_text"):
+            col_map[c] = "teks"
+        elif cl in ("like", "likes", "likes count", "likescount", "diggcount"):
+            col_map[c] = "likes"
+        elif cl in ("komen", "comment", "comments", "comments count", "commentscount", "commentcount"):
+            col_map[c] = "komen"
+        elif cl in ("share", "shares", "sharecount"):
+            col_map[c] = "share"
+        elif cl == "query":
+            col_map[c] = "Query"
+        elif cl in ("values", "value"):
+            col_map[c] = "Values"
+        elif cl == "formattedvalue":
+            col_map[c] = "formattedvalue"
+
+    df = df.rename(columns=col_map)
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    if "tool" not in df.columns and category not in ("linkedin", "keyword_trending"):
+        df.insert(0, "tool", meta["tool"].capitalize())
+    if "platform" not in df.columns and category not in ("linkedin", "keyword_trending"):
+        df.insert(1, "platform", category.capitalize())
+
+    return df
 
 
 def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
@@ -143,9 +232,10 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
 @app.get("/api/v1/bank-data/catalog", tags=["0. Bank Data (Data Warehouse)"])
 def api_bank_data_catalog(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
-    tool: Literal["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"] = "semua"
+    tool: Literal["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"] = "semua",
+    schema_mode: Literal["semua", "standar", "mentah"] = "semua"
 ):
-    files = scan_bank_data(category=category, tool=tool)
+    files = scan_bank_data(category=category, tool=tool, schema_mode=schema_mode)
     return {"status": "success", "total_files": len(files), "catalog": files}
 
 
@@ -153,12 +243,15 @@ def api_bank_data_catalog(
 def api_bank_data_records(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
     tool: Literal["semua", "apify", "diffbot", "newsdata", "brightdata", "kombine"] = "semua",
+    schema_mode: Literal["standar", "semua", "mentah"] = "standar",
     filename: Optional[str] = Query(None, description="Filter nama file CSV spesifik"),
     search_query: Optional[str] = Query(None, description="Cari kata kunci di dalam isi data"),
     limit: int = Query(200, ge=1, le=5000)
 ):
-    files = scan_bank_data(category=category, tool=tool)
-    if filename:
+    effective_schema = "semua" if (filename and filename != "semua") else schema_mode
+    files = scan_bank_data(category=category, tool=tool, schema_mode=effective_schema)
+
+    if filename and filename != "semua":
         files = [f for f in files if f["filename"] == filename or f["id"] == filename]
 
     if not files:
@@ -168,6 +261,8 @@ def api_bank_data_records(
     for f in files:
         try:
             df = pd.read_csv(f["filepath"])
+            if schema_mode == "standar" and len(files) > 1:
+                df = unify_dataframe_columns(df, f["category"], f)
             df.insert(0, "_source_file", f["filename"])
             dfs.append(df)
         except Exception:
@@ -178,9 +273,10 @@ def api_bank_data_records(
 
     merged = pd.concat(dfs, ignore_index=True).fillna("")
     if search_query and search_query.strip():
-        q_clean = search_query.strip()
-        mask = merged.astype(str).apply(lambda x: x.str.contains(q_clean, case=False, na=False)).any(axis=1)
-        merged = merged[mask]
+        keywords = [k.strip() for k in search_query.strip().split() if k.strip()]
+        for kw in keywords:
+            mask = merged.astype(str).apply(lambda col: col.str.contains(kw, case=False, na=False, regex=False)).any(axis=1)
+            merged = merged[mask]
 
     export_path = os.path.join(BASE_OUTPUT_DIR, f"bank_data_export_{category}_{tool}.csv")
     merged.to_csv(export_path, index=False)
@@ -190,6 +286,7 @@ def api_bank_data_records(
         "status": "success",
         "category": category,
         "tool": tool,
+        "schema_mode": schema_mode,
         "files_merged": len(dfs),
         "total_matching_rows": len(merged),
         "returned_rows": len(records),
@@ -265,7 +362,7 @@ def _diffbot_extract_article(target_url: str) -> dict:
 
 
 # =====================================================================
-# SCHEMAS REQUEST (PYDANTIC V2 CLEAN)
+# SCHEMAS REQUEST
 # =====================================================================
 class KeywordSearchRequest(BaseModel):
     keyword: str = "karhutla"
@@ -574,7 +671,8 @@ def scrape_facebook(req: FacebookRequest):
                 "share": 0
             })
 
-    csv_file = save_platform_csv(rows, "facebook", f"{req.engine}_facebook_{req.keyword_or_url}")
+    suffix = "bersih" if req.mode_apify == "bersih" else "postingan"
+    csv_file = save_platform_csv(rows, "facebook", f"{req.engine}_facebook_{req.keyword_or_url}_{suffix}")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
@@ -649,7 +747,8 @@ def scrape_instagram(req: InstagramRequest):
                 "Share": 0
             })
 
-    csv_file = save_platform_csv(rows, "instagram", f"{req.engine}_instagram_{clean_tag}")
+    suffix = "bersih" if req.mode_apify == "bersih" else "raw"
+    csv_file = save_platform_csv(rows, "instagram", f"{req.engine}_instagram_{clean_tag}_{suffix}")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
@@ -689,7 +788,7 @@ def scrape_tiktok(req: TikTokRequest):
                 "share": 0
             })
 
-    csv_file = save_platform_csv(rows, "tiktok", f"{req.engine}_tiktok_{clean_tag}")
+    csv_file = save_platform_csv(rows, "tiktok", f"{req.engine}_tiktok_{clean_tag}_bersih")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
@@ -720,7 +819,7 @@ def scrape_twitter(req: TwitterRequest):
                 "Share": 0
             })
 
-    csv_file = save_platform_csv(rows, "twitter", f"{req.engine}_twitter_{req.keyword}")
+    csv_file = save_platform_csv(rows, "twitter", f"{req.engine}_twitter_{req.keyword}_bersih")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
 
@@ -849,10 +948,11 @@ def dashboard_ui():
         </div>
 
         <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl mb-6">
-            <div id="form-bank" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Form 0: Bank Data dengan Filter Lengkap -->
+            <div id="form-bank" class="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Kategori Platform / Data</label>
-                    <select id="bd-cat" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                    <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
+                    <select id="bd-cat" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
                         <option value="berita">Berita</option>
                         <option value="facebook">Facebook</option>
                         <option value="instagram">Instagram</option>
@@ -860,12 +960,12 @@ def dashboard_ui():
                         <option value="twitter">Twitter / X</option>
                         <option value="linkedin">LinkedIn</option>
                         <option value="keyword_trending">Keyword & Trending</option>
-                        <option value="semua">Semua Kategori (Gabungan)</option>
+                        <option value="semua">Semua Kategori</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Filter Engine / Tool</label>
-                    <select id="bd-tool" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                    <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
+                    <select id="bd-tool" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
                         <option value="semua">Semua Tool</option>
                         <option value="apify">Apify</option>
                         <option value="diffbot">Diffbot</option>
@@ -875,15 +975,30 @@ def dashboard_ui():
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Cari Kata Kunci (Opsional)</label>
-                    <input id="bd-search" type="text" placeholder="Contoh: prabowo, mbg, teknologi..." class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                    <label class="block text-xs text-gray-400 mb-1">3. Mode Skema Kolom</label>
+                    <select id="bd-schema" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="standar">Standar Rapih (Disatukan)</option>
+                        <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
+                        <option value="semua">Semua File (Tanpa Filter Skema)</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Batas Baris Ditampilkan</label>
-                    <input id="bd-limit" type="number" value="200" min="10" max="2000" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                    <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV Spesifik</label>
+                    <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                        <option value="semua">-- Semua File Sesuai Filter --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">5. Cari Kata Kunci Isi Tabel</label>
+                    <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik lalu tekan Enter..." class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">6. Batas Baris</label>
+                    <input id="bd-limit" type="number" value="200" min="10" max="5000" onchange="executeAction()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
                 </div>
             </div>
 
+            <!-- Form 1: Keyword & Trending -->
             <div id="form-keyword" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
@@ -902,6 +1017,7 @@ def dashboard_ui():
                 </div>
             </div>
 
+            <!-- Form 2: Berita -->
             <div id="form-berita" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
@@ -922,6 +1038,7 @@ def dashboard_ui():
                 </div>
             </div>
 
+            <!-- Form 3: Social Media -->
             <div id="form-sosmed" class="hidden grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
@@ -960,7 +1077,7 @@ def dashboard_ui():
             <div class="mt-5 flex items-center justify-between">
                 <div id="status-text" class="text-xs text-gray-400">Siap memuat atau mengekstrak data.</div>
                 <button onclick="executeAction()" id="btn-run" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg transition">
-                    📂 Muat Bank Data
+                    📂 Terapkan Filter / Muat Data
                 </button>
             </div>
         </div>
@@ -969,10 +1086,10 @@ def dashboard_ui():
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-sm font-semibold text-gray-300">📊 Tabel Output Data (<span id="row-count">0</span> baris)</h2>
                 <a id="btn-download" href="#" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">
-                    📥 Download CSV
+                    📥 Download CSV Hasil Filter
                 </a>
             </div>
-            <div class="overflow-x-auto max-h-[500px] border border-gray-800 rounded-xl">
+            <div class="overflow-x-auto max-h-[520px] border border-gray-800 rounded-xl">
                 <table class="w-full text-left text-xs text-gray-300">
                     <thead id="table-head" class="bg-[#0f111a] text-gray-400 uppercase sticky top-0"></thead>
                     <tbody id="table-body" class="divide-y divide-gray-800">
@@ -996,13 +1113,39 @@ def dashboard_ui():
             document.getElementById('form-' + tab).classList.remove('hidden');
             document.getElementById('form-' + tab).classList.add('grid');
             document.getElementById('tab-' + tab).className = "py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition";
-            document.getElementById('btn-run').innerText = (tab === 'bank') ? "📂 Muat Bank Data" : "🚀 Jalankan Scraper";
+            document.getElementById('btn-run').innerText = (tab === 'bank') ? "📂 Terapkan Filter / Muat Data" : "🚀 Jalankan Scraper";
         }
 
         function toggleSosmedOptions() {
             const pf = document.getElementById('sm-platform').value;
             document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
             document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
+        }
+
+        async function populateFileDropdown() {
+            const cat = document.getElementById('bd-cat').value;
+            const tool = document.getElementById('bd-tool').value;
+            const schema = document.getElementById('bd-schema').value;
+            const fileSelect = document.getElementById('bd-file');
+
+            try {
+                const res = await fetch(`/api/v1/bank-data/catalog?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}`);
+                const json = await res.json();
+                fileSelect.innerHTML = '<option value="semua">-- Semua File (' + (json.total_files || 0) + ' CSV) --</option>';
+                (json.catalog || []).forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.filename;
+                    opt.textContent = `${f.filename} (${f.size_kb} KB)`;
+                    fileSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function onBankFilterChange() {
+            await populateFileDropdown();
+            await executeAction();
         }
 
         async function executeAction() {
@@ -1014,19 +1157,25 @@ def dashboard_ui():
 
             try {
                 if (currentTab === 'bank') {
-                    btn.innerText = "⏳ Memuat Bank Data...";
+                    btn.innerText = "⏳ Memfilter Bank Data...";
                     const cat = document.getElementById('bd-cat').value;
                     const tool = document.getElementById('bd-tool').value;
+                    const schema = document.getElementById('bd-schema').value;
+                    const fname = document.getElementById('bd-file').value;
                     const q = document.getElementById('bd-search').value;
                     const lim = document.getElementById('bd-limit').value;
-                    const url = `/api/v1/bank-data/records?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&search_query=${encodeURIComponent(q)}&limit=${lim}`;
+
+                    let url = `/api/v1/bank-data/records?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}&search_query=${encodeURIComponent(q)}&limit=${lim}`;
+                    if (fname && fname !== 'semua') {
+                        url += `&filename=${encodeURIComponent(fname)}`;
+                    }
 
                     const res = await fetch(url);
                     const json = await res.json();
                     renderTable(json.data || []);
                     document.getElementById('row-count').innerText = json.returned_rows || 0;
-                    status.innerText = `✅ Bank Data: Menampilkan ${json.returned_rows} dari total ${json.total_matching_rows} baris (${json.files_merged} file CSV digabungkan).`;
-                    if (json.csv) {
+                    status.innerText = `✅ Filter Aktif: Menampilkan ${json.returned_rows} dari ${json.total_matching_rows} baris cocok (${json.files_merged} file CSV).`;
+                    if (json.csv && json.returned_rows > 0) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
                     }
@@ -1090,7 +1239,7 @@ def dashboard_ui():
                 status.innerText = "❌ Error: " + err.message;
             } finally {
                 btn.disabled = false;
-                btn.innerText = (currentTab === 'bank') ? "📂 Muat Bank Data" : "🚀 Jalankan Scraper";
+                btn.innerText = (currentTab === 'bank') ? "📂 Terapkan Filter / Muat Data" : "🚀 Jalankan Scraper";
             }
         }
 
@@ -1101,11 +1250,14 @@ def dashboard_ui():
             tbody.innerHTML = '';
 
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td class="p-6 text-center text-gray-500">Data tidak ditemukan.</td></tr>';
+                tbody.innerHTML = '<tr><td class="p-6 text-center text-gray-500">Data tidak ditemukan untuk kombinasi filter ini.</td></tr>';
                 return;
             }
 
-            const cols = Object.keys(rows[0]);
+            const colSet = new Set();
+            rows.forEach(r => Object.keys(r).forEach(k => colSet.add(k)));
+            const cols = Array.from(colSet);
+
             thead.innerHTML = '<tr>' + cols.map(c => `<th class="px-4 py-3 border-b border-gray-800 whitespace-nowrap">${c}</th>`).join('') + '</tr>';
 
             rows.forEach(r => {
@@ -1120,7 +1272,10 @@ def dashboard_ui():
             });
         }
 
-        window.onload = () => executeAction();
+        window.onload = async () => {
+            await populateFileDropdown();
+            await executeAction();
+        };
     </script>
 </body>
 </html>
