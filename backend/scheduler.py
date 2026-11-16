@@ -9,6 +9,7 @@ import os
 import threading
 from datetime import datetime
 import pytz
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from psycopg2.extras import Json
@@ -187,6 +188,7 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
             "total_rows_collected": total_collected,
             "breakdown": breakdown
         })
+        send_telegram_notif(_last_run_info)
         return _last_run_info
     except Exception as e:
         _last_run_info.update({
@@ -195,9 +197,45 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
             "total_rows_collected": total_collected,
             "breakdown": breakdown
         })
+        send_telegram_notif(_last_run_info)
         return _last_run_info
     finally:
         _lock.release()
+
+
+
+def send_telegram_notif(run_info: dict):
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        return
+    
+    status = run_info.get('status', 'unknown')
+    collected = run_info.get('total_rows_collected', 0)
+    bd = run_info.get('breakdown', {})
+    waktu = run_info.get('last_run_wib', 'N/A')
+    
+    if status == 'completed':
+        msg = f"✅ <b>CRON SCRAPER SELESAI</b>\n\n"
+    else:
+        msg = f"❌ <b>CRON SCRAPER GAGAL</b>\n\n"
+        
+    msg += f"⏱ <b>Waktu:</b> {waktu}\n"
+    msg += f"📦 <b>Total Data:</b> {collected} baris\n\n"
+    msg += f"📊 <b>Rincian Ekstraksi:</b>\n"
+    msg += f" 🔍 Keyword: {bd.get('keyword', 0)}\n"
+    msg += f" 🔥 Trending: {bd.get('trending', 0)}\n"
+    msg += f" 📰 Berita: {bd.get('berita', 0)}\n"
+    msg += f" 📱 Sosmed: {bd.get('sosmed', 0)}\n\n"
+    
+    if 'error' in run_info:
+        msg += f"⚠️ <b>Error:</b> {run_info['error'][:200]}"
+        
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        requests.post(url, json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"}, timeout=10)
+    except Exception:
+        pass
 
 
 def get_next_run_wib():
