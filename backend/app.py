@@ -1258,6 +1258,16 @@ def scrape_linkedin_service(req: LinkedInRequest):
     csv_file = save_platform_csv(rows, "linkedin", f"brightdata_linkedin_{req.keyword}")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
+
+FRONTEND_ANALYTICS_PATH = os.path.join(ROOT_DIR, "frontend", "analytics.html")
+
+@app.get("/analytics", response_class=HTMLResponse, include_in_schema=False)
+def analytics_ui():
+    if os.path.exists(FRONTEND_ANALYTICS_PATH):
+        with open(FRONTEND_ANALYTICS_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>Error: File frontend/analytics.html tidak ditemukan.</h1>"
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def dashboard_ui():
     if os.path.exists(FRONTEND_HTML_PATH):
