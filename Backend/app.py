@@ -26,7 +26,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from gradio import Server
 
-load_dotenv()
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BACKEND_DIR)
+
+# Membaca .env baik jika diletakkan di backend/.env maupun di root .env
+load_dotenv(os.path.join(BACKEND_DIR, ".env"))
+load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
 
 def clean_env(key: str, default: str = "") -> str:
@@ -44,7 +49,11 @@ APIFY_TOKEN = clean_env("APIFY_TOKEN") or clean_env("APIFY_API_KEY")
 BRIGHTDATA_TOKEN = clean_env("BRIGHTDATA_TOKEN") or clean_env("BRIGHTDATA_API_KEY")
 LINKEDIN_COLLECTOR_ID = clean_env("LINKEDIN_COLLECTOR_ID", "gd_l1viktl72bvl7bjuj0")
 
-BASE_OUTPUT_DIR = "output_csv"
+BASE_OUTPUT_DIR = os.path.join(ROOT_DIR, "output_csv")
+SCRAPERS_ARCHIVE_DIR = os.path.join(ROOT_DIR, "scrapers")
+LEGACY_COBA_DIR = os.path.join(ROOT_DIR, "coba")
+FRONTEND_HTML_PATH = os.path.join(ROOT_DIR, "Frontend", "index.html")
+
 os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 
 DEFAULT_HEADERS = {
@@ -59,7 +68,7 @@ app = Server(
         "(1) Scraper Keyword & Trending, (2) Scraper Berita, dan "
         "(3) Scraper Social Media terpisah (Facebook, Instagram, TikTok, Twitter, LinkedIn)."
     ),
-    version="3.4.0"
+    version="3.5.0"
 )
 
 
@@ -68,6 +77,7 @@ app = Server(
 def zerogpu_healthcheck(ping: str = "ok") -> str:
     return f"ZeroGPU Ready: {ping}"
 
+
 def safe_http_get(url: str, params: Optional[dict] = None, timeout: int = 20) -> str:
     if params:
         q_str = urllib.parse.urlencode(params)
@@ -75,7 +85,10 @@ def safe_http_get(url: str, params: Optional[dict] = None, timeout: int = 20) ->
 
     for imp in ("chrome_120", "chrome_116", None):
         try:
-            client = primp.Client(impersonate=imp, verify=False, timeout=timeout, headers=DEFAULT_HEADERS) if imp else primp.Client(verify=False, timeout=timeout, headers=DEFAULT_HEADERS)
+            client = (
+                primp.Client(impersonate=imp, verify=False, timeout=timeout, headers=DEFAULT_HEADERS)
+                if imp else primp.Client(verify=False, timeout=timeout, headers=DEFAULT_HEADERS)
+            )
             res = client.get(url)
             if res.status_code == 200 and res.text:
                 return res.text
@@ -90,6 +103,10 @@ def safe_http_get(url: str, params: Optional[dict] = None, timeout: int = 20) ->
         pass
     return ""
 
+
+# =====================================================================
+# MODUL BANK DATA & FILTER ENGINE
+# =====================================================================
 def detect_csv_metadata(filepath: str) -> dict:
     norm_path = filepath.replace("\\", "/").lower()
     fname = os.path.basename(filepath)
@@ -164,7 +181,7 @@ def scan_bank_data(
     schema_mode: str = "semua"
 ) -> list[dict]:
     catalog = []
-    search_roots = ["coba", BASE_OUTPUT_DIR]
+    search_roots = [SCRAPERS_ARCHIVE_DIR, LEGACY_COBA_DIR, BASE_OUTPUT_DIR]
     seen_paths = set()
 
     for root_dir in search_roots:
@@ -256,6 +273,9 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
     return filepath
 
 
+# =====================================================================
+# 0. ENDPOINT API BANK DATA (DATA WAREHOUSE)
+# =====================================================================
 @app.get("/api/v1/bank-data/catalog", tags=["0. Bank Data (Data Warehouse)"])
 def api_bank_data_catalog(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
@@ -328,18 +348,17 @@ def download_csv_file(path: str = Query(..., description="Path file CSV")):
         raise HTTPException(status_code=404, detail="File CSV tidak ditemukan")
     return FileResponse(path, filename=os.path.basename(path), media_type="text/csv")
 
+
+# =====================================================================
+# ENGINE HARVESTER BERITA & SOSMED
+# =====================================================================
 def fetch_rss_news_items(keyword: str, max_items: int = 20) -> list[dict]:
-    """
-    Mengambil daftar berita real-time dari Google News Indonesia RSS & Bing News RSS.
-    100% bebas blokir IP datacenter Hugging Face dan menjadi fallback otomatis.
-    """
     q = urllib.parse.quote(keyword)
     rss_urls = [
         f"https://news.google.com/rss/search?q={q}+when:30d&hl=id&gl=ID&ceid=ID:id",
         f"https://www.bing.com/news/search?q={q}&format=rss&cc=id"
     ]
-    items = []
-    seen_titles = set()
+    items, seen_titles = [], set()
 
     for r_url in rss_urls:
         if len(items) >= max_items:
@@ -403,12 +422,8 @@ def score_simple_sentiment(text: str) -> float:
 
 
 def harvest_search_snippets(dork_query: str, max_items: int = 15) -> list[dict]:
-    """
-    Mencari URL dan cuplikan teks menggunakan Bing RSS, Yahoo ID, dan DuckDuckGo HTML.
-    """
     q = urllib.parse.quote(dork_query)
-    results = []
-    seen = set()
+    results, seen = [], set()
 
     rss_text = safe_http_get(f"https://www.bing.com/search?q={q}&format=rss&cc=ID&setlang=id-ID", timeout=20)
     if rss_text:
@@ -493,6 +508,9 @@ def _diffbot_extract_article(target_url: str) -> dict:
     return {}
 
 
+# =====================================================================
+# SCHEMAS REQUEST
+# =====================================================================
 class KeywordSearchRequest(BaseModel):
     keyword: str = "karhutla"
     geo: str = "ID"
@@ -541,6 +559,10 @@ class LinkedInRequest(BaseModel):
     region_indonesia: bool = True
     max_results: int = Field(default=5, ge=1)
 
+
+# =====================================================================
+# 1. ENDPOINT KEYWORD & TRENDING
+# =====================================================================
 def harvest_expanded_suggestions(base_query: str, geo: str, max_target: int) -> list[str]:
     target_cap = min(max_target, 300)
     prefixes = [""] + [
@@ -548,8 +570,7 @@ def harvest_expanded_suggestions(base_query: str, geo: str, max_target: int) -> 
         "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
         "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
     ]
-    collected = []
-    seen = set()
+    collected, seen = [], set()
 
     for pref in prefixes:
         if len(collected) >= target_cap:
@@ -639,6 +660,10 @@ def scrape_trending_topics(req: TrendingRequest):
     csv_file = save_platform_csv(rows, "trending", f"related_queries_rising_{req.kategori}")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
+
+# =====================================================================
+# 2. ENDPOINT BERITA
+# =====================================================================
 @app.post("/api/v1/berita/newsdata", tags=["2. Berita"])
 def scrape_berita_newsdata(req: BeritaBaseRequest):
     rows = []
@@ -779,6 +804,10 @@ def scrape_berita_kombine(req: BeritaBaseRequest):
     csv_file = save_platform_csv(rows, "berita", f"kombine_berita_{req.keyword_or_url}")
     return {"status": "success", "total": len(rows), "csv": csv_file, "data": rows}
 
+
+# =====================================================================
+# 3. ENDPOINT SOCIAL MEDIA
+# =====================================================================
 def get_bank_data_fallback(category: str, keyword: str, limit: int) -> list[dict]:
     files = scan_bank_data(category=category, tool="semua", schema_mode="semua")
     dfs = []
@@ -1179,391 +1208,10 @@ def scrape_linkedin_service(req: LinkedInRequest):
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def dashboard_ui():
-    return """
-<!DOCTYPE html>
-<html lang="id" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Data Warehouse - Scraper & Bank Data Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-[#0f111a] text-gray-200 min-h-screen font-sans">
-    <div class="max-w-7xl mx-auto p-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-800 pb-4 mb-6 gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                    <span>🧩</span> DDC Data Warehouse — Scraper & Bank Data Portal
-                </h1>
-                <p class="text-sm text-gray-400 mt-1">Pusat Bank Data Hasil Scraping & Ekstraksi API Real-Time</p>
-            </div>
-            <div class="flex gap-2">
-                <a href="/api/v1/bank-data/catalog" target="_blank" class="px-3.5 py-2 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 text-xs font-medium rounded-lg border border-indigo-700 transition">
-                    🗂️ JSON Catalog Bank Data
-                </a>
-                <a href="/docs" target="_blank" class="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-xs font-medium rounded-lg border border-gray-700 transition">
-                    ⚙️ Dokumentasi Swagger API (/docs)
-                </a>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <button onclick="switchTab('bank')" id="tab-bank" class="py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition">
-                🏦 Bank Data (Semua CSV)
-            </button>
-            <button onclick="switchTab('keyword')" id="tab-keyword" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
-                🔍 1. Scraper - Keyword
-            </button>
-            <button onclick="switchTab('berita')" id="tab-berita" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
-                📰 2. Scraper - Berita
-            </button>
-            <button onclick="switchTab('sosmed')" id="tab-sosmed" class="py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition">
-                📱 3. Scraper - Social Media
-            </button>
-        </div>
-
-        <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl mb-6">
-            <!-- Form 0: Bank Data -->
-            <div id="form-bank" class="grid grid-cols-1 md:grid-cols-6 gap-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
-                    <select id="bd-cat" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="berita">Berita</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="tiktok">TikTok</option>
-                        <option value="twitter">Twitter / X</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="keyword_trending">Keyword & Trending</option>
-                        <option value="semua">Semua Kategori</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
-                    <select id="bd-tool" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="semua">Semua Tool</option>
-                        <option value="apify">Apify</option>
-                        <option value="diffbot">Diffbot</option>
-                        <option value="newsdata">Newsdata</option>
-                        <option value="brightdata">Bright Data</option>
-                        <option value="kombine">Kombine</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">3. Mode Skema Kolom</label>
-                    <select id="bd-schema" onchange="onBankFilterChange()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="standar">Standar Rapih (Disatukan)</option>
-                        <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
-                        <option value="semua">Semua File (Tanpa Filter Skema)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV Spesifik</label>
-                    <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="semua">-- Semua File Sesuai Filter --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">5. Cari Kata Kunci Isi Tabel</label>
-                    <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik lalu tekan Enter..." class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">6. Batas Baris</label>
-                    <input id="bd-limit" type="number" value="200" min="1" onchange="executeAction()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-            </div>
-
-            <!-- Form 1: Keyword & Trending -->
-            <div id="form-keyword" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
-                    <select id="kw-mode" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
-                        <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs text-gray-400 mb-1">Keyword / Kategori</label>
-                    <input id="kw-input" type="text" value="karhutla" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                    <input id="kw-limit" type="number" value="25" min="1" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-            </div>
-
-            <!-- Form 2: Berita -->
-            <div id="form-berita" class="hidden grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
-                    <select id="br-engine" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot Fulltext)</option>
-                        <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
-                        <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
-                        <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs text-gray-400 mb-1">Topik Berita / URL Artikel</label>
-                    <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Jumlah Artikel</label>
-                    <input id="br-limit" type="number" value="10" min="1" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-            </div>
-
-            <!-- Form 3: Social Media -->
-            <div id="form-sosmed" class="hidden grid-cols-1 md:grid-cols-5 gap-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
-                    <select id="sm-platform" onchange="toggleSosmedOptions()" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="instagram">Instagram</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="tiktok">TikTok</option>
-                        <option value="twitter">Twitter / X</option>
-                        <option value="linkedin">LinkedIn (Bright Data)</option>
-                    </select>
-                </div>
-                <div id="sm-engine-box">
-                    <label class="block text-xs text-gray-400 mb-1">Engine</label>
-                    <select id="sm-engine" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="apify">Apify Actor</option>
-                        <option value="diffbot">Diffbot Analyze</option>
-                    </select>
-                </div>
-                <div id="sm-mode-box">
-                    <label class="block text-xs text-gray-400 mb-1">Format Kolom Tabel</label>
-                    <select id="sm-mode" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                        <option value="full">Full Kolom Asli (29/39 Kolom)</option>
-                        <option value="bersih">Standar Bersih (9 Kolom)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
-                    <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                    <input id="sm-limit" type="number" value="10" min="1" class="w-full bg-[#0f111a] border border-gray-700 rounded-lg p-2.5 text-sm">
-                </div>
-            </div>
-
-            <div class="mt-5 flex items-center justify-between">
-                <div id="status-text" class="text-xs text-gray-400">Siap memuat atau mengekstrak data.</div>
-                <button onclick="executeAction()" id="btn-run" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg transition">
-                    📂 Terapkan Filter / Muat Data
-                </button>
-            </div>
-        </div>
-
-        <div class="bg-[#161926] border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-sm font-semibold text-gray-300">📊 Tabel Output Data (<span id="row-count">0</span> baris)</h2>
-                <a id="btn-download" href="#" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">
-                    📥 Download CSV
-                </a>
-            </div>
-            <div class="overflow-x-auto max-h-[520px] border border-gray-800 rounded-xl">
-                <table class="w-full text-left text-xs text-gray-300">
-                    <thead id="table-head" class="bg-[#0f111a] text-gray-400 uppercase sticky top-0"></thead>
-                    <tbody id="table-body" class="divide-y divide-gray-800">
-                        <tr><td class="p-6 text-center text-gray-500">Memuat data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentTab = 'bank';
-
-        function switchTab(tab) {
-            currentTab = tab;
-            ['bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
-                document.getElementById('form-' + t).classList.add('hidden');
-                document.getElementById('form-' + t).classList.remove('grid');
-                document.getElementById('tab-' + t).className = "py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1d2d] text-gray-400 hover:text-white border border-gray-800 transition";
-            });
-            document.getElementById('form-' + tab).classList.remove('hidden');
-            document.getElementById('form-' + tab).classList.add('grid');
-            document.getElementById('tab-' + tab).className = "py-3 px-4 rounded-xl font-semibold text-sm bg-purple-600 text-white shadow-lg transition";
-            document.getElementById('btn-run').innerText = (tab === 'bank') ? "📂 Terapkan Filter / Muat Data" : "🚀 Jalankan Scraper";
-        }
-
-        function toggleSosmedOptions() {
-            const pf = document.getElementById('sm-platform').value;
-            document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
-            document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
-        }
-
-        async function populateFileDropdown() {
-            const cat = document.getElementById('bd-cat').value;
-            const tool = document.getElementById('bd-tool').value;
-            const schema = document.getElementById('bd-schema').value;
-            const fileSelect = document.getElementById('bd-file');
-
-            try {
-                const res = await fetch(`/api/v1/bank-data/catalog?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}`);
-                const json = await res.json();
-                fileSelect.innerHTML = '<option value="semua">-- Semua File (' + (json.total_files || 0) + ' CSV) --</option>';
-                (json.catalog || []).forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f.filename;
-                    opt.textContent = `${f.filename} (${f.size_kb} KB)`;
-                    fileSelect.appendChild(opt);
-                });
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        async function onBankFilterChange() {
-            await populateFileDropdown();
-            await executeAction();
-        }
-
-        async function executeAction() {
-            const btn = document.getElementById('btn-run');
-            const status = document.getElementById('status-text');
-            const dlBtn = document.getElementById('btn-download');
-            btn.disabled = true;
-            dlBtn.classList.add('hidden');
-
-            try {
-                if (currentTab === 'bank') {
-                    btn.innerText = "⏳ Memfilter Bank Data...";
-                    const cat = document.getElementById('bd-cat').value;
-                    const tool = document.getElementById('bd-tool').value;
-                    const schema = document.getElementById('bd-schema').value;
-                    const fname = document.getElementById('bd-file').value;
-                    const q = document.getElementById('bd-search').value;
-                    const lim = parseInt(document.getElementById('bd-limit').value) || 200;
-
-                    let url = `/api/v1/bank-data/records?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}&search_query=${encodeURIComponent(q)}&limit=${lim}`;
-                    if (fname && fname !== 'semua') {
-                        url += `&filename=${encodeURIComponent(fname)}`;
-                    }
-
-                    const res = await fetch(url);
-                    const rawText = await res.text();
-                    let json = {};
-                    try { json = JSON.parse(rawText); } catch (_) { throw new Error(rawText.substring(0, 160)); }
-
-                    renderTable(json.data || []);
-                    document.getElementById('row-count').innerText = json.returned_rows || 0;
-                    status.innerText = `✅ Filter Aktif: Menampilkan ${json.returned_rows} dari ${json.total_matching_rows} baris cocok (${json.files_merged} file CSV).`;
-                    if (json.csv && json.returned_rows > 0) {
-                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
-                        dlBtn.classList.remove('hidden');
-                    }
-                } else {
-                    btn.innerText = "⏳ Sedang Scraping...";
-                    status.innerText = "Menghubungi API & Harvester, mohon tunggu 3-25 detik...";
-                    let endpoint = '';
-                    let payload = {};
-
-                    if (currentTab === 'keyword') {
-                        endpoint = document.getElementById('kw-mode').value;
-                        const val = document.getElementById('kw-input').value;
-                        const lim = Math.max(parseInt(document.getElementById('kw-limit').value) || 15, 1);
-                        payload = endpoint.includes('trending')
-                            ? { kategori: val, geo: "ID", max_results: lim }
-                            : { keyword: val, geo: "ID", max_results: lim };
-                    } else if (currentTab === 'berita') {
-                        endpoint = document.getElementById('br-engine').value;
-                        payload = {
-                            keyword_or_url: document.getElementById('br-input').value,
-                            max_results: Math.max(parseInt(document.getElementById('br-limit').value) || 10, 1)
-                        };
-                    } else {
-                        const pf = document.getElementById('sm-platform').value;
-                        const eng = document.getElementById('sm-engine').value;
-                        const mode = document.getElementById('sm-mode').value;
-                        const val = document.getElementById('sm-input').value;
-                        const lim = Math.max(parseInt(document.getElementById('sm-limit').value) || 10, 1);
-                        endpoint = '/api/v1/sosmed/' + pf;
-
-                        if (pf === 'linkedin') {
-                            payload = { keyword: val, region_indonesia: true, max_results: lim };
-                        } else if (pf === 'facebook') {
-                            payload = { keyword_or_url: val, engine: eng, mode_apify: mode === 'full' ? 'full_39_kolom' : 'bersih', max_results: lim };
-                        } else if (pf === 'instagram') {
-                            payload = { keyword_or_hashtag: val, engine: eng, mode_apify: mode === 'full' ? 'full_29_kolom' : 'bersih', max_results: lim };
-                        } else if (pf === 'tiktok') {
-                            payload = { keyword_or_hashtag: val, engine: eng, max_results: lim };
-                        } else {
-                            payload = { keyword: val, engine: eng, max_results: lim };
-                        }
-                    }
-
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const rawText = await res.text();
-                    let json = {};
-                    try { json = JSON.parse(rawText); } catch (_) { throw new Error(rawText.substring(0, 160)); }
-
-                    if (!res.ok) {
-                        const errMsg = typeof json.detail === 'object' ? JSON.stringify(json.detail) : (json.detail || 'Error API');
-                        throw new Error(errMsg);
-                    }
-
-                    renderTable(json.data || []);
-                    document.getElementById('row-count').innerText = json.total || 0;
-                    status.innerText = "✅ Selesai! Tersimpan otomatis ke Bank Data: " + (json.csv || "-");
-                    if (json.csv) {
-                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
-                        dlBtn.classList.remove('hidden');
-                    }
-                }
-            } catch (err) {
-                status.innerText = "❌ Error: " + err.message;
-            } finally {
-                btn.disabled = false;
-                btn.innerText = (currentTab === 'bank') ? "📂 Terapkan Filter / Muat Data" : "🚀 Jalankan Scraper";
-            }
-        }
-
-        function renderTable(rows) {
-            const thead = document.getElementById('table-head');
-            const tbody = document.getElementById('table-body');
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            if (!rows.length) {
-                tbody.innerHTML = '<tr><td class="p-6 text-center text-gray-500">Data tidak ditemukan untuk kombinasi filter ini.</td></tr>';
-                return;
-            }
-
-            const colSet = new Set();
-            rows.forEach(r => Object.keys(r).forEach(k => colSet.add(k)));
-            const cols = Array.from(colSet);
-
-            thead.innerHTML = '<tr>' + cols.map(c => `<th class="px-4 py-3 border-b border-gray-800 whitespace-nowrap">${c}</th>`).join('') + '</tr>';
-
-            rows.forEach(r => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-[#1f2437] transition";
-                tr.innerHTML = cols.map(c => {
-                    let val = r[c] !== null && r[c] !== undefined ? String(r[c]) : '';
-                    if (val.length > 90) val = val.substring(0, 90) + '...';
-                    return `<td class="px-4 py-2.5 whitespace-nowrap">${val}</td>`;
-                }).join('');
-                tbody.appendChild(tr);
-            });
-        }
-
-        window.onload = async () => {
-            await populateFileDropdown();
-            await executeAction();
-        };
-    </script>
-</body>
-</html>
-"""
+    if os.path.exists(FRONTEND_HTML_PATH):
+        with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>Error: File Frontend/index.html tidak ditemukan.</h1>"
 
 
 if __name__ == "__main__":

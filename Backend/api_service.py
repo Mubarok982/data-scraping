@@ -777,3 +777,43 @@ def scrape_linkedin_service(req: LinkedInRequest):
         "csv": csv_file,
         "data": rows
     }
+
+@app.get("/api/v1/warehouse/list", tags=["Bank Data Warehouse"])
+def list_warehouse_files():
+    """
+    Melihat daftar seluruh file hasil scraping yang tersimpan di Bank Data.
+    """
+    files_info = []
+    for root, dirs, files in os.walk(BASE_OUTPUT_DIR):
+        for file in files:
+            if file.endswith(".csv"):
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, BASE_OUTPUT_DIR)
+                files_info.append({
+                    "category": os.path.basename(root),
+                    "filename": file,
+                    "size_kb": round(os.path.getsize(full_path) / 1024, 2),
+                    "download_path": f"/api/v1/download?path={full_path}"
+                })
+    return {"status": "success", "total_files": len(files_info), "files": files_info}
+
+
+@app.get("/api/v1/warehouse/query", tags=["Bank Data Warehouse"])
+def query_warehouse_data(category: str = Query(..., example="berita"), filename: str = Query(..., example="newsdata_berita_prabowo.csv"), limit: int = 50):
+    """
+    Mengambil isi data (JSON) dari file tertentu yang ada di Bank Data secara spesifik lewat API.
+    """
+    target_path = os.path.join(BASE_OUTPUT_DIR, category, filename)
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="File di Bank Data tidak ditemukan")
+    
+    df = pd.read_csv(target_path)
+    data_dict = df.head(limit).to_dict(orient="records")
+    return {
+        "status": "success",
+        "category": category,
+        "filename": filename,
+        "total_rows_returned": len(data_dict),
+        "total_rows_in_file": len(df),
+        "data": data_dict
+    }
