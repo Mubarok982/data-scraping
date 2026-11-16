@@ -19,10 +19,6 @@ import base64
 import random
 import urllib.parse
 import xml.etree.ElementTree as ET
-from datetime import datetime
-from typing import Optional, Literal
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import primp
 import requests
 import pandas as pd
@@ -32,6 +28,10 @@ from fastapi import HTTPException, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from gradio import Server
+from datetime import datetime
+from typing import Optional, Literal
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 import sys
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -62,7 +62,7 @@ LINKEDIN_COLLECTOR_ID = clean_env("LINKEDIN_COLLECTOR_ID", "gd_l1viktl72bvl7bjuj
 BASE_OUTPUT_DIR = os.path.join(ROOT_DIR, "output_csv")
 SCRAPERS_ARCHIVE_DIR = os.path.join(ROOT_DIR, "scrapers")
 LEGACY_COBA_DIR = os.path.join(ROOT_DIR, "coba")
-FRONTEND_HTML_PATH = os.path.join(ROOT_DIR, "Frontend", "index.html")
+FRONTEND_HTML_PATH = os.path.join(ROOT_DIR, "frontend", "index.html")
 
 os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 
@@ -81,7 +81,6 @@ app = Server(
     version="3.5.0"
 )
 from backend.db import ingest_dataset_to_supabase, get_warehouse_summary_stats
-
 
 @app.api(name="zerogpu_healthcheck")
 @gpu_decorator
@@ -1264,13 +1263,8 @@ def dashboard_ui():
     if os.path.exists(FRONTEND_HTML_PATH):
         with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as f:
             return f.read()
-    return "<h1>Error: File Frontend/index.html tidak ditemukan.</h1>"
+    return "<h1>Error: File frontend/index.html tidak ditemukan.</h1>"
 
-
-
-# =====================================================================
-# 4. ENDPOINT CRON SCHEDULER (08:00, 16:00, 00:00 WIB - 1000 BARIS) & SUPABASE
-# =====================================================================
 from fastapi import BackgroundTasks
 from backend.scheduler import start_scheduler, get_scheduler_status, run_batch_1000_rows
 from backend.db import get_warehouse_summary_stats
