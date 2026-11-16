@@ -36,10 +36,6 @@ app = FastAPI(
     version="2.0.0"
 )
 
-
-# =====================================================================
-# HELPER: PENYIMPANAN CSV TERPISAH PER FOLDER PLATFORM
-# =====================================================================
 def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
     if not rows:
         return None
@@ -91,10 +87,6 @@ def harvest_urls_by_dork(dork_query: str, max_urls: int = 10) -> list[str]:
             continue
     return collected
 
-
-# =====================================================================
-# SCHEMAS REQUEST
-# =====================================================================
 class KeywordSearchRequest(BaseModel):
     keyword: str = Field(..., example="karhutla")
     geo: str = Field("ID", example="ID")
@@ -151,10 +143,6 @@ class LinkedInRequest(BaseModel):
     max_results: int = Field(10, ge=1, le=1000)
     save_csv: bool = True
 
-
-# =====================================================================
-# 1. ENDPOINT KEYWORD & TRENDING (TERPISAH)
-# =====================================================================
 @app.post("/api/v1/keyword/search", tags=["1. Keyword & Trending Service"])
 def scrape_keyword_search(req: KeywordSearchRequest):
     """
@@ -235,10 +223,6 @@ def scrape_trending_topics(req: TrendingRequest):
     csv_file = save_platform_csv(rows, "trending", f"related_queries_rising_{req.kategori}") if req.save_csv else None
     return {"status": "success", "type": "trending_rising", "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 2. ENDPOINT BERITA (TERPISAH PER ENGINE SESUAI LAPORAN)
-# =====================================================================
 @app.post("/api/v1/berita/newsdata", tags=["2. Berita Scraper Service"])
 def scrape_berita_newsdata(req: BeritaBaseRequest):
     """
@@ -382,10 +366,6 @@ def scrape_berita_kombine(req: BeritaBaseRequest):
     csv_file = save_platform_csv(rows, "berita", f"newsdata_berita_{req.keyword_or_url}_fix") if req.save_csv else None
     return {"status": "success", "engine": "kombine", "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 3. ENDPOINT SOCIAL MEDIA - FACEBOOK
-# =====================================================================
 @app.post("/api/v1/sosmed/facebook", tags=["3. Social Media Service (Terpisah)"])
 def scrape_facebook(req: FacebookRequest):
     """
@@ -483,10 +463,6 @@ def scrape_facebook(req: FacebookRequest):
     csv_file = save_platform_csv(rows, "facebook", f"{req.engine}_facebook_{req.keyword_or_url}") if req.save_csv else None
     return {"status": "success", "platform": "facebook", "engine": req.engine, "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 4. ENDPOINT SOCIAL MEDIA - INSTAGRAM
-# =====================================================================
 @app.post("/api/v1/sosmed/instagram", tags=["3. Social Media Service (Terpisah)"])
 def scrape_instagram(req: InstagramRequest):
     """
@@ -573,10 +549,6 @@ def scrape_instagram(req: InstagramRequest):
     csv_file = save_platform_csv(rows, "instagram", f"{req.engine}_instagram_{clean_tag}") if req.save_csv else None
     return {"status": "success", "platform": "instagram", "engine": req.engine, "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 5. ENDPOINT SOCIAL MEDIA - TIKTOK
-# =====================================================================
 @app.post("/api/v1/sosmed/tiktok", tags=["3. Social Media Service (Terpisah)"])
 def scrape_tiktok(req: TikTokRequest):
     """
@@ -628,10 +600,6 @@ def scrape_tiktok(req: TikTokRequest):
     csv_file = save_platform_csv(rows, "tiktok", f"{req.engine}_tiktok_{clean_tag}") if req.save_csv else None
     return {"status": "success", "platform": "tiktok", "engine": req.engine, "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 6. ENDPOINT SOCIAL MEDIA - TWITTER / X
-# =====================================================================
 @app.post("/api/v1/sosmed/twitter", tags=["3. Social Media Service (Terpisah)"])
 def scrape_twitter(req: TwitterRequest):
     """
@@ -675,10 +643,6 @@ def scrape_twitter(req: TwitterRequest):
     csv_file = save_platform_csv(rows, "twitter", f"{req.engine}_twitter_{req.keyword}") if req.save_csv else None
     return {"status": "success", "platform": "twitter", "engine": req.engine, "total": len(rows), "csv": csv_file, "data": rows}
 
-
-# =====================================================================
-# 7. ENDPOINT SOCIAL MEDIA - LINKEDIN (HYBRID + BRIGHT DATA V3)
-# =====================================================================
 def _extract_single_linkedin_brightdata(url_target: str) -> Optional[dict]:
     time.sleep(random.uniform(1.5, 3.5))
     endpoint = "https://api.brightdata.com/datasets/v3/scrape"
