@@ -1301,5 +1301,46 @@ def api_scheduler_run_now(background_tasks: BackgroundTasks, sync: bool = False)
     }
 
 
+
+@app.get("/api/v1/warehouse/records", tags=["4. Cron Scheduler & Supabase"])
+def api_warehouse_records(
+    category: str = Query("berita"),
+    search_query: str = Query(""),
+    limit: int = Query(200, ge=1, le=10000)
+):
+    from backend.db import query_warehouse_records
+    rows = query_warehouse_records(category=category, search_query=search_query, limit=limit)
+    csv_path = save_platform_csv(rows, "supabase_export", f"db_{category}") if rows else None
+    return {"status": "success", "returned_rows": len(rows), "csv": csv_path, "data": rows}
+
+
+@app.post("/api/v1/warehouse/sync-csv", tags=["4. Cron Scheduler & Supabase"])
+def api_sync_csv_to_supabase():
+    from backend.db import ingest_dataset_to_supabase, get_warehouse_summary_stats
+    files = scan_bank_data(category="semua", tool="semua", schema_mode="standar")
+    synced_files, synced_rows = 0, 0
+    for f in files:
+        try:
+            df = pd.read_csv(f["filepath"]).fillna("")
+            res = ingest_dataset_to_supabase(
+                category=f["category"],
+                tool=f["tool"],
+                job_name=f"sync_{f['filename']}",
+                parameters={"file": f["filename"]},
+                rows=df.to_dict(orient="records")
+            )
+            if res.get("synced"):
+                synced_files += 1
+                synced_rows += res.get("items_processed", 0)
+        except Exception:
+            continue
+    return {
+        "status": "success",
+        "files_synced": synced_files,
+        "rows_synced": synced_rows,
+        "supabase_warehouse": get_warehouse_summary_stats()
+    }
+
+
 if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860)

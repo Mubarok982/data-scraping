@@ -137,7 +137,7 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
         for kw in kw_seeds:
             if total_collected >= TARGET_ROWS_PER_RUN:
                 break
-            res = scrape_keyword_search(KeywordSearchRequest(keyword=kw, geo="ID", max_results=70))
+            res = scrape_keyword_search(KeywordSearchRequest(keyword=kw, geo="ID", max_results=50))
             cnt = res.get("total", 0)
             breakdown["keyword"] += cnt
             total_collected += cnt
@@ -147,7 +147,7 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
         for cat in trend_cats:
             if total_collected >= TARGET_ROWS_PER_RUN:
                 break
-            res = scrape_trending_topics(TrendingRequest(kategori=cat, geo="ID", max_results=70))
+            res = scrape_trending_topics(TrendingRequest(kategori=cat, geo="ID", max_results=50))
             cnt = res.get("total", 0)
             breakdown["trending"] += cnt
             total_collected += cnt
@@ -155,7 +155,7 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
         # 3. Berita Kombine (~200 baris)
         news_topics = ["prabowo", "teknologi", "ekonomi", "kebijakan pemerintah", "ikn", "pendidikan"]
         for top in news_topics:
-            if total_collected >= TARGET_ROWS_PER_RUN:
+            if breakdown['berita'] >= 200 or total_collected >= TARGET_ROWS_PER_RUN:
                 break
             res = scrape_berita_kombine(BeritaBaseRequest(keyword_or_url=top, max_results=40))
             cnt = res.get("total", 0)
