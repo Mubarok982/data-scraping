@@ -29,7 +29,6 @@ from gradio import Server
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BACKEND_DIR)
 
-# Membaca .env baik jika diletakkan di backend/.env maupun di root .env
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
@@ -70,6 +69,7 @@ app = Server(
     ),
     version="3.5.0"
 )
+from Backend.db import ingest_dataset_to_supabase, get_warehouse_summary_stats
 
 
 @app.api(name="zerogpu_healthcheck")
@@ -270,12 +270,58 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
     safe_prefix = re.sub(r"[^a-zA-Z0-9_-]", "_", prefix.lower())[:40]
     filepath = os.path.join(folder_path, f"{safe_prefix}_{ts}.csv")
     pd.DataFrame(rows).to_csv(filepath, index=False)
+
+    # Otomatis kirim ke 7 skema Supabase Data Warehouse
+    tool_guess = prefix.split("_")[0] if "_" in prefix else "kombine"
+    ingest_dataset_to_supabase(
+        category=subfolder,
+        tool=tool_guess,
+        job_name=f"live_scrape_{safe_prefix}",
+        parameters={"subfolder": subfolder, "prefix": prefix},
+        rows=rows
+    )
     return filepath
 
+@app.get("/api/v1/warehouse/stats", tags=["0. Bank Data (Data Warehouse)"])
+def api_supabase_warehouse_stats():
+    """Melihat status koneksi Supabase dan total baris di ke-7 skema tabel."""
+    return get_warehouse_summary_stats()
 
-# =====================================================================
-# 0. ENDPOINT API BANK DATA (DATA WAREHOUSE)
-# =====================================================================
+
+@app.post("/api/v1/warehouse/sync-csv-to-supabase", tags=["0. Bank Data (Data Warehouse)"])
+def api_sync_all_csv_to_supabase():
+    """Memigrasikan seluruh file CSV historis dari folder scrapers/ & output_csv/ ke Supabase."""
+    files = scan_bank_data(category="semua", tool="semua", schema_mode="standar")
+    total_files_synced = 0
+    total_rows_synced = 0
+    details = []
+
+    for f in files:
+        try:
+            df = pd.read_csv(f["filepath"]).fillna("")
+            rows = df.to_dict(orient="records")
+            res = ingest_dataset_to_supabase(
+                category=f["category"],
+                tool=f["tool"],
+                job_name=f"csv_migration_{f['filename']}",
+                parameters={"source_file": f["filename"]},
+                rows=rows
+            )
+            if res.get("synced"):
+                total_files_synced += 1
+                total_rows_synced += res.get("items_processed", 0)
+            details.append({"file": f["filename"], **res})
+        except Exception as e:
+            details.append({"file": f["filename"], "synced": False, "error": str(e)})
+
+    return {
+        "status": "success",
+        "files_synced": total_files_synced,
+        "total_rows_inserted": total_rows_synced,
+        "supabase_stats": get_warehouse_summary_stats(),
+        "details": details
+    }
+
 @app.get("/api/v1/bank-data/catalog", tags=["0. Bank Data (Data Warehouse)"])
 def api_bank_data_catalog(
     category: Literal["semua", "keyword_trending", "berita", "facebook", "instagram", "tiktok", "twitter", "linkedin"] = "semua",
@@ -348,10 +394,6 @@ def download_csv_file(path: str = Query(..., description="Path file CSV")):
         raise HTTPException(status_code=404, detail="File CSV tidak ditemukan")
     return FileResponse(path, filename=os.path.basename(path), media_type="text/csv")
 
-
-# =====================================================================
-# ENGINE HARVESTER BERITA & SOSMED
-# =====================================================================
 def fetch_rss_news_items(keyword: str, max_items: int = 20) -> list[dict]:
     q = urllib.parse.quote(keyword)
     rss_urls = [

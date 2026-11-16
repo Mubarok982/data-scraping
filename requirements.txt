@@ -6,3 +6,4 @@ pandas
 python-dotenv
 primp
 lxml
+psycopg2-binary
