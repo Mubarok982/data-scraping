@@ -1,3 +1,10 @@
+import os, sys
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BACKEND_DIR)
+for _p in (ROOT_DIR, BACKEND_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 import os
 try:
     import spaces
@@ -26,8 +33,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from gradio import Server
 
+import sys
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BACKEND_DIR)
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 load_dotenv(os.path.join(ROOT_DIR, ".env"))
@@ -69,7 +80,7 @@ app = Server(
     ),
     version="3.5.0"
 )
-from Backend.db import ingest_dataset_to_supabase, get_warehouse_summary_stats
+from backend.db import ingest_dataset_to_supabase, get_warehouse_summary_stats
 
 
 @app.api(name="zerogpu_healthcheck")
@@ -1254,6 +1265,40 @@ def dashboard_ui():
         with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as f:
             return f.read()
     return "<h1>Error: File Frontend/index.html tidak ditemukan.</h1>"
+
+
+
+# =====================================================================
+# 4. ENDPOINT CRON SCHEDULER (08:00, 16:00, 00:00 WIB - 1000 BARIS) & SUPABASE
+# =====================================================================
+from fastapi import BackgroundTasks
+from backend.scheduler import start_scheduler, get_scheduler_status, run_batch_1000_rows
+from backend.db import get_warehouse_summary_stats
+
+start_scheduler()
+
+
+@app.get("/api/v1/scheduler/status", tags=["4. Cron Scheduler & Supabase"])
+def api_scheduler_status():
+    return {
+        "status": "success",
+        "scheduler": get_scheduler_status(),
+        "supabase_warehouse": get_warehouse_summary_stats()
+    }
+
+
+@app.post("/api/v1/scheduler/run-now", tags=["4. Cron Scheduler & Supabase"])
+def api_scheduler_run_now(background_tasks: BackgroundTasks, sync: bool = False):
+    """Memicu penarikan 1.000 baris data secara langsung atau di background."""
+    if sync:
+        result = run_batch_1000_rows(trigger_source="manual_sync_api")
+        return {"status": "success", "execution": result}
+    background_tasks.add_task(run_batch_1000_rows, "webhook_cron_trigger")
+    return {
+        "status": "accepted",
+        "message": "Job ekstraksi 1.000 baris data sedang berjalan di background.",
+        "scheduler": get_scheduler_status()
+    }
 
 
 if __name__ == "__main__":

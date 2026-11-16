@@ -1,0 +1,18 @@
+name: Trigger HuggingFace 8-Hour Scraper Cron (1000 Rows)
+
+on:
+  schedule:
+    # 01:00 UTC = 08:00 WIB | 09:00 UTC = 16:00 WIB | 17:00 UTC = 00:00 WIB
+    - cron: '0 1,9,17 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-hf-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Hugging Face Space & Trigger 1000-Row Batch
+        run: |
+          SPACE_URL="${{ vars.HF_SPACE_URL || 'https://rizqy123-ddc-scraper-portal.hf.space' }}"
+          echo "Memicu cron 1000 baris di: $SPACE_URL"
+          curl -s -X POST "$SPACE_URL/api/v1/scheduler/run-now" \
+               -H "Content-Type: application/json"
