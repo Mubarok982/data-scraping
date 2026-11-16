@@ -6,5 +6,6 @@ pandas
 python-dotenv
 primp
 lxml
-psycopg2-binaryapscheduler
+psycopg2-binary
+apscheduler
 pytz
