@@ -538,3 +538,216 @@ def query_warehouse_records(
         except Exception:
             pass
     return rows
+
+import re
+from collections import Counter, defaultdict
+
+ID_LOCATIONS = {
+    "DKI Jakarta": ["jakarta", "dki", "jakpus", "jaksel", "jakbar", "jaktim", "jakut", "monas", "istana"],
+    "Riau & Kepri": ["riau", "pekanbaru", "dumai", "bengkalis", "siak", "batam", "kepri", "karhutla"],
+    "Jawa Barat": ["jawa barat", "jabar", "bandung", "bogor", "bekasi", "depok", "cirebon", "garut"],
+    "Jawa Tengah": ["jawa tengah", "jateng", "semarang", "solo", "surakarta", "magelang", "banyumas", "tegal"],
+    "Jawa Timur": ["jawa timur", "jatim", "surabaya", "malang", "sidoarjo", "kediri", "banyuwangi"],
+    "Kalimantan (IKN)": ["kalimantan", "ikn", "nusantara", "balikpapan", "samarinda", "pontianak", "banjarmasin", "palangkaraya", "kalbar", "kalteng", "kaltim", "kalsel"],
+    "Sumatera Selatan": ["sumatera selatan", "sumsel", "palembang", "ogan", "musi", "lahat"],
+    "Sumatera Utara": ["sumatera utara", "sumut", "medan", "deli serdang", "toba", "tapanuli"],
+    "Sulawesi": ["sulawesi", "makassar", "manado", "palu", "kendari", "sulsel", "sulut", "morowali"],
+    "Bali & Nusa Tenggara": ["bali", "denpasar", "ntt", "ntb", "lombok", "kupang", "flores", "manggarai"],
+    "Banten": ["banten", "tangerang", "tangsel", "serang", "cilegon", "merak"],
+    "Papua & Maluku": ["papua", "jayapura", "merauke", "timika", "maluku", "ambon", "ternate"]
+}
+
+KNOWN_FIGURES = {
+    "Prabowo Subianto": ["prabowo", "subianto", "presiden prabowo"],
+    "Joko Widodo (Jokowi)": ["jokowi", "joko widodo"],
+    "Gibran Rakabuming": ["gibran", "rakabuming", "wapres gibran"],
+    "Roy Suryo": ["roy suryo"],
+    "Sri Mulyani": ["sri mulyani", "menkeu"],
+    "Bahlil Lahadalia": ["bahlil", "lahadalia"],
+    "Erick Thohir": ["erick thohir"],
+    "Meutya Hafid": ["meutya", "menkomdigi"],
+    "Anies Baswedan": ["anies", "baswedan"],
+    "Ganjar Pranowo": ["ganjar", "pranowo"],
+    "Luhut Pandjaitan": ["luhut", "pandjaitan"],
+    "Sufmi Dasco": ["dasco", "sufmi dasco"],
+    "Mahfud MD": ["mahfud"],
+    "Agus Harimurti (AHY)": ["ahy", "agus harimurti"],
+    "Purbaya / Ekonomi": ["purbaya", "gubernur bi", "perry warjiyo"]
+}
+
+NEG_CUES = ["kebakaran", "karhutla", "bencana", "gempa", "banjir", "korban", "kritik", "konflik", "darurat", "rugi", "demo", "kasus", "krisis", "turun", "gagal"]
+POS_CUES = ["sukses", "berhasil", "naik", "tumbuh", "inovasi", "solusi", "positif", "dukungan", "prestasi", "investasi", "kerja sama", "optimis", "mbg"]
+
+
+def _classify_text_sentiment(text: str) -> str:
+    t = text.lower()
+    p = sum(1 for w in POS_CUES if w in t)
+    n = sum(1 for w in NEG_CUES if w in t)
+    if p > n:
+        return "positive"
+    if n > p:
+        return "negative"
+    return "neutral"
+
+
+def get_dashboard_analytics() -> dict:
+    conn = get_conn()
+    texts_with_meta = []
+    top_keywords = []
+    platform_counts = {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0}
+    sentiment_totals = {"positive": 0, "neutral": 0, "negative": 0}
+    timeline_buckets = defaultdict(lambda: {"berita": 0, "keyword": 0, "sosmed": 0})
+
+    if conn:
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    # 1. Ambil artikel berita + waktu + sentimen
+                    cur.execute("""
+                        SELECT a.title, COALESCE(c.content, a.summary, '') AS body,
+                               TO_CHAR(COALESCE(a.published_at, a.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
+                        FROM news.articles a
+                        LEFT JOIN news.article_contents c ON c.article_id = a.id
+                        ORDER BY a.created_at DESC LIMIT 1500
+                    """)
+                    for r in cur.fetchall():
+                        full_t = f"{r['title']} {r['body']}"
+                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
+                        texts_with_meta.append({"text": full_t, "source": "berita", "time": tb})
+                        timeline_buckets[tb]["berita"] += 1
+                        platform_counts["Berita"] += 1
+
+                    # 2. Ambil Top Keywords & Metrics
+                    cur.execute("""
+                        SELECT k.keyword, COALESCE(MAX(km.search_volume), 50) AS vol,
+                               TO_CHAR(MAX(k.updated_at), 'YYYY-MM-DD HH24:00') AS t_bucket
+                        FROM keyword.keywords k
+                        LEFT JOIN keyword.keyword_metrics km ON km.keyword_id = k.id
+                        GROUP BY k.id, k.keyword
+                        ORDER BY vol DESC, k.updated_at DESC
+                        LIMIT 300
+                    """)
+                    kw_rows = cur.fetchall()
+                    for idx, r in enumerate(kw_rows):
+                        kw_str = r["keyword"]
+                        vol = int(r["vol"] or 50)
+                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
+                        texts_with_meta.append({"text": kw_str, "source": "keyword", "time": tb})
+                        timeline_buckets[tb]["keyword"] += 1
+                        platform_counts["Keyword & Trend"] += 1
+                        if idx < 12:
+                            top_keywords.append({"keyword": kw_str, "volume": vol})
+
+                    # 3. Ambil Social Posts & Accounts
+                    cur.execute("""
+                        SELECT p.content, p.post_type, p.post_metadata::text AS meta_txt,
+                               TO_CHAR(COALESCE(p.published_at, p.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
+                        FROM social.posts p
+                        ORDER BY p.created_at DESC LIMIT 1500
+                    """)
+                    for r in cur.fetchall():
+                        full_t = f"{r['content'] or ''} {r['meta_txt'] or ''}"
+                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
+                        texts_with_meta.append({"text": full_t, "source": "sosmed", "time": tb})
+                        timeline_buckets[tb]["sosmed"] += 1
+                        platform_counts["Social Media"] += 1
+
+                    cur.execute("""
+                        SELECT display_name, account_metadata::text AS meta_txt
+                        FROM social.accounts
+                        LIMIT 500
+                    """)
+                    for r in cur.fetchall():
+                        texts_with_meta.append({
+                            "text": f"{r['display_name'] or ''} {r['meta_txt'] or ''}",
+                            "source": "linkedin",
+                            "time": datetime.now().strftime("%Y-%m-%d %H:00")
+                        })
+                        platform_counts["LinkedIn"] += 1
+            conn.close()
+        except Exception:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    # Hitung Polarisasi Lokasi & Tokoh Ter-trending
+    loc_stats = {
+        loc: {"name": loc, "total": 0, "positive": 0, "neutral": 0, "negative": 0, "top_issue": Counter()}
+        for loc in ID_LOCATIONS
+    }
+    person_stats = {
+        p: {"name": p, "mentions": 0, "positive": 0, "negative": 0, "neutral": 0}
+        for p in KNOWN_FIGURES
+    }
+
+    for item in texts_with_meta:
+        txt = item["text"]
+        txt_lower = txt.lower()
+        sent = _classify_text_sentiment(txt_lower)
+        sentiment_totals[sent] += 1
+
+        # Deteksi Lokasi
+        matched_any_loc = False
+        for loc_name, aliases in ID_LOCATIONS.items():
+            if any(a in txt_lower for a in aliases):
+                matched_any_loc = True
+                loc_stats[loc_name]["total"] += 1
+                loc_stats[loc_name][sent] += 1
+                for issue_kw in ["karhutla", "prabowo", "teknologi", "ekonomi", "gempa", "mbg", "ikn", "banjir", "politik"]:
+                    if issue_kw in txt_lower:
+                        loc_stats[loc_name]["top_issue"][issue_kw] += 1
+
+        # Jika teks umum nasional tanpa nama kota spesifik, masukkan sebagian ke DKI Jakarta (Pusat Berita Nasional)
+        if not matched_any_loc and any(w in txt_lower for w in ["nasional", "indonesia", "pemerintah", "menteri", "dpr", "presiden"]):
+            loc_stats["DKI Jakarta"]["total"] += 1
+            loc_stats["DKI Jakarta"][sent] += 1
+
+        # Deteksi Tokoh / Orang
+        for person_name, aliases in KNOWN_FIGURES.items():
+            if any(a in txt_lower for a in aliases):
+                person_stats[person_name]["mentions"] += 1
+                person_stats[person_name][sent] += 1
+
+    # Urutkan Lokasi berdasarkan total kemunculan
+    locations_list = []
+    for loc_name, st in loc_stats.items():
+        if st["total"] > 0:
+            dom_issue = st["top_issue"].most_common(1)[0][0] if st["top_issue"] else "umum"
+            pol_index = round(((st["positive"] - st["negative"]) / max(st["total"], 1)) * 100, 1)
+            locations_list.append({
+                "location": loc_name,
+                "total": st["total"],
+                "positive": st["positive"],
+                "neutral": st["neutral"],
+                "negative": st["negative"],
+                "polarization_index": pol_index,
+                "dominant_issue": dom_issue.upper()
+            })
+    locations_list.sort(key=lambda x: x["total"], reverse=True)
+
+    # Urutkan Tokoh Ter-trending
+    people_list = [v for v in person_stats.values() if v["mentions"] > 0]
+    people_list.sort(key=lambda x: x["mentions"], reverse=True)
+
+    # Susun Timeline (12 titik waktu terakhir)
+    sorted_times = sorted(timeline_buckets.keys())[-12:]
+    timeline_list = [
+        {
+            "time": t[-11:],
+            "berita": timeline_buckets[t]["berita"],
+            "keyword": timeline_buckets[t]["keyword"],
+            "sosmed": timeline_buckets[t]["sosmed"],
+            "total": timeline_buckets[t]["berita"] + timeline_buckets[t]["keyword"] + timeline_buckets[t]["sosmed"]
+        }
+        for t in sorted_times
+    ]
+
+    return {
+        "locations": locations_list[:10],
+        "top_people": people_list[:10],
+        "top_keywords": top_keywords[:10],
+        "timeline": timeline_list,
+        "sentiment_summary": sentiment_totals,
+        "platform_share": platform_counts
+    }

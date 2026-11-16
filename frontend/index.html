@@ -3,67 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Data Warehouse — 3-Column Portal</title>
+    <title>DDC Data Warehouse — Analytics & Scraper Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f111a; }
+        ::-webkit-scrollbar-track { background: #0b0d14; }
         ::-webkit-scrollbar-thumb { background: #2d334d; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
     </style>
 </head>
 <body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
     <!-- TOP NAVBAR -->
-    <header class="border-b border-gray-800/80 bg-[#111420]/90 backdrop-blur sticky top-0 z-30">
-        <div class="max-w-[1600px] mx-auto px-5 py-3.5 flex flex-wrap justify-between items-center gap-3">
+    <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
                     <span class="text-lg">🧩</span>
                 </div>
                 <div>
                     <h1 class="text-base md:text-lg font-bold text-white tracking-tight">
-                        DDC Data Warehouse — Scraper & Analytics Portal
+                        DDC Data Warehouse — Geo-Polarization & Trend Intelligence
                     </h1>
                     <p class="text-[11px] text-gray-400">
-                        7-Layer ELT Architecture • Supabase PostgreSQL • Automated 8-Hour Cron Engine
+                        7-Layer ELT Supabase • Polarisasi Wilayah • Tokoh & Keyword Ter-trending • Cron 8 Jam
                     </p>
                 </div>
             </div>
             <div class="flex items-center gap-2.5">
-                <span id="db-badge" class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
+                <span class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Supabase Connected
+                    Supabase Live
                 </span>
-                <a href="/api/v1/bank-data/catalog" target="_blank" class="px-3 py-1.5 bg-[#1a1f33] hover:bg-gray-800 text-indigo-300 text-xs font-medium rounded-lg border border-gray-700 transition">
-                    🗂️ Catalog JSON
-                </a>
+                <button onclick="refreshAll()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-medium rounded-lg border border-indigo-700/60 transition">
+                    ↻ Refresh Analitik
+                </button>
                 <a href="/docs" target="_blank" class="px-3 py-1.5 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition">
-                    ⚙️ Swagger API (/docs)
+                    ⚙️ Swagger API
                 </a>
             </div>
         </div>
     </header>
 
     <!-- MAIN 3-COLUMN LAYOUT -->
-    <main class="max-w-[1600px] mx-auto p-4 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    <main class="max-w-[1650px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
         <!-- ================================================================= -->
-        <!-- KOLOM KIRI (3 Kolom Grid): NAVIGASI MODE & FORM KONFIGURASI       -->
+        <!-- KOLOM KIRI (3 Kolom): NAVIGASI MODE, FILTER, & SCRAPER ENGINE     -->
         <!-- ================================================================= -->
         <aside class="lg:col-span-3 space-y-4">
-            <!-- Pemilih Mode (Menu Vertikal) -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                    🧭 Pilih Mode Operasi
+                    🧭 Pilih Mode Sumber & Scraper
                 </div>
                 <div class="space-y-1.5">
                     <button onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
                         <span>🗄️ Database Supabase (ELT)</span>
-                        <span class="text-[10px] bg-purple-800/80 px-2 py-0.5 rounded">Live DB</span>
+                        <span class="text-[10px] bg-purple-900/90 px-2 py-0.5 rounded">Live DB</span>
                     </button>
                     <button onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between">
                         <span>🏦 Bank Data (Arsip CSV)</span>
-                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">File</span>
+                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">CSV</span>
                     </button>
                     <button onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
                         🔍 1. Scraper — Keyword & Trend
@@ -77,13 +77,13 @@
                 </div>
             </div>
 
-            <!-- Form Parameter Dinamis Sesuai Tab -->
+            <!-- Parameter Filter & Ekstraksi -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                    🎛️ Parameter & Filter
+                    🎛️ Parameter & Filter Data
                 </div>
 
-                <!-- Form A: Database Supabase -->
+                <!-- Form Supabase -->
                 <div id="form-supabase" class="space-y-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Tabel Skema Domain</label>
@@ -98,8 +98,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Cari Kata Kunci di Database</label>
-                        <input id="sb-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                        <label class="block text-xs text-gray-400 mb-1">Filter Kata Kunci / Lokasi / Tokoh</label>
+                        <input id="sb-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Klik bar grafik atau ketik..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Batas Baris Query</label>
@@ -107,7 +107,7 @@
                     </div>
                 </div>
 
-                <!-- Form B: Bank Data CSV -->
+                <!-- Form Bank Data CSV -->
                 <div id="form-bank" class="hidden space-y-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
@@ -142,7 +142,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">4. File CSV Spesifik</label>
+                        <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV</label>
                         <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                             <option value="semua">-- Semua File --</option>
                         </select>
@@ -157,7 +157,7 @@
                     </div>
                 </div>
 
-                <!-- Form C: Scraper Keyword -->
+                <!-- Form Keyword -->
                 <div id="form-keyword" class="hidden space-y-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
@@ -176,7 +176,7 @@
                     </div>
                 </div>
 
-                <!-- Form D: Scraper Berita -->
+                <!-- Form Berita -->
                 <div id="form-berita" class="hidden space-y-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
@@ -188,7 +188,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Topik Berita / URL</label>
+                        <label class="block text-xs text-gray-400 mb-1">Topik Berita / Lokasi / Tokoh</label>
                         <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                     <div>
@@ -197,7 +197,7 @@
                     </div>
                 </div>
 
-                <!-- Form E: Scraper Social Media -->
+                <!-- Form Sosmed -->
                 <div id="form-sosmed" class="hidden space-y-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
@@ -237,42 +237,107 @@
                     🗄️ Muat Tabel Supabase
                 </button>
             </div>
+
+            <!-- Panel Polarisasi Wilayah (Early Warning Ringkas) -->
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">
+                    📍 Ringkasan Polarisasi Tempat
+                </div>
+                <div id="loc-badges" class="space-y-2 text-xs">
+                    <div class="text-gray-500 text-xs">Memuat analisis wilayah...</div>
+                </div>
+            </div>
         </aside>
 
         <!-- ================================================================= -->
-        <!-- KOLOM TENGAH (6 Kolom Grid): KPI SUMMARY & TABEL DATA EXPLORER    -->
+        <!-- KOLOM TENGAH (6 Kolom): 4 GRAFIK UTAMA & TABEL DATA EXPLORER      -->
         <!-- ================================================================= -->
         <section class="lg:col-span-6 space-y-4">
-            <!-- 4 KPI Cards Atas -->
+            <!-- 4 KPI Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📦 Raw Payloads</div>
-                    <div id="kpi-raw" class="text-xl font-bold text-white mt-1">0</div>
-                    <div class="text-[10px] text-indigo-400 mt-0.5">scraper.raw_data</div>
+                    <div class="text-[11px] text-gray-400">📦 Total Raw Data</div>
+                    <div id="kpi-raw" class="text-xl font-bold text-white mt-0.5">0</div>
+                    <div class="text-[10px] text-indigo-400">scraper.raw_data</div>
                 </div>
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📰 News Articles</div>
-                    <div id="kpi-news" class="text-xl font-bold text-emerald-400 mt-1">0</div>
-                    <div class="text-[10px] text-gray-500 mt-0.5">news.articles</div>
+                    <div class="text-[11px] text-gray-400">📰 Artikel Berita</div>
+                    <div id="kpi-news" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">news.articles</div>
                 </div>
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">🔥 Keywords & Trends</div>
-                    <div id="kpi-kw" class="text-xl font-bold text-amber-400 mt-1">0</div>
-                    <div class="text-[10px] text-gray-500 mt-0.5">keyword + trend</div>
+                    <div class="text-[11px] text-gray-400">🔥 Keyword & Tren</div>
+                    <div id="kpi-kw" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">keyword + trend</div>
                 </div>
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📱 Social & Sentiment</div>
-                    <div id="kpi-social" class="text-xl font-bold text-purple-400 mt-1">0</div>
-                    <div class="text-[10px] text-gray-500 mt-0.5">social + analytics</div>
+                    <div class="text-[11px] text-gray-400">📱 Sosmed & Sentimen</div>
+                    <div id="kpi-social" class="text-xl font-bold text-purple-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">social + analytics</div>
                 </div>
             </div>
 
-            <!-- Panel Tabel Utama -->
+            <!-- GRID 4 GRAFIK ANALITIK UTAMA -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 1. Grafik Lokasi & Polarisasi Tempat -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)</h3>
+                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah (Klik bar untuk filter)</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartLocations"></canvas>
+                    </div>
+                </div>
+
+                <!-- 2. Grafik Orang / Tokoh Paling Trending -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">👤 Tokoh / Orang Paling Trending</h3>
+                            <p class="text-[10px] text-gray-400">Frekuensi kemunculan tokoh di Berita & Sosmed</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartPeople"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3. Grafik Keyword Paling Trending -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🔥 Top Keyword Paling Trending</h3>
+                            <p class="text-[10px] text-gray-400">Volume kueri tertinggi dari skema keyword & trend</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartKeywords"></canvas>
+                    </div>
+                </div>
+
+                <!-- 4. Grafik Waktu (Time-Series) -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">⏱️ Tren Waktu & Aktivitas Ingesti</h3>
+                            <p class="text-[10px] text-gray-400">Distribusi masuknya Berita, Keyword, & Sosmed per waktu</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartTimeline"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABEL DATA EXPLORER -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-gray-800">
                     <div>
                         <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                            <span>📊 Data Explorer</span>
+                            <span>📊 Tabel Output Data Explorer</span>
                             <span class="text-xs font-normal px-2.5 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800 rounded-full">
                                 <span id="row-count">0</span> baris
                             </span>
@@ -282,13 +347,16 @@
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button onclick="resetSearchFilter()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] rounded-lg border border-gray-700 transition">
+                            Reset Filter
+                        </button>
                         <a id="btn-download" href="#" class="hidden px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition shadow">
                             📥 Download CSV
                         </a>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto max-h-[600px] border border-gray-800/80 rounded-xl bg-[#0b0d14]">
+                <div class="overflow-x-auto max-h-[440px] border border-gray-800/80 rounded-xl bg-[#0b0d14]">
                     <table class="w-full text-left text-xs text-gray-300">
                         <thead id="table-head" class="bg-[#161b2e] text-gray-300 uppercase text-[11px] sticky top-0 z-10"></thead>
                         <tbody id="table-body" class="divide-y divide-gray-800/70">
@@ -300,21 +368,21 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- KOLOM KANAN (3 Kolom Grid): CRON 8 JAM & 7 SKEMA SUPABASE         -->
+        <!-- KOLOM KANAN (3 Kolom): CRON 8 JAM, POLARISASI SENTIMEN & SKEMA DB -->
         <!-- ================================================================= -->
         <aside class="lg:col-span-3 space-y-4">
-            <!-- Kartu Cron Job 8 Jam (1000 Baris) -->
+            <!-- Cron Scheduler 8 Jam -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         ⏰ Cron Scheduler (8 Jam)
                     </span>
-                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
                         ACTIVE
                     </span>
                 </div>
 
-                <div class="bg-[#0b0d14] border border-gray-800 rounded-xl p-3 space-y-2 text-xs">
+                <div class="bg-[#0b0d14] border border-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
                     <div class="flex justify-between">
                         <span class="text-gray-400">Jadwal WIB:</span>
                         <span class="font-semibold text-white">08:00 • 16:00 • 00:00</span>
@@ -332,7 +400,7 @@
                         <span id="cron-last" class="font-mono text-[11px] text-gray-300">-</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-400">Status Terakhir:</span>
+                        <span class="text-gray-400">Status:</span>
                         <span id="cron-status" class="font-semibold text-amber-300">idle</span>
                     </div>
                 </div>
@@ -347,18 +415,28 @@
                 </div>
             </div>
 
-            <!-- Kartu Statistik 7 Skema Supabase -->
+            <!-- Fitur Tambahan: Grafik Polarisasi Sentimen & Share of Voice -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                    ⚖️ Polarisasi Sentimen & Share Platform
+                </div>
+                <div class="h-44">
+                    <canvas id="chartSentiment"></canvas>
+                </div>
+            </div>
+
+            <!-- Statistik 7 Skema Supabase -->
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-2.5">
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🏛️ Status 7 Skema Supabase
+                        🏛️ 7 Skema Supabase Warehouse
                     </span>
-                    <button onclick="refreshTelemetry()" class="text-[11px] text-indigo-400 hover:text-indigo-300">
-                        ↻ Refresh
+                    <button onclick="refreshAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">
+                        ↻
                     </button>
                 </div>
 
-                <div class="space-y-2 text-xs">
+                <div class="space-y-1.5 text-xs">
                     <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
                         <span class="text-gray-400">1. core.sources</span>
                         <span id="st-sources" class="font-bold text-white">0</span>
@@ -402,13 +480,17 @@
 
     <script>
         let currentTab = 'supabase';
+        let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null;
+
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
+        Chart.defaults.font.size = 11;
 
         function switchTab(tab) {
             currentTab = tab;
             ['supabase', 'bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
                 document.getElementById('form-' + t).classList.add('hidden');
-                const btn = document.getElementById('tab-' + t);
-                btn.className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between";
+                document.getElementById('tab-' + t).className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between";
             });
             document.getElementById('form-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between";
@@ -425,6 +507,200 @@
             const pf = document.getElementById('sm-platform').value;
             document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
             document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
+        }
+
+        function filterByTerm(term) {
+            const clean = term.split('(')[0].replace('&', '').trim().split(' ')[0];
+            if (currentTab === 'supabase') {
+                document.getElementById('sb-search').value = clean;
+            } else {
+                switchTab('supabase');
+                document.getElementById('sb-search').value = clean;
+            }
+            executeAction();
+        }
+
+        function resetSearchFilter() {
+            document.getElementById('sb-search').value = '';
+            document.getElementById('bd-search').value = '';
+            executeAction();
+        }
+
+        async function loadAnalyticsCharts() {
+            try {
+                const res = await fetch('/api/v1/warehouse/analytics');
+                const json = await res.json();
+                const an = json.analytics || {};
+
+                const locs = an.locations || [];
+                const ppl = an.top_people || [];
+                const kws = an.top_keywords || [];
+                const tl = an.timeline || [];
+                const sent = an.sentiment_summary || { positive: 0, neutral: 0, negative: 0 };
+
+                // 1. Render Location Polarization Chart
+                const ctxLoc = document.getElementById('chartLocations').getContext('2d');
+                if (chartLoc) chartLoc.destroy();
+                chartLoc = new Chart(ctxLoc, {
+                    type: 'bar',
+                    data: {
+                        labels: locs.map(x => x.location),
+                        datasets: [
+                            { label: 'Positif', data: locs.map(x => x.positive), backgroundColor: '#10b981' },
+                            { label: 'Netral', data: locs.map(x => x.neutral), backgroundColor: '#6366f1' },
+                            { label: 'Negatif', data: locs.map(x => x.negative), backgroundColor: '#ef4444' }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true, grid: { color: '#1f2937' } },
+                            y: { stacked: true, grid: { display: false } }
+                        },
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+                        onClick: (_, elements) => {
+                            if (elements.length > 0) {
+                                const idx = elements[0].index;
+                                filterByTerm(locs[idx].location);
+                            }
+                        }
+                    }
+                });
+
+                // Render Badge Ringkasan Lokasi di Kolom Kiri
+                const badgeBox = document.getElementById('loc-badges');
+                if (locs.length > 0) {
+                    badgeBox.innerHTML = locs.slice(0, 6).map(l => {
+                        const isNeg = l.negative > l.positive;
+                        const pillClass = isNeg
+                            ? 'bg-red-950/80 text-red-300 border-red-800'
+                            : 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
+                        const labelPol = isNeg ? 'Polarisasi Isu Kritis' : 'Dominan Positif/Netral';
+                        return `
+                            <div onclick="filterByTerm('${l.location}')" class="cursor-pointer p-2 rounded-xl bg-[#0b0d14] hover:bg-[#1a2036] border border-gray-800/80 flex items-center justify-between transition">
+                                <div>
+                                    <div class="font-semibold text-gray-200">${l.location} <span class="text-[10px] text-indigo-400">(${l.total})</span></div>
+                                    <div class="text-[10px] text-gray-400">Isu: <span class="text-amber-300 font-medium">${l.dominant_issue}</span></div>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] rounded border ${pillClass}">${labelPol}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // 2. Render Top Trending People Chart
+                const ctxPpl = document.getElementById('chartPeople').getContext('2d');
+                if (chartPpl) chartPpl.destroy();
+                chartPpl = new Chart(ctxPpl, {
+                    type: 'bar',
+                    data: {
+                        labels: ppl.map(x => x.name),
+                        datasets: [{
+                            label: 'Total Mentions',
+                            data: ppl.map(x => x.mentions),
+                            backgroundColor: '#a855f7',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: '#1f2937' } },
+                            y: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } },
+                        onClick: (_, elements) => {
+                            if (elements.length > 0) {
+                                const idx = elements[0].index;
+                                filterByTerm(ppl[idx].name);
+                            }
+                        }
+                    }
+                });
+
+                // 3. Render Top Trending Keywords Chart
+                const ctxKw = document.getElementById('chartKeywords').getContext('2d');
+                if (chartKw) chartKw.destroy();
+                chartKw = new Chart(ctxKw, {
+                    type: 'bar',
+                    data: {
+                        labels: kws.map(x => x.keyword.length > 22 ? x.keyword.substring(0, 22) + '...' : x.keyword),
+                        datasets: [{
+                            label: 'Indeks Volume',
+                            data: kws.map(x => x.volume),
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: '#1f2937' } },
+                            y: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } },
+                        onClick: (_, elements) => {
+                            if (elements.length > 0) {
+                                const idx = elements[0].index;
+                                filterByTerm(kws[idx].keyword);
+                            }
+                        }
+                    }
+                });
+
+                // 4. Render Timeline Chart
+                const ctxTime = document.getElementById('chartTimeline').getContext('2d');
+                if (chartTime) chartTime.destroy();
+                chartTime = new Chart(ctxTime, {
+                    type: 'line',
+                    data: {
+                        labels: tl.map(x => x.time),
+                        datasets: [
+                            { label: 'Berita', data: tl.map(x => x.berita), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.35 },
+                            { label: 'Keyword/Tren', data: tl.map(x => x.keyword), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.35 },
+                            { label: 'Sosmed', data: tl.map(x => x.sosmed), borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', fill: true, tension: 0.35 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: '#1f2937' } },
+                            y: { grid: { color: '#1f2937' }, beginAtZero: true }
+                        },
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
+                    }
+                });
+
+                // 5. Render Sentiment Doughnut Chart (Kolom Kanan)
+                const ctxSent = document.getElementById('chartSentiment').getContext('2d');
+                if (chartSent) chartSent.destroy();
+                chartSent = new Chart(ctxSent, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Positif / Optimis', 'Netral / Informatif', 'Negatif / Kritis'],
+                        datasets: [{
+                            data: [sent.positive || 0, sent.neutral || 0, sent.negative || 0],
+                            backgroundColor: ['#10b981', '#6366f1', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '62%',
+                        plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
+                    }
+                });
+            } catch (e) {
+                console.error("Gagal memuat grafik analitik:", e);
+            }
         }
 
         async function refreshTelemetry() {
@@ -458,16 +734,20 @@
             }
         }
 
+        async function refreshAll() {
+            await Promise.all([refreshTelemetry(), loadAnalyticsCharts()]);
+        }
+
         async function triggerCronNow() {
             const btn = document.getElementById('btn-cron');
             const status = document.getElementById('status-text');
             btn.disabled = true;
             btn.innerText = "⏳ Menarik 1.000 Baris...";
-            status.innerText = "Menjalankan batch 1.000 baris di background, angka di kolom kanan akan bertambah otomatis...";
+            status.innerText = "Menjalankan batch 1.000 baris di background, grafik & statistik akan diperbarui otomatis...";
             try {
                 await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
-                setTimeout(refreshTelemetry, 4000);
-                setTimeout(refreshTelemetry, 12000);
+                setTimeout(refreshAll, 5000);
+                setTimeout(refreshAll, 15000);
             } catch (e) {
                 status.innerText = "❌ Gagal memicu cron: " + e.message;
             } finally {
@@ -487,7 +767,7 @@
                 const res = await fetch('/api/v1/warehouse/sync-csv', { method: 'POST' });
                 const json = await res.json();
                 status.innerText = `✅ Sinkronisasi selesai: ${json.files_synced || 0} file CSV (${json.rows_synced || 0} baris) masuk ke Supabase.`;
-                await refreshTelemetry();
+                await refreshAll();
                 if (currentTab === 'supabase') await executeAction();
             } catch (e) {
                 status.innerText = "❌ Error sync: " + e.message;
@@ -541,7 +821,7 @@
                     const json = await res.json();
                     renderTable(json.data || []);
                     document.getElementById('row-count').innerText = json.returned_rows || 0;
-                    status.innerText = `✅ Menampilkan ${json.returned_rows || 0} baris langsung dari skema PostgreSQL Supabase (${cat}).`;
+                    status.innerText = `✅ Menampilkan ${json.returned_rows || 0} baris dari skema Supabase (${cat})${q ? ' dengan filter "' + q + '"' : ''}.`;
                     if (json.csv && json.returned_rows > 0) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
@@ -614,7 +894,7 @@
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
                     }
-                    await refreshTelemetry();
+                    await refreshAll();
                 }
             } catch (err) {
                 status.innerText = "❌ Error: " + err.message;
@@ -659,10 +939,10 @@
         }
 
         window.onload = async () => {
-            await refreshTelemetry();
+            await refreshAll();
             await populateFileDropdown();
             await executeAction();
-            setInterval(refreshTelemetry, 15000);
+            setInterval(refreshTelemetry, 20000);
         };
     </script>
 </body>

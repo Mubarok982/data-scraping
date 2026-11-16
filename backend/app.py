@@ -191,7 +191,7 @@ def scan_bank_data(
     schema_mode: str = "semua"
 ) -> list[dict]:
     catalog = []
-    search_roots = [SCRAPERS_ARCHIVE_DIR, LEGACY_COBA_DIR, BASE_OUTPUT_DIR]
+    search_roots = [SCRAPERS_ARCHIVE_DIR, os.path.join(ROOT_DIR, "Scrappers"), LEGACY_COBA_DIR, BASE_OUTPUT_DIR]
     seen_paths = set()
 
     for root_dir in search_roots:
@@ -1334,6 +1334,13 @@ def api_sync_csv_to_supabase():
         "rows_synced": synced_rows,
         "supabase_warehouse": get_warehouse_summary_stats()
     }
+
+
+
+@app.get("/api/v1/warehouse/analytics", tags=["4. Cron Scheduler & Supabase"])
+def api_warehouse_analytics():
+    from backend.db import get_dashboard_analytics
+    return {"status": "success", "analytics": get_dashboard_analytics()}
 
 
 if __name__ == "__main__":
