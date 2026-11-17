@@ -95,6 +95,16 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-400 mb-1">Klasifikasi Kategori & Tag</label>
+                        <select id="sb-news-cat" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="">Semua Kategori</option>
+                            <option value="politik">Politik & Pemerintahan</option>
+                            <option value="ekonomi">Ekonomi & Bisnis</option>
+                            <option value="lingkungan">Bencana / Lingkungan</option>
+                            <option value="teknologi">Teknologi / Digital</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-400 mb-1">Filter Kata Kunci / Lokasi / Tokoh</label>
                         <input id="sb-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Klik bar grafik atau ketik..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
@@ -271,14 +281,15 @@
                 </div>
             </div>
 
-            <!-- GRID 4 GRAFIK ANALITIK UTAMA -->
+            <!-- GRID 7 GRAFIK ANALITIK UTAMA -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- 1. Grafik Lokasi & Polarisasi Tempat -->
+                
+                <!-- 1. Lokasi -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
                             <h3 class="text-xs font-bold text-white">🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)</h3>
-                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah (Klik bar untuk filter)</p>
+                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah</p>
                         </div>
                     </div>
                     <div class="h-56">
@@ -286,7 +297,7 @@
                     </div>
                 </div>
 
-                <!-- 2. Grafik Orang / Tokoh Paling Trending -->
+                <!-- 2. Tokoh -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -299,7 +310,33 @@
                     </div>
                 </div>
 
-                <!-- 3. Grafik Keyword Paling Trending -->
+                <!-- 3. Postingan Viral -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">📈 Postingan Paling Viral (Engagement)</h3>
+                            <p class="text-[10px] text-gray-400">Peringkat interaksi (Likes/Comments) tertinggi di Sosmed</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartViral"></canvas>
+                    </div>
+                </div>
+
+                <!-- 4. Top Hashtags -->
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🏷️ Top Hashtag Populer</h3>
+                            <p class="text-[10px] text-gray-400">Tagar yang paling banyak digunakan di Sosial Media</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartHashtags"></canvas>
+                    </div>
+                </div>
+
+                <!-- 5. Top Keywords -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -312,7 +349,7 @@
                     </div>
                 </div>
 
-                <!-- 4. Grafik Waktu (Time-Series) -->
+                <!-- 6. Timeline -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -324,6 +361,20 @@
                         <canvas id="chartTimeline"></canvas>
                     </div>
                 </div>
+
+                <!-- 7. System Health (FULL WIDTH) -->
+                <div class="md:col-span-2 bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🫀 Kesehatan Sistem & Trafik API</h3>
+                            <p class="text-[10px] text-gray-400">Memantau beban server scraper (Request) dan kecepatan respons server (milidetik)</p>
+                        </div>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="chartSystem"></canvas>
+                    </div>
+                </div>
+
             </div>
 
             <!-- TABEL DATA EXPLORER -->
@@ -417,53 +468,48 @@
             </div>
 
             <!-- Statistik 7 Skema Supabase -->
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl text-xs space-y-1.5">
                 <div class="flex items-center justify-between mb-2.5">
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         🏛️ 7 Skema Supabase Warehouse
                     </span>
-                    <button onclick="refreshAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">
-                        ↻
-                    </button>
+                    <button onclick="refreshAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">↻</button>
                 </div>
-
-                <div class="space-y-1.5 text-xs">
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">1. core.sources</span>
-                        <span id="st-sources" class="font-bold text-white">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">2. scraper.jobs</span>
-                        <span id="st-jobs" class="font-bold text-white">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">3. scraper.raw_data</span>
-                        <span id="st-raw" class="font-bold text-indigo-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">4. news.articles</span>
-                        <span id="st-news" class="font-bold text-emerald-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">5. keyword.keywords</span>
-                        <span id="st-keywords" class="font-bold text-amber-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">6. trend.snapshots</span>
-                        <span id="st-trends" class="font-bold text-amber-300">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">7. social.accounts</span>
-                        <span id="st-accounts" class="font-bold text-purple-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">8. social.posts</span>
-                        <span id="st-posts" class="font-bold text-pink-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                        <span class="text-gray-400">9. analytics.sentiment</span>
-                        <span id="st-sentiment" class="font-bold text-cyan-400">0</span>
-                    </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">1. core.sources</span>
+                    <span id="st-sources" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">2. scraper.jobs</span>
+                    <span id="st-jobs" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">3. scraper.raw_data</span>
+                    <span id="st-raw" class="font-bold text-indigo-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">4. news.articles</span>
+                    <span id="st-news" class="font-bold text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">5. keyword.keywords</span>
+                    <span id="st-keywords" class="font-bold text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">6. trend.snapshots</span>
+                    <span id="st-trends" class="font-bold text-amber-300">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">7. social.accounts</span>
+                    <span id="st-accounts" class="font-bold text-purple-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">8. social.posts</span>
+                    <span id="st-posts" class="font-bold text-pink-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">9. analytics.sentiment</span>
+                    <span id="st-sentiment" class="font-bold text-cyan-400">0</span>
                 </div>
             </div>
         </aside>
@@ -471,7 +517,7 @@
 
     <script>
         let currentTab = 'supabase';
-        let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null;
+        let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null, chartViral = null, chartHash = null, chartSystem = null;
 
         Chart.defaults.color = '#9ca3af';
         Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
@@ -480,10 +526,12 @@
         function switchTab(tab) {
             currentTab = tab;
             ['supabase', 'bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
-                document.getElementById('form-' + t).classList.add('hidden');
+                const el = document.getElementById('form-' + t);
+                if (el) el.classList.add('hidden');
                 document.getElementById('tab-' + t).className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between";
             });
-            document.getElementById('form-' + tab).classList.remove('hidden');
+            const activeEl = document.getElementById('form-' + tab);
+            if (activeEl) activeEl.classList.remove('hidden');
             document.getElementById('tab-' + tab).className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between";
 
             const runBtn = document.getElementById('btn-run');
@@ -513,6 +561,7 @@
 
         function resetSearchFilter() {
             document.getElementById('sb-search').value = '';
+            document.getElementById('sb-news-cat').value = '';
             document.getElementById('bd-search').value = '';
             executeAction();
         }
@@ -528,6 +577,11 @@
                 const kws = an.top_keywords || [];
                 const tl = an.timeline || [];
                 const sent = an.sentiment_summary || { positive: 0, neutral: 0, negative: 0 };
+                
+                // Ambil 3 data baru, jika gagal pakai array kosong agar tidak error
+                const viral = an.top_viral || [];
+                const hashtags = an.top_hashtags || [];
+                const sysHealth = an.system_health || [];
 
                 // 1. Render Location Polarization Chart
                 const ctxLoc = document.getElementById('chartLocations').getContext('2d');
@@ -543,31 +597,18 @@
                         ]
                     },
                     options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true, grid: { color: '#1f2937' } },
-                            y: { stacked: true, grid: { display: false } }
-                        },
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { stacked: true, grid: { color: '#1f2937' } }, y: { stacked: true, grid: { display: false } } },
                         plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
-                        onClick: (_, elements) => {
-                            if (elements.length > 0) {
-                                const idx = elements[0].index;
-                                filterByTerm(locs[idx].location);
-                            }
-                        }
+                        onClick: (_, elements) => { if (elements.length > 0) filterByTerm(locs[elements[0].index].location); }
                     }
                 });
 
-                // Render Badge Ringkasan Lokasi di Kolom Kiri
                 const badgeBox = document.getElementById('loc-badges');
                 if (locs.length > 0) {
                     badgeBox.innerHTML = locs.slice(0, 6).map(l => {
                         const isNeg = l.negative > l.positive;
-                        const pillClass = isNeg
-                            ? 'bg-red-950/80 text-red-300 border-red-800'
-                            : 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
+                        const pillClass = isNeg ? 'bg-red-950/80 text-red-300 border-red-800' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
                         const labelPol = isNeg ? 'Polarisasi Isu Kritis' : 'Dominan Positif/Netral';
                         return `
                             <div onclick="filterByTerm('${l.location}')" class="cursor-pointer p-2 rounded-xl bg-[#0b0d14] hover:bg-[#1a2036] border border-gray-800/80 flex items-center justify-between transition">
@@ -588,64 +629,67 @@
                     type: 'bar',
                     data: {
                         labels: ppl.map(x => x.name),
-                        datasets: [{
-                            label: 'Total Mentions',
-                            data: ppl.map(x => x.mentions),
-                            backgroundColor: '#a855f7',
-                            borderRadius: 5
-                        }]
+                        datasets: [{ label: 'Total Mentions', data: ppl.map(x => x.mentions), backgroundColor: '#a855f7', borderRadius: 5 }]
                     },
                     options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { grid: { color: '#1f2937' } },
-                            y: { grid: { display: false } }
-                        },
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
                         plugins: { legend: { display: false } },
-                        onClick: (_, elements) => {
-                            if (elements.length > 0) {
-                                const idx = elements[0].index;
-                                filterByTerm(ppl[idx].name);
-                            }
-                        }
+                        onClick: (_, elements) => { if (elements.length > 0) filterByTerm(ppl[elements[0].index].name); }
                     }
                 });
 
-                // 3. Render Top Trending Keywords Chart
+                // 3. Render Postingan Viral Chart
+                const ctxViral = document.getElementById('chartViral').getContext('2d');
+                if (chartViral) chartViral.destroy();
+                chartViral = new Chart(ctxViral, {
+                    type: 'bar',
+                    data: {
+                        labels: viral.map(x => x.title && x.title.length > 25 ? x.title.substring(0, 25) + '...' : (x.title || 'Hanya Media')),
+                        datasets: [{ label: 'Total Interaksi', data: viral.map(x => x.engagement), backgroundColor: '#ec4899', borderRadius: 5 }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // 4. Render Hashtags Chart
+                const ctxHash = document.getElementById('chartHashtags').getContext('2d');
+                if (chartHash) chartHash.destroy();
+                chartHash = new Chart(ctxHash, {
+                    type: 'bar',
+                    data: {
+                        labels: hashtags.map(x => x.tag),
+                        datasets: [{ label: 'Frekuensi Tagar', data: hashtags.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 5 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { grid: { display: false } }, y: { grid: { color: '#1f2937' } } },
+                        plugins: { legend: { display: false } },
+                        onClick: (_, elements) => { if (elements.length > 0) filterByTerm(hashtags[elements[0].index].tag); }
+                    }
+                });
+
+                // 5. Render Top Trending Keywords Chart
                 const ctxKw = document.getElementById('chartKeywords').getContext('2d');
                 if (chartKw) chartKw.destroy();
                 chartKw = new Chart(ctxKw, {
                     type: 'bar',
                     data: {
                         labels: kws.map(x => x.keyword.length > 22 ? x.keyword.substring(0, 22) + '...' : x.keyword),
-                        datasets: [{
-                            label: 'Indeks Volume',
-                            data: kws.map(x => x.volume),
-                            backgroundColor: '#f59e0b',
-                            borderRadius: 5
-                        }]
+                        datasets: [{ label: 'Indeks Volume', data: kws.map(x => x.volume), backgroundColor: '#f59e0b', borderRadius: 5 }]
                     },
                     options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { grid: { color: '#1f2937' } },
-                            y: { grid: { display: false } }
-                        },
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
                         plugins: { legend: { display: false } },
-                        onClick: (_, elements) => {
-                            if (elements.length > 0) {
-                                const idx = elements[0].index;
-                                filterByTerm(kws[idx].keyword);
-                            }
-                        }
+                        onClick: (_, elements) => { if (elements.length > 0) filterByTerm(kws[elements[0].index].keyword); }
                     }
                 });
 
-                // 4. Render Timeline Chart
+                // 6. Render Timeline Chart
                 const ctxTime = document.getElementById('chartTimeline').getContext('2d');
                 if (chartTime) chartTime.destroy();
                 chartTime = new Chart(ctxTime, {
@@ -653,23 +697,66 @@
                     data: {
                         labels: tl.map(x => x.time),
                         datasets: [
-                            { label: 'Berita', data: tl.map(x => x.berita), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.35 },
-                            { label: 'Keyword/Tren', data: tl.map(x => x.keyword), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.35 },
-                            { label: 'Sosmed', data: tl.map(x => x.sosmed), borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', fill: true, tension: 0.35 }
+                            { label: 'Berita', data: tl.map(x => x.berita || 0), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.35 },
+                            { label: 'Keyword/Tren', data: tl.map(x => x.keyword || 0), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.35 },
+                            { label: 'Sosmed', data: tl.map(x => x.sosmed || 0), borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', fill: true, tension: 0.35 }
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { grid: { color: '#1f2937' } },
-                            y: { grid: { color: '#1f2937' }, beginAtZero: true }
-                        },
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { color: '#1f2937' }, beginAtZero: true } },
                         plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
                     }
                 });
 
-                // 5. Render Sentiment Doughnut Chart (Kolom Kanan)
+                // 7. Render System Health API Traffic Chart
+                const ctxSys = document.getElementById('chartSystem').getContext('2d');
+                if (chartSystem) chartSystem.destroy();
+                chartSystem = new Chart(ctxSys, {
+                    type: 'line',
+                    data: {
+                        labels: sysHealth.map(x => x.time),
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Total API Request',
+                                data: sysHealth.map(x => x.req_count),
+                                backgroundColor: '#4f46e5',
+                                yAxisID: 'y',
+                                borderRadius: 4
+                            },
+                            {
+                                type: 'line',
+                                label: 'Rata-rata Waktu Respons (ms)',
+                                data: sysHealth.map(x => x.avg_ms),
+                                borderColor: '#f43f5e',
+                                backgroundColor: '#f43f5e',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            y: { 
+                                type: 'linear', display: true, position: 'left',
+                                title: { display: true, text: 'Total Kueri', color: '#9ca3af' },
+                                grid: { color: '#1f2937' }
+                            },
+                            y1: { 
+                                type: 'linear', display: true, position: 'right',
+                                title: { display: true, text: 'Kecepatan Server (ms)', color: '#9ca3af' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        },
+                        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } }
+                    }
+                });
+
+                // 8. Render Sentiment Doughnut Chart
                 const ctxSent = document.getElementById('chartSentiment').getContext('2d');
                 if (chartSent) chartSent.destroy();
                 chartSent = new Chart(ctxSent, {
@@ -683,9 +770,7 @@
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '62%',
+                        responsive: true, maintainAspectRatio: false, cutout: '62%',
                         plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
                     }
                 });
@@ -806,13 +891,16 @@
                     btn.innerText = "⏳ Querying Supabase...";
                     const cat = document.getElementById('sb-cat').value;
                     const q = document.getElementById('sb-search').value;
+                    const newsCat = document.getElementById('sb-news-cat').value;
                     const lim = parseInt(document.getElementById('sb-limit').value) || 200;
 
-                    const res = await fetch(`/api/v1/warehouse/records?category=${encodeURIComponent(cat)}&search_query=${encodeURIComponent(q)}&limit=${lim}`);
+                    const searchQuery = newsCat ? `${newsCat} ${q}`.trim() : q;
+
+                    const res = await fetch(`/api/v1/warehouse/records?category=${encodeURIComponent(cat)}&search_query=${encodeURIComponent(searchQuery)}&limit=${lim}`);
                     const json = await res.json();
                     renderTable(json.data || []);
                     document.getElementById('row-count').innerText = json.returned_rows || 0;
-                    status.innerText = `✅ Menampilkan ${json.returned_rows || 0} baris dari skema Supabase (${cat})${q ? ' dengan filter "' + q + '"' : ''}.`;
+                    status.innerText = `✅ Menampilkan ${json.returned_rows || 0} baris dari skema Supabase (${cat})${searchQuery ? ' dengan filter "' + searchQuery + '"' : ''}.`;
                     if (json.csv && json.returned_rows > 0) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');

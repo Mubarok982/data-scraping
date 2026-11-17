@@ -1355,3 +1355,96 @@ def api_warehouse_analytics():
 
 if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860)
+
+
+@app.get("/api/v1/warehouse/analytics")
+def get_analytics():
+    from backend.db import get_conn, get_dashboard_analytics
+    import psycopg2.extras
+    
+    conn = get_conn()
+    if not conn:
+        return {"error": "Database error"}
+    
+    try:
+        # Ambil analitik bawaan
+        base_analytics = get_dashboard_analytics(conn)
+        
+        # Tambahkan 3 kueri analitik baru
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            # A. Grafik Viral
+            cur.execute('''
+                SELECT COALESCE(p.content, 'Hanya Media/Video') as title, 
+                       (COALESCE(pm.likes_count,0) + COALESCE(pm.comments_count,0) + COALESCE(pm.shares_count,0)) as engagement 
+                FROM social.posts p 
+                JOIN social.post_metrics pm ON p.id = pm.post_id 
+                ORDER BY engagement DESC LIMIT 5
+            ''')
+            base_analytics['top_viral'] = [dict(r) for r in cur.fetchall()]
+            
+            # B. Grafik Hashtag
+            cur.execute('''
+                SELECT h.name as tag, COUNT(ph.post_id) as count 
+                FROM social.hashtags h 
+                JOIN social.post_hashtags ph ON h.id = ph.hashtag_id 
+                GROUP BY h.name ORDER BY count DESC LIMIT 6
+            ''')
+            base_analytics['top_hashtags'] = [dict(r) for r in cur.fetchall()]
+            
+            # C. Grafik Kesehatan Sistem (System Health)
+            cur.execute('''
+                SELECT TO_CHAR(created_at, 'HH24:00') as time, 
+                       COALESCE(ROUND(AVG(response_time_ms)), 0)::int as avg_ms, 
+                       COUNT(id) as req_count 
+                FROM core.api_request_logs 
+                GROUP BY time ORDER BY time DESC LIMIT 8
+            ''')
+            logs = [dict(r) for r in cur.fetchall()]
+            base_analytics['system_health'] = sorted(logs, key=lambda x: x['time'])
+            
+        return {"analytics": base_analytics}
+    except Exception as e:
+        print("Analytics error:", e)
+        return {"analytics": {}}
+    finally:
+        conn.close()
+
+
+@app.get("/api/v1/warehouse/analytics_full")
+def get_analytics_full():
+    from backend.db import get_conn, get_dashboard_analytics
+    import psycopg2.extras
+    conn = get_conn()
+    if not conn:
+        return {"error": "DB error"}
+    try:
+        an = get_dashboard_analytics(conn)
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            # Viral
+            cur.execute('''SELECT COALESCE(p.content, 'Media/Video') as title, 
+                                  (COALESCE(pm.likes_count,0) + COALESCE(pm.comments_count,0) + COALESCE(pm.shares_count,0)) as engagement 
+                           FROM social.posts p 
+                           JOIN social.post_metrics pm ON p.id = pm.post_id 
+                           ORDER BY engagement DESC LIMIT 5''')
+            an['top_viral'] = [dict(r) for r in cur.fetchall()]
+            
+            # Hashtag
+            cur.execute('''SELECT h.name as tag, COUNT(ph.post_id) as count 
+                           FROM social.hashtags h 
+                           JOIN social.post_hashtags ph ON h.id = ph.hashtag_id 
+                           GROUP BY h.name ORDER BY count DESC LIMIT 6''')
+            an['top_hashtags'] = [dict(r) for r in cur.fetchall()]
+            
+            # System Health
+            cur.execute('''SELECT TO_CHAR(created_at, 'HH24:00') as time, 
+                                  COALESCE(ROUND(AVG(response_time_ms)), 0)::int as avg_ms, 
+                                  COUNT(id) as req_count 
+                           FROM core.api_request_logs 
+                           GROUP BY time ORDER BY time DESC LIMIT 8''')
+            an['system_health'] = sorted([dict(r) for r in cur.fetchall()], key=lambda x: x['time'])
+        return {"analytics": an}
+    except Exception as e:
+        print("Error Analytics Full:", e)
+        return {"analytics": {}}
+    finally:
+        conn.close()
