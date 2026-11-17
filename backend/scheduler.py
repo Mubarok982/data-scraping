@@ -205,8 +205,8 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
 
 
 def send_telegram_notif(run_info: dict):
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "9261925207:AAGcUMrNsLf2NdjBlR030EQAQ9tGRCYpVKg")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "7879584619")
     if not token or not chat_id:
         return
     
