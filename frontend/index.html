@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <!-- Parameter Filter & Ekstraksi -->
+<!-- Parameter Filter & Ekstraksi -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
                     🎛️ Parameter & Filter Data
@@ -82,9 +82,10 @@
 
                 <!-- Form Supabase -->
                 <div id="form-supabase" class="space-y-3">
+                    <!-- 1. Tabel Skema Domain -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Tabel Skema Domain</label>
-                        <select id="sb-cat" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
+                        <select id="sb-cat" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="berita">news.articles (Berita + Sentimen)</option>
                             <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
                             <option value="instagram">social.posts (Instagram)</option>
@@ -94,22 +95,106 @@
                             <option value="linkedin">social.accounts (LinkedIn)</option>
                         </select>
                     </div>
+
+                    <!-- 2. Klasifikasi Kategori & Tag (Diperluas) -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Klasifikasi Kategori & Tag</label>
-                        <select id="sb-news-cat" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="">Semua Kategori</option>
-                            <option value="politik">Politik & Pemerintahan</option>
-                            <option value="ekonomi">Ekonomi & Bisnis</option>
-                            <option value="lingkungan">Bencana / Lingkungan</option>
-                            <option value="teknologi">Teknologi / Digital</option>
+                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
+                        <select id="sb-news-cat" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
+                            <option value="">-- Semua Kategori & Tag --</option>
+                            <optgroup label="Pemerintahan & Kebijakan">
+                                <option value="politik">Politik & Pemerintahan</option>
+                                <option value="kebijakan">Kebijakan Publik & Regulasi</option>
+                                <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
+                                <option value="ikn">Ibu Kota Nusantara (IKN)</option>
+                                <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
+                                <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
+                            </optgroup>
+                            <optgroup label="Ekonomi & Infrastruktur">
+                                <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
+                                <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
+                                <option value="energi">Energi Hijau & Transisi Energi</option>
+                                <option value="infrastruktur">Infrastruktur & Transportasi</option>
+                            </optgroup>
+                            <optgroup label="Sains, Alam & Masyarakat">
+                                <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
+                                <option value="teknologi">Teknologi, AI & Digitalisasi</option>
+                                <option value="kesehatan">Kesehatan & Medis</option>
+                                <option value="pendidikan">Pendidikan, Kampus & Riset</option>
+                                <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
+                            </optgroup>
+                            <optgroup label="Tren & Gaya Hidup">
+                                <option value="olahraga">Olahraga & Timnas</option>
+                                <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
+                            </optgroup>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Filter Kata Kunci / Lokasi / Tokoh</label>
-                        <input id="sb-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Klik bar grafik atau ketik..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+
+                    <!-- 3. Filter Lokasi Berjenjang (Provinsi -> Kabupaten/Kota) -->
+                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
+                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
+                            <span>📍 3. Filter Lokasi Wilayah</span>
+                            <span class="text-[10px] text-gray-500 font-normal">Berjenjang</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Provinsi</label>
+                            <select id="sb-prov" onchange="onProvinceChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-indigo-500 outline-none">
+                                <option value="">-- Semua Provinsi --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Kabupaten / Kota</label>
+                            <select id="sb-kab" onchange="executeAction()" disabled class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-400 disabled:opacity-50 focus:border-indigo-500 outline-none">
+                                <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <!-- 4. Filter Tokoh / Figur Publik (Terpisah) -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Batas Baris Query</label>
+                        <label class="block text-xs text-gray-400 mb-1">4. Filter Tokoh / Entitas</label>
+                        <select id="sb-tokoh" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
+                            <option value="">-- Semua Tokoh / Figur --</option>
+                            <option value="prabowo">Prabowo Subianto</option>
+                            <option value="jokowi">Joko Widodo (Jokowi)</option>
+                            <option value="gibran">Gibran Rakabuming Raka</option>
+                            <option value="sri mulyani">Sri Mulyani Indrawati</option>
+                            <option value="bahlil">Bahlil Lahadalia</option>
+                            <option value="luhut">Luhut Binsar Pandjaitan</option>
+                            <option value="ahy">Agus Harimurti Yudhoyono (AHY)</option>
+                            <option value="dasco">Sufmi Dasco Ahmad</option>
+                            <option value="anies">Anies Baswedan</option>
+                            <option value="ganjar">Ganjar Pranowo</option>
+                            <option value="erick thohir">Erick Thohir</option>
+                            <option value="mahfud">Mahfud MD</option>
+                            <option value="roy suryo">Roy Suryo</option>
+                        </select>
+                    </div>
+
+                    <!-- 5. Filter Kata Kunci & Mode Teks (Terpisah + Quick Preset) -->
+                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
+                            <select id="sb-text-mode" onchange="executeAction()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
+                                <option value="all">Semua Kolom</option>
+                                <option value="hashtag">Khusus Hashtag (#)</option>
+                                <option value="exact">Frasa Spesifik</option>
+                            </select>
+                        </div>
+                        <input id="sb-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci bebas, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                        <!-- Quick Text Chips -->
+                        <div class="flex flex-wrap gap-1 pt-0.5">
+                            <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
+                            <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
+                            <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">#ai</button>
+                            <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">ikn</button>
+                            <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">banjir</button>
+                            <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">investasi</button>
+                        </div>
+                    </div>
+
+                    <!-- 6. Batas Baris Query -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Query</label>
                         <input id="sb-limit" type="number" value="200" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                 </div>
@@ -1017,7 +1102,8 @@
             });
         }
 
-        window.onload = async () => {
+            window.onload = async () => {
+            initProvinceDropdown();
             await refreshAll();
             await populateFileDropdown();
             await executeAction();

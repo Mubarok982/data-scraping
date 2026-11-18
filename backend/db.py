@@ -1053,3 +1053,80 @@ def get_dashboard_analytics() -> dict:
         "sentiment_summary": sentiment_totals,
         "platform_share": platform_counts
     }
+
+
+# === PATCH ANALYTICS TAMBAHAN ===
+_orig_get_dashboard_analytics = get_dashboard_analytics
+
+def get_dashboard_analytics(*args, **kwargs):
+    res = _orig_get_dashboard_analytics(*args, **kwargs)
+    if not isinstance(res, dict):
+        return res
+    
+    target = res.get("analytics") if isinstance(res.get("analytics"), dict) else res
+    
+    conn = get_conn()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # A. Top Viral (Deduplikasi judul + hitung Likes, Comments, Shares, Views)
+                cur.execute('''
+                    SELECT 
+                        LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
+                        MAX(
+                            COALESCE(pm.likes_count, 0) + 
+                            COALESCE(pm.comments_count, 0) + 
+                            COALESCE(pm.shares_count, 0) + 
+                            COALESCE(pm.views_count, 0) +
+                            COALESCE((pm.engagement_rate * 100)::bigint, 0)
+                        )::bigint AS engagement
+                    FROM social.posts p
+                    JOIN social.post_metrics pm ON p.id = pm.post_id
+                    GROUP BY LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60)
+                    ORDER BY engagement DESC
+                    LIMIT 5
+                ''')
+                viral_rows = [dict(r) for r in cur.fetchall()]
+                # Jika semua angka metrik di DB masih 0, hitung berdasarkan jumlah komentar / panjang interaksi
+                if viral_rows and all((r.get('engagement') or 0) == 0 for r in viral_rows):
+                    cur.execute('''
+                        SELECT 
+                            LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
+                            (COUNT(c.id) * 15 + GREATEST(LENGTH(COALESCE(p.content, '')), 25))::bigint AS engagement
+                        FROM social.posts p
+                        LEFT JOIN social.comments c ON p.id = c.post_id
+                        GROUP BY p.id, p.content, p.external_id
+                        ORDER BY engagement DESC
+                        LIMIT 5
+                    ''')
+                    viral_rows = [dict(r) for r in cur.fetchall()]
+                target['top_viral'] = viral_rows
+
+                # B. Top Hashtags
+                cur.execute('''
+                    SELECT h.name AS tag, COUNT(ph.post_id)::int AS count
+                    FROM social.hashtags h
+                    JOIN social.post_hashtags ph ON h.id = ph.hashtag_id
+                    GROUP BY h.name
+                    ORDER BY count DESC
+                    LIMIT 6
+                ''')
+                target['top_hashtags'] = [dict(r) for r in cur.fetchall()]
+
+                # C. System Health & API Traffic
+                cur.execute('''
+                    SELECT TO_CHAR(created_at, 'HH24:00') AS time,
+                           GREATEST(COALESCE(ROUND(AVG(response_time_ms)), 0)::int, 1) AS avg_ms,
+                           COUNT(id)::int AS req_count
+                    FROM core.api_request_logs
+                    GROUP BY time
+                    ORDER BY time DESC
+                    LIMIT 8
+                ''')
+                logs = [dict(r) for r in cur.fetchall()]
+                target['system_health'] = sorted(logs, key=lambda x: x['time'])
+        except Exception as e:
+            print("❌ Error pada patch get_dashboard_analytics:", e)
+        finally:
+            conn.close()
+    return res
