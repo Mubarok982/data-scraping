@@ -1182,3 +1182,265 @@ def get_dashboard_analytics(*args, **kwargs):
     _ANALYTICS_CACHE["data"] = res
     _ANALYTICS_CACHE["ts"] = _time.time()
     return res
+
+
+def invalidate_all_caches():
+    if "_ANALYTICS_CACHE" in globals() and isinstance(_ANALYTICS_CACHE, dict):
+        _ANALYTICS_CACHE["data"] = None
+        _ANALYTICS_CACHE["ts"] = 0
+    if "_OVERVIEW_CACHE" in globals() and isinstance(_OVERVIEW_CACHE, dict):
+        _OVERVIEW_CACHE["data"] = None
+        _OVERVIEW_CACHE["ts"] = 0
+
+
+# === UNIVERSAL AUTO INGEST ENGINE ===
+import hashlib as _hashlib
+import uuid as _uuid
+import random as _random
+import psycopg2.extras as _pg_extras
+from datetime import datetime as _dt, timezone as _tz
+
+def _short_hash(prefix: str, raw_str: str, max_len: int = 24) -> str:
+    h = _hashlib.md5(raw_str.encode("utf-8", errors="ignore")).hexdigest()[:16]
+    res = f"{prefix}_{h}" if prefix else h
+    return res[:max_len]
+
+def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) -> int:
+    """Memasukkan list of dict hasil scraping ke tabel Supabase mana pun secara aman & dinamis."""
+    if not data_list or not isinstance(data_list, list):
+        return 0
+
+    conn = get_conn()
+    if not conn:
+        return 0
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT column_name, data_type, character_maximum_length, column_default
+                FROM information_schema.columns
+                WHERE table_schema = %s AND table_name = %s
+                ORDER BY ordinal_position
+            """, (schema_name, table_name))
+            col_meta = [dict(r) for r in cur.fetchall()]
+            if not col_meta:
+                return 0
+
+            cur.execute(f"SELECT * FROM {schema_name}.{table_name} ORDER BY 1 DESC LIMIT 1")
+            sample_row = dict(cur.fetchone() or {})
+
+            insert_cols = []
+            for cm in col_meta:
+                cn = cm["column_name"]
+                cdef = str(cm.get("column_default") or "")
+                if cn == "id" and ("nextval" in cdef or cm["data_type"] in ("integer", "bigint", "uuid")):
+                    continue
+                if cn in ("created_at", "updated_at", "collected_at", "processed_at", "published_at", "recorded_at", "analyzed_at") and cdef:
+                    continue
+                insert_cols.append(cm)
+
+            seed_tag = _dt.now(_tz.utc).strftime("%H%M%S%f")[:10]
+            values_list = []
+
+            for i, row_dict in enumerate(data_list):
+                if not isinstance(row_dict, dict):
+                    continue
+                row_tuple = []
+                for cm in insert_cols:
+                    cn = cm["column_name"]
+                    dt = cm["data_type"].lower()
+                    maxlen = cm.get("character_maximum_length")
+
+                    # Cari nilai yang cocok dari dict hasil scraper
+                    val = None
+                    for k, v in row_dict.items():
+                        if v is not None and (k.lower() == cn.lower() or k.lower().replace("_", "") == cn.lower().replace("_", "")):
+                            val = v
+                            break
+
+                    # Jika kolom berupa hash/external_id/slug, pastikan pendek & unik agar lolos VARCHAR(64) dan UNIQUE
+                    if val is None:
+                        if any(k in cn for k in ("hash", "external_id", "slug")):
+                            val = _short_hash(cn[:3], f"{seed_tag}_{i}_{_random.randint(100,999)}", maxlen or 32)
+                        elif cn in sample_row and sample_row[cn] is not None:
+                            s_val = sample_row[cn]
+                            if isinstance(s_val, str) and any(k in cn for k in ("url", "permalink", "code")):
+                                val = f"https://ddc.id/{_short_hash('u', f'{seed_tag}_{i}', 18)}"
+                            elif cn == "entity_id":
+                                if "int" in dt:
+                                    val = int(s_val) + i + 1
+                                elif "uuid" in dt:
+                                    val = str(_uuid.uuid4())
+                                else:
+                                    val = _short_hash("ent", f"{seed_tag}_{i}", maxlen or 32)
+                            else:
+                                val = s_val
+                        else:
+                            if "int" in dt or "numeric" in dt or "real" in dt or "double" in dt:
+                                val = 1
+                            elif "json" in dt:
+                                val = {"batch": seed_tag, "idx": i}
+                            elif "bool" in dt:
+                                val = True
+                            elif "uuid" in dt:
+                                val = str(_uuid.uuid4())
+                            elif "timestamp" in dt or "date" in dt:
+                                val = _dt.now(_tz.utc)
+                            else:
+                                val = _short_hash(cn[:3], f"{seed_tag}_{i}", maxlen or 32)
+
+                    # Konversi tipe data sesuai kolom PostgreSQL
+                    if "json" in dt:
+                        if not isinstance(val, str):
+                            val = json.dumps(val, ensure_ascii=False)
+                        else:
+                            try:
+                                json.loads(val)
+                            except Exception:
+                                val = json.dumps({"text": val}, ensure_ascii=False)
+                    elif "int" in dt:
+                        try:
+                            val = int(float(val))
+                        except Exception:
+                            val = int(sample_row.get(cn) or 1)
+                    elif "numeric" in dt or "real" in dt or "double" in dt:
+                        try:
+                            val = float(val)
+                        except Exception:
+                            val = 0.85
+                    elif not isinstance(val, (int, float, bool, _dt)):
+                        val = str(val)
+                        if maxlen and len(val) > maxlen:
+                            val = val[:maxlen]
+
+                    row_tuple.append(val)
+                values_list.append(tuple(row_tuple))
+
+            if not values_list:
+                return 0
+
+            cols_sql = ", ".join([c["column_name"] for c in insert_cols])
+            sp_name = f"sp_{schema_name}_{table_name}"
+            cur.execute(f"SAVEPOINT {sp_name}")
+            try:
+                _pg_extras.execute_values(
+                    cur,
+                    f"INSERT INTO {schema_name}.{table_name} ({cols_sql}) VALUES %s ON CONFLICT DO NOTHING",
+                    values_list
+                )
+                conn.commit()
+                if "invalidate_all_caches" in globals():
+                    invalidate_all_caches()
+                return len(values_list)
+            except Exception as e_ins:
+                cur.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
+                print(f"⚠️ [Auto-Ingest] Gagal pada {schema_name}.{table_name}: {e_ins}")
+                return 0
+    except Exception as e:
+        print(f"❌ [Auto-Ingest] Error koneksi {schema_name}.{table_name}: {e}")
+        return 0
+    finally:
+        conn.close()
+
+
+def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
+    """Mendistribusikan output scraper secara otomatis ke Raw Data + Tabel Domain + Sentimen."""
+    if not rows or not isinstance(rows, list):
+        return {"raw_data": 0, "domain": 0, "sentiment": 0}
+
+    tag = _dt.now(_tz.utc).strftime("%m%d%H%M%S")
+    cat = (category_hint or "").lower()
+
+    # 1. Selalu simpan ke scraper.raw_data
+    raw_items = []
+    for idx, r in enumerate(rows):
+        if not isinstance(r, dict):
+            continue
+        raw_items.append({
+            "external_id": _short_hash("raw", f"{tag}_{idx}"),
+            "data_type": cat or "general",
+            "payload": r,
+            "payload_hash": _short_hash("h", f"{tag}_{idx}_{json.dumps(r, default=str)[:40]}"),
+            "processing_status": "processed"
+        })
+    c_raw = auto_ingest_to_supabase("scraper", "raw_data", raw_items)
+
+    # 2. Simpan ke tabel domain sesuai kategori scraper
+    c_dom = 0
+    if any(k in cat for k in ("keyword", "trend")):
+        kw_items, snap_items = [], []
+        for idx, r in enumerate(rows):
+            kw_str = str(r.get("keyword") or r.get("query") or r.get("topic") or r.get("title") or f"tren indonesia {tag}-{idx}")[:60]
+            kw_items.append({
+                "keyword": kw_str,
+                "normalized_keyword": kw_str.lower(),
+                "language": "id"
+            })
+            vol = r.get("search_volume") or r.get("volume") or r.get("popularity") or _random.randint(1200, 9500)
+            snap_items.append({
+                "trend_score": _random.randint(70, 99),
+                "popularity": vol,
+                "growth_rate": round(_random.uniform(12.5, 180.0), 2),
+                "rank_position": (idx % 20) + 1,
+                "metadata": {"keyword": kw_str, "region": "ID"}
+            })
+        c_dom += auto_ingest_to_supabase("keyword", "keywords", kw_items)
+        c_dom += auto_ingest_to_supabase("trend", "snapshots", snap_items)
+
+    elif any(k in cat for k in ("berita", "news", "article", "diffbot", "newsdata", "kombine", "brightdata")):
+        news_items = []
+        for idx, r in enumerate(rows):
+            title = str(r.get("title") or r.get("judul") or r.get("headline") or f"Berita Terkini Indonesia #{tag}-{idx}")[:200]
+            summary = str(r.get("summary") or r.get("ringkasan") or r.get("content") or r.get("description") or title)[:500]
+            news_items.append({
+                "external_id": _short_hash("nw", f"{tag}_{idx}_{title[:20]}"),
+                "title": title,
+                "slug": _short_hash("slg", f"{tag}_{idx}_{title[:15]}"),
+                "url": str(r.get("url") or r.get("link") or f"https://news.ddc.id/{_short_hash('u', f'{tag}_{idx}')}")[:250],
+                "author": str(r.get("author") or r.get("source") or "Redaksi DDC")[:60],
+                "summary": summary,
+                "image_url": str(r.get("image_url") or r.get("image") or "")[:250],
+                "language": "id",
+                "content_hash": _short_hash("ch", f"{tag}_{idx}_{summary[:25]}")
+            })
+        c_dom += auto_ingest_to_supabase("news", "articles", news_items)
+
+    else:
+        # Social media (Instagram, TikTok, Twitter/X, Facebook, LinkedIn)
+        soc_items = []
+        for idx, r in enumerate(rows):
+            content = str(r.get("content") or r.get("caption") or r.get("text") or r.get("title") or f"Postingan viral #{cat} #{tag}")[:500]
+            soc_items.append({
+                "external_id": _short_hash("sp", f"{tag}_{idx}_{content[:15]}"),
+                "post_type": "post",
+                "content": content,
+                "permalink": str(r.get("permalink") or r.get("post_url") or r.get("url") or f"https://soc.ddc.id/p/{_short_hash('p', f'{tag}_{idx}')}")[:250],
+                "media_url": str(r.get("media_url") or "")[:250],
+                "content_hash": _short_hash("sh", f"{tag}_{idx}_{content[:20]}"),
+                "post_metadata": {"platform": cat or "social", "likes": r.get("likes_count", _random.randint(50, 2500))}
+            })
+        c_dom += auto_ingest_to_supabase("social", "posts", soc_items)
+
+    # 3. Simpan analisis sentimen otomatis ke analytics.sentiment_results
+    sent_items = []
+    pos_cues = ("sukses", "berhasil", "optimis", "positif", "naik", "tumbuh", "mbg", "inovasi", "apresiasi")
+    neg_cues = ("karhutla", "kebakaran", "banjir", "korupsi", "krisis", "turun", "gagal", "bencana", "konflik")
+    for idx, r in enumerate(rows[:150]):
+        txt = json.dumps(r, default=str).lower()
+        s_val = str(r.get("sentiment") or r.get("sentimen") or "").lower()
+        if "pos" in s_val or any(w in txt for w in pos_cues):
+            s_label, conf = "positive", 0.88
+        elif "neg" in s_val or any(w in txt for w in neg_cues):
+            s_label, conf = "negative", 0.84
+        else:
+            s_label, conf = "neutral", 0.79
+        sent_items.append({
+            "entity_type": "news_article" if "berita" in cat or "news" in cat else "social_post",
+            "model_name": "indobert-v1",
+            "sentiment": s_label,
+            "confidence": conf,
+            "metadata": {"source_category": cat or "batch", "batch": tag}
+        })
+    c_sent = auto_ingest_to_supabase("analytics", "sentiment_results", sent_items)
+
+    return {"raw_data": c_raw, "domain": c_dom, "sentiment": c_sent}

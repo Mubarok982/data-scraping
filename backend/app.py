@@ -1427,7 +1427,47 @@ def trigger_test_notification():
     ok = send_chattime_webhook(msg, alert_name="DDC Data Warehouse — Status & Cron Report")
     return {"status": "sent" if ok else "failed", "dashboard_url": DASHBOARD_URL, "message": msg}
 
+
 @app.post("/api/v1/scheduler/run-now")
 def api_run_scheduler_now():
     from backend.scheduler import trigger_turbo_cron_async
     return trigger_turbo_cron_async()
+
+
+# === AUTO INGEST SCRAPER MIDDLEWARE ===
+from starlette.responses import Response as _StarletteResponse
+import threading as _app_threading
+import json as _app_json
+
+@app.middleware("http")
+async def auto_ingest_scraper_middleware(request, call_next):
+    response = await call_next(request)
+    path = request.url.path.lower()
+    # Tangkap semua eksekusi endpoint scraper (keyword, berita, sosmed) secara otomatis
+    if request.method == "POST" and any(p in path for p in ("/api/v1/keyword/", "/api/v1/berita/", "/api/v1/sosmed/")):
+        try:
+            body_bytes = b""
+            async for chunk in response.body_iterator:
+                body_bytes += chunk
+
+            def _bg_ingest(raw_bytes, req_path):
+                try:
+                    payload = _app_json.loads(raw_bytes.decode("utf-8", errors="ignore"))
+                    rows = payload.get("data") or payload.get("results") or []
+                    if isinstance(rows, list) and len(rows) > 0:
+                        from backend.db import auto_ingest_scraper_pipeline
+                        res = auto_ingest_scraper_pipeline(req_path, rows)
+                        print(f"✅ [Auto-Ingest Middleware] {len(rows)} hasil scraper dari {req_path} otomatis masuk ke Supabase: {res}")
+                except Exception as e_bg:
+                    print("⚠️ [Auto-Ingest Middleware] Info:", e_bg)
+
+            _app_threading.Thread(target=_bg_ingest, args=(body_bytes, path), daemon=True).start()
+            return _StarletteResponse(
+                content=body_bytes,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type
+            )
+        except Exception:
+            return response
+    return response

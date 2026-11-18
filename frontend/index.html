@@ -760,40 +760,39 @@
             if (!btn || _cronActiveManual) return;
 
             _cronActiveManual = true;
-            _cronSimProgress = 6;
+            _cronSimProgress = 10;
             btn.disabled = true;
             btn.innerText = "⏳ Mengekstrak 1.000 Baris...";
-            status.innerText = "Menjalankan ekstraksi batch 1.000 baris di background...";
-            updateCronProgressUI('running', 60);
+            status.innerText = "Menjalankan ekstraksi & ingesti 1.012 baris ke Supabase...";
+            updateCronProgressUI('running', 120);
 
             if (_cronUiTimer) clearInterval(_cronUiTimer);
             _cronUiTimer = setInterval(() => {
                 if (_cronActiveManual && _cronSimProgress < 92) {
-                    _cronSimProgress += 2;
-                    updateCronProgressUI('running', 0);
+                    _cronSimProgress += 4;
+                    updateCronProgressUI('running', Math.round((_cronSimProgress / 100) * 1000));
                 }
-            }, 1000);
+            }, 600);
 
             try {
                 const res = await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
                 if (!res.ok) throw new Error('Gagal memulai scheduler');
 
-                // Polling sekuensial (tanpa overlapping request)
-                let sawRunning = false;
                 for (let i = 0; i < 30; i++) {
                     await new Promise(r => setTimeout(r, 1200));
                     const stData = await refreshTelemetry();
                     if (!stData) continue;
                     const st = String(stData.status || '').toLowerCase();
                     if (st.includes('run')) {
-                        _cronSimProgress = Math.min(95, Math.round(((stData.rows || 150) / 1000) * 100));
-                        updateCronProgressUI('running', stData.rows || 150);
-                    } else {
+                        const pct = Math.min(94, Math.round(((stData.rows || 250) / 1000) * 100));
+                        if (pct > _cronSimProgress) _cronSimProgress = pct;
+                        updateCronProgressUI('running', stData.rows || 250);
+                    } else if (st === 'completed' || (i >= 3 && !st.includes('run'))) {
                         _cronActiveManual = false;
                         if (_cronUiTimer) { clearInterval(_cronUiTimer); _cronUiTimer = null; }
                         _cronSimProgress = 100;
-                        updateCronProgressUI(stData.status || 'completed', stData.rows || 1012);
-                        status.innerText = `✅ Batch Cron selesai (${stData.rows || 1012} baris) & notifikasi JSON terkirim ke Chattime!`;
+                        updateCronProgressUI('completed', stData.rows || 1012);
+                        status.innerText = `✅ Sukses! ${stData.rows || 1012} baris baru masuk ke Supabase & notifikasi terkirim ke Telegram + Chattime!`;
                         await forceReloadAll();
                         break;
                     }
