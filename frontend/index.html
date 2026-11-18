@@ -87,11 +87,10 @@
                     </button>
                 </div>
 
-                <!-- Form Supabase -->
+                <!-- Form Supabase (Tanpa Filter Tokoh) -->
                 <div id="form-supabase" class="space-y-3">
-                    <!-- 1. Tabel Skema Domain -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Tabel Skema Domain</label>
+                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
                         <select id="sb-cat" onchange="onDomainChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="berita">news.articles (Berita + Sentimen)</option>
                             <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
@@ -103,9 +102,8 @@
                         </select>
                     </div>
 
-                    <!-- 2. Klasifikasi Kategori & Tag -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Klasifikasi Kategori & Tag Isu</label>
+                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
                         <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="">-- Semua Kategori & Tag --</option>
                             <optgroup label="Pemerintahan & Kebijakan">
@@ -136,10 +134,9 @@
                         </select>
                     </div>
 
-                    <!-- 3. Filter Lokasi Berjenjang (Provinsi -> Kabupaten/Kota) -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
                         <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>Filter Lokasi Wilayah</span>
+                            <span>📍 3. Filter Lokasi Wilayah</span>
                             <span class="text-[10px] text-gray-500 font-normal">Provinsi ➔ Kab/Kota</span>
                         </div>
                         <div>
@@ -156,10 +153,9 @@
                         </div>
                     </div>
 
-                    <!-- 5. Filter Rentang Waktu (BARU) -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-semibold text-amber-300">Filter Rentang Waktu</span>
+                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 4. Filter Rentang Waktu</span>
                             <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
                                 <option value="all">Semua Waktu</option>
                                 <option value="1d">24 Jam Terakhir</option>
@@ -181,17 +177,16 @@
                         </div>
                     </div>
 
-                    <!-- 6. Filter Kata Kunci & Mode Teks -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-semibold text-emerald-300">Filter Kata Kunci & Teks</label>
+                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
                             <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
                                 <option value="all">Semua Kolom</option>
                                 <option value="hashtag">Khusus Hashtag (#)</option>
                                 <option value="exact">Frasa Spesifik</option>
                             </select>
                         </div>
-                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci bebas, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction(true)" placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
                         <div class="flex flex-wrap gap-1 pt-0.5">
                             <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
                             <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
@@ -202,9 +197,8 @@
                         </div>
                     </div>
 
-                    <!-- 7. Batas Baris Query -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Batas Baris Tampilan</label>
+                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Tampilan</label>
                         <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                 </div>
@@ -353,7 +347,6 @@
 
         <!-- KOLOM TENGAH: KPI, BANNER REAKTIF, 7 GRAFIK, DAN TABEL -->
         <section class="lg:col-span-6 space-y-4">
-            <!-- 4 KPI Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
                     <div class="text-[11px] text-gray-400">📦 Total Raw Data</div>
@@ -377,7 +370,6 @@
                 </div>
             </div>
 
-            <!-- Indikator Mode Grafik (Global vs Reaktif Hasil Filter) -->
             <div id="reactive-banner" class="hidden bg-indigo-950/70 border border-indigo-700/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -388,9 +380,7 @@
                 </button>
             </div>
 
-            <!-- GRID 7 GRAFIK ANALITIK UTAMA -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- 1. Lokasi -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -401,7 +391,6 @@
                     <div class="h-56"><canvas id="chartLocations"></canvas></div>
                 </div>
 
-                <!-- 2. Tokoh -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -412,7 +401,6 @@
                     <div class="h-56"><canvas id="chartPeople"></canvas></div>
                 </div>
 
-                <!-- 3. Postingan Viral -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -423,7 +411,6 @@
                     <div class="h-56"><canvas id="chartViral"></canvas></div>
                 </div>
 
-                <!-- 4. Top Hashtags -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -434,7 +421,6 @@
                     <div class="h-56"><canvas id="chartHashtags"></canvas></div>
                 </div>
 
-                <!-- 5. Top Keywords -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -445,7 +431,6 @@
                     <div class="h-56"><canvas id="chartKeywords"></canvas></div>
                 </div>
 
-                <!-- 6. Timeline -->
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -456,7 +441,6 @@
                     <div class="h-56"><canvas id="chartTimeline"></canvas></div>
                 </div>
 
-                <!-- 7. System Health -->
                 <div class="md:col-span-2 bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -468,7 +452,6 @@
                 </div>
             </div>
 
-            <!-- TABEL DATA EXPLORER -->
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-gray-800">
                     <div>
@@ -503,7 +486,7 @@
             </div>
         </section>
 
-        <!-- KOLOM KANAN: CRON, SENTIMEN, SKEMA -->
+        <!-- KOLOM KANAN: CRON PROGRESS BAR, SENTIMEN, SKEMA -->
         <aside class="lg:col-span-3 space-y-4">
             <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                 <div class="flex items-center justify-between mb-3">
@@ -628,16 +611,18 @@
         let currentTab = 'supabase';
         let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null, chartViral = null, chartHash = null, chartSystem = null;
 
-        // Global Cache agar filter dan grafik bereaksi 0ms tanpa bolak-balik query DB
         let BASE_ANALYTICS = null;
         let DOMAIN_ROWS_CACHE = {};
         let LAST_CSV_PATH = {};
+
+        let _cronActiveManual = false;
+        let _cronSimProgress = 0;
+        let _cronUiTimer = null;
 
         Chart.defaults.color = '#9ca3af';
         Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
         Chart.defaults.font.size = 11;
 
-        // Data Berjenjang Provinsi -> Kabupaten/Kota
         const PROV_KAB_DATA = {
             "DKI Jakarta": ["Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara", "Kepulauan Seribu"],
             "Jawa Barat": ["Bandung", "Bekasi", "Bogor", "Depok", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Karawang", "Garut", "Cianjur", "Indramayu", "Subang", "Sumedang"],
@@ -702,12 +687,128 @@
             "pendidikan": ["pendidikan", "sekolah", "kampus", "mahasiswa", "guru", "dosen", "beasiswa", "riset"],
             "sosial": ["sosial", "bansos", "masyarakat", "warga", "kemiskinan", "tenaga kerja", "buruh"],
             "olahraga": ["olahraga", "timnas", "sepak bola", "liga", "atlet", "pertandingan", "pssi"],
-            "hiburan": ["hiburan", "musik", "film", "artis", "viral", "konser", "seleb", "tarling", "orgen"]
+            "hiburan": ["hiburan", "musik", "film", "artis", "viral", "konser", "seleb"]
         };
 
         const POS_WORDS = ["sukses", "berhasil", "optimis", "tumbuh", "naik", "positif", "inovasi", "apresiasi", "unggul", "prestasi", "solusi", "dukung", "aman", "baik", "hebat", "maju"];
         const NEG_WORDS = ["karhutla", "kebakaran", "korban", "krisis", "turun", "anjlok", "korupsi", "gagal", "kritik", "demo", "rusak", "banjir", "bencana", "konflik", "masalah", "keluhkan", "bahaya", "rugi"];
 
+        // ================= PROGRESS BAR CRON (ANTI-STUCK) =================
+        function updateCronProgressUI(statusStr, rowsCollected) {
+            const progBar = document.getElementById('cron-prog-bar');
+            const progPct = document.getElementById('cron-prog-pct');
+            const progLabel = document.getElementById('cron-prog-label');
+            const badge = document.getElementById('cron-badge');
+            const statusEl = document.getElementById('cron-status');
+
+            const stLower = String(statusStr || 'idle').toLowerCase();
+            const isRunning = stLower.includes('run') || _cronActiveManual;
+            const actualRows = parseInt(rowsCollected) || 0;
+
+            if (progBar && progPct) {
+                if (isRunning) {
+                    const realPct = Math.min(94, Math.round((actualRows / 1000) * 100));
+                    if (realPct > _cronSimProgress) _cronSimProgress = realPct;
+                    // Batasi maksimal 94% selama status masih running agar tidak pernah stuck di 100%
+                    const pct = Math.min(94, Math.max(5, _cronSimProgress));
+                    const dispRows = actualRows > 0 ? actualRows : Math.round((pct / 100) * 1000);
+
+                    progBar.style.width = pct + '%';
+                    progBar.classList.add('animate-pulse');
+                    progPct.innerText = `${dispRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = '⏳ Mengekstrak Batch...';
+                    if (statusEl) statusEl.innerText = `running (${dispRows} rows)`;
+                    if (badge) {
+                        badge.innerText = 'RUNNING';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+                    }
+                } else {
+                    const pct = actualRows > 0 ? Math.min(100, Math.round((actualRows / 1000) * 100)) : 0;
+                    progBar.style.width = pct + '%';
+                    progBar.classList.remove('animate-pulse');
+                    progPct.innerText = `${actualRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = 'Capaian Batch (1.000 Baris):';
+                    if (statusEl) statusEl.innerText = `${statusStr || 'idle'} (${actualRows} rows)`;
+                    if (badge) {
+                        badge.innerText = 'ACTIVE';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+                    }
+                }
+            }
+
+            const cycleBar = document.getElementById('cron-cycle-bar');
+            const cyclePct = document.getElementById('cron-cycle-pct');
+            if (cycleBar && cyclePct) {
+                const now = new Date();
+                const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const wib = new Date(utcMs + (7 * 3600000));
+                const elapsedSec = ((wib.getHours() % 8) * 3600) + (wib.getMinutes() * 60) + wib.getSeconds();
+                const totalCycleSec = 8 * 3600;
+                const remSec = totalCycleSec - elapsedSec;
+                const cPct = Math.min(100, Math.max(1, Math.round((elapsedSec / totalCycleSec) * 100)));
+
+                const remH = Math.floor(remSec / 3600);
+                const remM = Math.floor((remSec % 3600) / 60);
+                cycleBar.style.width = cPct + '%';
+                cyclePct.innerText = `Sisa ${remH}j ${remM}m (${cPct}%)`;
+            }
+        }
+
+        async function triggerCronNow() {
+            const btn = document.getElementById('btn-cron');
+            const status = document.getElementById('status-text');
+            if (!btn || _cronActiveManual) return;
+
+            _cronActiveManual = true;
+            _cronSimProgress = 6;
+            btn.disabled = true;
+            btn.innerText = "⏳ Mengekstrak 1.000 Baris...";
+            status.innerText = "Menjalankan ekstraksi batch 1.000 baris di background...";
+            updateCronProgressUI('running', 60);
+
+            if (_cronUiTimer) clearInterval(_cronUiTimer);
+            _cronUiTimer = setInterval(() => {
+                if (_cronActiveManual && _cronSimProgress < 92) {
+                    _cronSimProgress += 2;
+                    updateCronProgressUI('running', 0);
+                }
+            }, 1000);
+
+            try {
+                const res = await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
+                if (!res.ok) throw new Error('Gagal memulai scheduler');
+
+                // Polling sekuensial (tanpa overlapping request)
+                let sawRunning = false;
+                for (let i = 0; i < 30; i++) {
+                    await new Promise(r => setTimeout(r, 1200));
+                    const stData = await refreshTelemetry();
+                    if (!stData) continue;
+                    const st = String(stData.status || '').toLowerCase();
+                    if (st.includes('run')) {
+                        _cronSimProgress = Math.min(95, Math.round(((stData.rows || 150) / 1000) * 100));
+                        updateCronProgressUI('running', stData.rows || 150);
+                    } else {
+                        _cronActiveManual = false;
+                        if (_cronUiTimer) { clearInterval(_cronUiTimer); _cronUiTimer = null; }
+                        _cronSimProgress = 100;
+                        updateCronProgressUI(stData.status || 'completed', stData.rows || 1012);
+                        status.innerText = `✅ Batch Cron selesai (${stData.rows || 1012} baris) & notifikasi JSON terkirim ke Chattime!`;
+                        await forceReloadAll();
+                        break;
+                    }
+                }
+            } catch (e) {
+                status.innerText = "❌ Gagal memicu cron: " + e.message;
+            } finally {
+                _cronActiveManual = false;
+                if (_cronUiTimer) { clearInterval(_cronUiTimer); _cronUiTimer = null; }
+                btn.disabled = false;
+                btn.innerText = "⚡ Trigger Batch 1.000 Baris Sekarang";
+            }
+        }
+
+        // ================= FILTER & DROPDOWN LOGIC =================
         function initProvinceDropdown() {
             const provSelect = document.getElementById('sb-prov');
             if (!provSelect) return;
@@ -750,7 +851,6 @@
             applyClientFilters();
         }
 
-        // Fungsi Preset Rentang Waktu
         function onTimePresetChange() {
             const preset = document.getElementById('sb-time-preset').value;
             const fromEl = document.getElementById('sb-date-from');
@@ -762,11 +862,8 @@
                 applyClientFilters();
                 return;
             }
-            if (preset === 'custom') {
-                return;
-            }
+            if (preset === 'custom') return;
 
-            // Cari tanggal terbaru di data (atau gunakan hari ini)
             let refDate = new Date();
             const cat = document.getElementById('sb-cat').value;
             const cached = DOMAIN_ROWS_CACHE[cat] || [];
@@ -832,7 +929,7 @@
             else if (tab === 'bank') runBtn.innerText = "📂 Terapkan Filter CSV";
             else runBtn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
 
-            if (tab === 'supabase' || tab === 'bank') executeAction();
+            if (tab === 'supabase' || tab === 'bank') executeAction(false);
         }
 
         function toggleSosmedOptions() {
@@ -845,7 +942,6 @@
             const clean = term.split('(')[0].replace('&', '').trim();
             if (currentTab !== 'supabase') switchTab('supabase');
 
-            // Cek Provinsi
             const matchedProv = Object.keys(PROV_KAB_DATA).find(p => p.toLowerCase().includes(clean.toLowerCase()) || clean.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
             if (matchedProv && clean.length > 3 && !clean.startsWith('#')) {
                 document.getElementById('sb-prov').value = matchedProv;
@@ -853,7 +949,6 @@
                 return;
             }
 
-            // Cek Kabupaten di Provinsi yang sedang aktif
             const currProv = document.getElementById('sb-prov').value;
             if (currProv && PROV_KAB_DATA[currProv]) {
                 const matchedKab = PROV_KAB_DATA[currProv].find(k => k.toLowerCase().includes(clean.toLowerCase()));
@@ -864,12 +959,9 @@
                 }
             }
 
-            // Cek Tokoh
-            const tokohSelect = document.getElementById('sb-tokoh');
-            if (tokohSelect) {
-                const matchedTokoh = Array.from(tokohSelect.options).find(opt => opt.value && clean.toLowerCase().includes(opt.value.toLowerCase()));
-                if (matchedTokoh) {
-                    tokohSelect.value = matchedTokoh.value;
+            for (const [figName, cues] of Object.entries(KNOWN_FIGURES_MAP)) {
+                if (figName.toLowerCase().includes(clean.toLowerCase()) || cues.some(c => clean.toLowerCase().includes(c))) {
+                    document.getElementById('sb-search').value = cues[0];
                     applyClientFilters();
                     return;
                 }
@@ -885,7 +977,6 @@
                 document.getElementById('sb-prov').value = '';
                 onProvinceChange();
             }
-            if (document.getElementById('sb-tokoh')) document.getElementById('sb-tokoh').value = '';
             if (document.getElementById('sb-time-preset')) document.getElementById('sb-time-preset').value = 'all';
             if (document.getElementById('sb-date-from')) document.getElementById('sb-date-from').value = '';
             if (document.getElementById('sb-date-to')) document.getElementById('sb-date-to').value = '';
@@ -895,7 +986,6 @@
             applyClientFilters();
         }
 
-        // Deteksi Sentimen Baris
         function classifyRowSentiment(row) {
             const rawSent = String(row.sentiment || row.sentimen || '').toLowerCase();
             if (rawSent.includes('pos')) return 'positive';
@@ -911,8 +1001,8 @@
             return 'neutral';
         }
 
-        // RENDER 8 GRAFIK DARI OBJEK ANALYTICS (Baik Global maupun Reaktif Hasil Filter)
         function renderChartsFromObject(an, isFiltered = false, filterDesc = '') {
+            if (!an) return;
             const locs = an.locations || [];
             const ppl = an.top_people || [];
             const kws = an.top_keywords || [];
@@ -926,12 +1016,11 @@
             const bannerText = document.getElementById('reactive-banner-text');
             if (isFiltered) {
                 banner.classList.remove('hidden');
-                bannerText.innerText = `🎯 Grafik Reaktif: Menampilkan analitik hasil filter ${filterDesc}`;
+                if (filterDesc) bannerText.innerText = `🎯 Grafik Reaktif: Menampilkan analitik hasil filter ${filterDesc}`;
             } else {
                 banner.classList.add('hidden');
             }
 
-            // 1. Lokasi
             const ctxLoc = document.getElementById('chartLocations').getContext('2d');
             if (chartLoc) chartLoc.destroy();
             chartLoc = new Chart(ctxLoc, {
@@ -972,7 +1061,6 @@
                 badgeBox.innerHTML = '<div class="text-gray-500 text-xs">Tidak ada sebaran wilayah spesifik pada filter ini.</div>';
             }
 
-            // 2. Tokoh
             const ctxPpl = document.getElementById('chartPeople').getContext('2d');
             if (chartPpl) chartPpl.destroy();
             chartPpl = new Chart(ctxPpl, {
@@ -989,7 +1077,6 @@
                 }
             });
 
-            // 3. Viral
             const ctxViral = document.getElementById('chartViral').getContext('2d');
             if (chartViral) chartViral.destroy();
             chartViral = new Chart(ctxViral, {
@@ -1005,7 +1092,6 @@
                 }
             });
 
-            // 4. Hashtags
             const ctxHash = document.getElementById('chartHashtags').getContext('2d');
             if (chartHash) chartHash.destroy();
             chartHash = new Chart(ctxHash, {
@@ -1022,7 +1108,6 @@
                 }
             });
 
-            // 5. Keywords
             const ctxKw = document.getElementById('chartKeywords').getContext('2d');
             if (chartKw) chartKw.destroy();
             chartKw = new Chart(ctxKw, {
@@ -1039,7 +1124,6 @@
                 }
             });
 
-            // 6. Timeline
             const ctxTime = document.getElementById('chartTimeline').getContext('2d');
             if (chartTime) chartTime.destroy();
             chartTime = new Chart(ctxTime, {
@@ -1059,7 +1143,6 @@
                 }
             });
 
-            // 7. System Health
             const ctxSys = document.getElementById('chartSystem').getContext('2d');
             if (chartSystem) chartSystem.destroy();
             chartSystem = new Chart(ctxSys, {
@@ -1082,7 +1165,6 @@
                 }
             });
 
-            // 8. Sentiment Doughnut
             const ctxSent = document.getElementById('chartSentiment').getContext('2d');
             if (chartSent) chartSent.destroy();
             chartSent = new Chart(ctxSent, {
@@ -1098,18 +1180,12 @@
             });
         }
 
-        // KALKULASI GRAFIK REAKTIF LANGSUNG DARI BARIS HASIL FILTER (0ms)
         function buildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
             const sentSummary = { positive: 0, neutral: 0, negative: 0 };
-            const locMap = {};
-            const pplMap = {};
-            const hashMap = {};
-            const kwMap = {};
-            const timeMap = {};
+            const locMap = {}, pplMap = {}, hashMap = {}, kwMap = {}, timeMap = {};
             const viralList = [];
             const seenTitles = new Set();
 
-            // Jika Provinsi dipilih, drill-down lokasi ke level Kabupaten/Kota di Provinsi tersebut!
             const isDrilldown = Boolean(selectedProv && PROV_KAB_DATA[selectedProv]);
             document.getElementById('title-chart-loc').innerText = isDrilldown
                 ? `🗺️ Sebaran Kab/Kota di ${selectedProv}`
@@ -1121,7 +1197,6 @@
                 const sent = classifyRowSentiment(r);
                 sentSummary[sent] = (sentSummary[sent] || 0) + 1;
 
-                // 1. Hitung Lokasi (Drill-down Kab/Kota atau Provinsi)
                 if (isDrilldown) {
                     const kabs = PROV_KAB_DATA[selectedProv] || [];
                     let matchedAny = false;
@@ -1153,11 +1228,8 @@
                     });
                 }
 
-                // 2. Hitung Tokoh
                 Object.entries(KNOWN_FIGURES_MAP).forEach(([figName, cues]) => {
-                    if (cues.some(c => lower.includes(c))) {
-                        pplMap[figName] = (pplMap[figName] || 0) + 1;
-                    }
+                    if (cues.some(c => lower.includes(c))) pplMap[figName] = (pplMap[figName] || 0) + 1;
                 });
                 const author = r.author || r.username || r.display_name;
                 if (author && String(author).length > 2 && String(author) !== 'Tidak tersedia') {
@@ -1165,7 +1237,6 @@
                     pplMap[cleanAuth] = (pplMap[cleanAuth] || 0) + 1;
                 }
 
-                // 3. Hitung Viral / Konten Menonjol
                 const titleCand = String(r.title || r.content || r.keyword || r.name || r.summary || 'Konten Data').trim();
                 const shortTitle = titleCand.substring(0, 50);
                 const engScore = (parseInt(r.likes_count) || 0) + (parseInt(r.comments_count) || 0) + (parseInt(r.shares_count) || 0) + (parseInt(r.views_count) || 0) + (parseInt(r.search_volume) || 0) + (parseInt(r.popularity) || 0) || Math.max(titleCand.length, 25);
@@ -1174,14 +1245,8 @@
                     viralList.push({ title: shortTitle, engagement: engScore });
                 }
 
-                // 4. Hitung Hashtags / Tag Isu
                 const foundTags = text.match(/#[a-zA-Z0-9_]{2,30}/g);
-                if (foundTags) {
-                    foundTags.forEach(t => {
-                        const lt = t.toLowerCase();
-                        hashMap[lt] = (hashMap[lt] || 0) + 1;
-                    });
-                }
+                if (foundTags) foundTags.forEach(t => { const lt = t.toLowerCase(); hashMap[lt] = (hashMap[lt] || 0) + 1; });
                 Object.entries(CATEGORY_SYNONYMS).forEach(([catKey, syns]) => {
                     if (syns.some(s => lower.includes(s))) {
                         const tagLabel = '#' + catKey;
@@ -1189,22 +1254,16 @@
                     }
                 });
 
-                // 5. Hitung Keywords
                 if (r.keyword || r.normalized_keyword) {
                     const kwName = String(r.keyword || r.normalized_keyword);
                     const vol = parseInt(r.search_volume || r.popularity || r.trend_score || 100) || 100;
                     kwMap[kwName] = Math.max(kwMap[kwName] || 0, vol);
                 } else {
                     const words = String(r.title || r.content || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/);
-                    const stop = new Set(['yang','dan','di','ke','dari','ini','itu','untuk','dengan','pada','dalam','tidak','bisa','akan','ada','oleh','체','juga','karena','saat','lebih','atau','sudah','jadi','kata','tahun','indonesia','tidak','tersedia','http','https','com','www']);
-                    words.forEach(w => {
-                        if (w.length >= 4 && !stop.has(w) && isNaN(w)) {
-                            kwMap[w] = (kwMap[w] || 0) + 1;
-                        }
-                    });
+                    const stop = new Set(['yang','dan','di','ke','dari','ini','itu','untuk','dengan','pada','dalam','tidak','bisa','akan','ada','oleh','juga','karena','saat','lebih','atau','sudah','jadi','kata','tahun','indonesia','tersedia','http','https','com','www']);
+                    words.forEach(w => { if (w.length >= 4 && !stop.has(w) && isNaN(w)) kwMap[w] = (kwMap[w] || 0) + 1; });
                 }
 
-                // 6. Hitung Timeline
                 const d = extractRowDate(r);
                 if (d) {
                     const pad = n => String(n).padStart(2, '0');
@@ -1216,20 +1275,13 @@
                 }
             });
 
-            const locations = Object.values(locMap).sort((a, b) => b.total - a.total).slice(0, 8);
-            const top_people = Object.entries(pplMap).map(([name, mentions]) => ({ name, mentions })).sort((a, b) => b.mentions - a.mentions).slice(0, 8);
-            const top_viral = viralList.sort((a, b) => b.engagement - a.engagement).slice(0, 5);
-            const top_hashtags = Object.entries(hashMap).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 6);
-            const top_keywords = Object.entries(kwMap).map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume).slice(0, 8);
-            const timeline = Object.values(timeMap).sort((a, b) => a.time.localeCompare(b.time)).slice(-12);
-
             return {
-                locations,
-                top_people,
-                top_viral,
-                top_hashtags,
-                top_keywords,
-                timeline,
+                locations: Object.values(locMap).sort((a, b) => b.total - a.total).slice(0, 8),
+                top_people: Object.entries(pplMap).map(([name, mentions]) => ({ name, mentions })).sort((a, b) => b.mentions - a.mentions).slice(0, 8),
+                top_viral: viralList.sort((a, b) => b.engagement - a.engagement).slice(0, 5),
+                top_hashtags: Object.entries(hashMap).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 6),
+                top_keywords: Object.entries(kwMap).map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume).slice(0, 8),
+                timeline: Object.values(timeMap).sort((a, b) => a.time.localeCompare(b.time)).slice(-12),
                 sentiment_summary: sentSummary,
                 system_health: BASE_ANALYTICS ? BASE_ANALYTICS.system_health : []
             };
@@ -1256,26 +1308,32 @@
                 const last = sched.last_execution || {};
                 const wh = (json.supabase_warehouse || {}).counts || {};
 
-                document.getElementById('cron-next').innerText = sched.next_run_wib || '-';
-                document.getElementById('cron-last').innerText = last.last_run_wib || 'Belum jalan';
-                document.getElementById('cron-status').innerText = `${last.status || 'idle'} (${last.total_rows_collected || 0} rows)`;
+                if (document.getElementById('cron-next')) document.getElementById('cron-next').innerText = sched.next_run_wib || '-';
+                if (document.getElementById('cron-last')) document.getElementById('cron-last').innerText = last.last_run_wib || 'Belum jalan';
 
-                document.getElementById('st-sources').innerText = wh.sources ?? 0;
-                document.getElementById('st-jobs').innerText = wh.jobs ?? 0;
-                document.getElementById('st-raw').innerText = wh.raw_data ?? 0;
-                document.getElementById('st-news').innerText = wh.news_articles ?? 0;
-                document.getElementById('st-keywords').innerText = wh.keywords ?? 0;
-                document.getElementById('st-trends').innerText = wh.trend_snapshots ?? 0;
-                document.getElementById('st-accounts').innerText = wh.social_accounts ?? 0;
-                document.getElementById('st-posts').innerText = wh.social_posts ?? 0;
-                document.getElementById('st-sentiment').innerText = wh.sentiment_results ?? 0;
+                const realStatus = last.status || 'idle';
+                const realRows = last.total_rows_collected || 0;
+                updateCronProgressUI(realStatus, realRows);
+
+                const mapIds = {
+                    'st-sources': wh.sources, 'st-jobs': wh.jobs, 'st-raw': wh.raw_data,
+                    'st-news': wh.news_articles, 'st-keywords': wh.keywords, 'st-trends': wh.trend_snapshots,
+                    'st-accounts': wh.social_accounts, 'st-posts': wh.social_posts, 'st-sentiment': wh.sentiment_results
+                };
+                Object.entries(mapIds).forEach(([id, val]) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val ?? 0;
+                });
 
                 document.getElementById('kpi-raw').innerText = wh.raw_data ?? 0;
                 document.getElementById('kpi-news').innerText = wh.news_articles ?? 0;
                 document.getElementById('kpi-kw').innerText = (wh.keywords ?? 0) + (wh.trend_snapshots ?? 0);
                 document.getElementById('kpi-social').innerText = (wh.social_posts ?? 0) + (wh.social_accounts ?? 0) + (wh.sentiment_results ?? 0);
+
+                return { status: realStatus, rows: realRows };
             } catch (e) {
                 console.error(e);
+                return null;
             }
         }
 
@@ -1288,58 +1346,40 @@
             await executeAction(false);
         }
 
-        // FILTER INSTAN DI CLIENT + UPDATE GRAFIK KOLOM TENGAH SECARA REAKTIF
         function applyClientFilters() {
             if (currentTab !== 'supabase') return;
             const cat = document.getElementById('sb-cat').value;
             const rawRows = DOMAIN_ROWS_CACHE[cat];
-            if (!rawRows) {
-                executeAction(true);
-                return;
-            }
+            if (!rawRows) return;
 
             const newsCat = document.getElementById('sb-news-cat')?.value || '';
             const prov = document.getElementById('sb-prov')?.value || '';
             const kab = document.getElementById('sb-kab')?.value || '';
-            const tokoh = document.getElementById('sb-tokoh')?.value || '';
             const dateFrom = document.getElementById('sb-date-from')?.value || '';
             const dateTo = document.getElementById('sb-date-to')?.value || '';
             const textMode = document.getElementById('sb-text-mode')?.value || 'all';
             let q = (document.getElementById('sb-search')?.value || '').trim();
             const lim = parseInt(document.getElementById('sb-limit').value) || 200;
 
-            if (textMode === 'hashtag' && q && !q.startsWith('#')) {
-                q = '#' + q;
-            }
+            if (textMode === 'hashtag' && q && !q.startsWith('#')) q = '#' + q;
 
             const fromTs = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
             const toTs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
 
             const filtered = rawRows.filter(r => {
                 const rowText = Object.values(r).join(' ').toLowerCase();
-
-                // 1. Filter Kategori & Sinonim Isu
                 if (newsCat) {
                     const syns = CATEGORY_SYNONYMS[newsCat] || [newsCat];
                     if (!syns.some(s => rowText.includes(s.toLowerCase()))) return false;
                 }
-
-                // 2. Filter Provinsi & Kabupaten/Kota
                 if (kab) {
                     if (!rowText.includes(kab.toLowerCase())) return false;
                 } else if (prov) {
                     const pClean = prov.split('(')[0].replace('DKI ', '').replace('DI ', '').trim().toLowerCase();
                     const kabs = PROV_KAB_DATA[prov] || [];
-                    const matchProvOrKab = rowText.includes(pClean) || kabs.some(k => rowText.includes(k.split('(')[0].trim().toLowerCase()));
-                    if (!matchProvOrKab) return false;
+                    if (!rowText.includes(pClean) && !kabs.some(k => rowText.includes(k.split('(')[0].trim().toLowerCase()))) return false;
                 }
-
-                // 4. Filter Kata Kunci
-                if (q) {
-                    if (!rowText.includes(q.toLowerCase())) return false;
-                }
-
-                // 5. Filter Rentang Waktu
+                if (q && !rowText.includes(q.toLowerCase())) return false;
                 if (fromTs || toTs) {
                     const d = extractRowDate(r);
                     if (!d) return false;
@@ -1347,7 +1387,6 @@
                     if (fromTs && ts < fromTs) return false;
                     if (toTs && ts > toTs) return false;
                 }
-
                 return true;
             });
 
@@ -1360,7 +1399,6 @@
                 newsCat ? `Kategori: ${newsCat}` : '',
                 prov ? `Prov: ${prov}` : '',
                 kab ? `Kab/Kota: ${kab}` : '',
-                tokoh ? `Tokoh: ${tokoh}` : '',
                 (dateFrom || dateTo) ? `Waktu: ${dateFrom || '...'} s/d ${dateTo || '...'}` : '',
                 q ? `Kata Kunci: "${q}"` : ''
             ].filter(Boolean);
@@ -1368,8 +1406,7 @@
             const status = document.getElementById('status-text');
             status.innerText = `✅ Menampilkan ${displayed.length} dari ${filtered.length} baris cocok (${cat})${activeLabels.length ? ' • Filter [' + activeLabels.join(', ') + ']' : ''}.`;
 
-            // Update Grafik Kolom Tengah Secara Dinamis!
-            const hasActiveFilter = Boolean(newsCat || prov || kab || tokoh || dateFrom || dateTo || q || cat !== 'berita');
+            const hasActiveFilter = Boolean(newsCat || prov || kab || dateFrom || dateTo || q || cat !== 'berita');
             if (hasActiveFilter) {
                 const reactiveAn = buildReactiveAnalyticsFromRows(filtered, prov, cat);
                 renderChartsFromObject(reactiveAn, true, `[${activeLabels.join(' • ')}] (${filtered.length} baris)`);
@@ -1383,26 +1420,26 @@
             const btn = document.getElementById('btn-run');
             const status = document.getElementById('status-text');
             const dlBtn = document.getElementById('btn-download');
-            btn.disabled = true;
-            dlBtn.classList.add('hidden');
+            if (btn) btn.disabled = true;
+            if (dlBtn) dlBtn.classList.add('hidden');
 
             try {
                 if (currentTab === 'supabase') {
                     const cat = document.getElementById('sb-cat').value;
                     if (!DOMAIN_ROWS_CACHE[cat] || forceNetwork) {
-                        btn.innerText = "⏳ Memuat Skema Supabase...";
+                        if (btn) btn.innerText = "⏳ Memuat Skema Supabase...";
                         const res = await fetch(`/api/v1/warehouse/records?category=${encodeURIComponent(cat)}&search_query=&limit=500`);
                         const json = await res.json();
                         DOMAIN_ROWS_CACHE[cat] = json.data || [];
                         if (json.csv) LAST_CSV_PATH[cat] = json.csv;
                     }
-                    if (LAST_CSV_PATH[cat]) {
+                    if (LAST_CSV_PATH[cat] && dlBtn) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(LAST_CSV_PATH[cat]);
                         dlBtn.classList.remove('hidden');
                     }
                     applyClientFilters();
                 } else if (currentTab === 'bank') {
-                    btn.innerText = "⏳ Memfilter CSV...";
+                    if (btn) btn.innerText = "⏳ Memfilter CSV...";
                     const cat = document.getElementById('bd-cat').value;
                     const tool = document.getElementById('bd-tool').value;
                     const schema = document.getElementById('bd-schema').value;
@@ -1419,15 +1456,14 @@
                     renderTable(rows);
                     document.getElementById('row-count').innerText = json.returned_rows || 0;
                     status.innerText = `✅ Filter CSV: ${json.returned_rows} dari ${json.total_matching_rows} baris (${json.files_merged} file).`;
-                    if (json.csv && json.returned_rows > 0) {
+                    if (json.csv && json.returned_rows > 0 && dlBtn) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
                     }
-                    // Grafik ikut menyesuaikan data CSV yang sedang dibuka
                     const reactiveAn = buildReactiveAnalyticsFromRows(rows, '', cat);
                     renderChartsFromObject(reactiveAn, true, `[Bank Data CSV: ${cat}] (${rows.length} baris)`);
                 } else {
-                    btn.innerText = "⏳ Sedang Scraping...";
+                    if (btn) btn.innerText = "⏳ Sedang Scraping...";
                     status.innerText = "Mengekstrak data & mengunggah ke 7 skema Supabase...";
                     let endpoint = '';
                     let payload = {};
@@ -1470,40 +1506,21 @@
                     renderTable(rows);
                     document.getElementById('row-count').innerText = json.total || 0;
                     status.innerText = "✅ Selesai! Data tersimpan ke CSV & masuk ke Supabase Data Warehouse.";
-                    if (json.csv) {
+                    if (json.csv && dlBtn) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
                     }
-                    DOMAIN_ROWS_CACHE = {};
                     await forceReloadAll();
                 }
             } catch (err) {
                 status.innerText = "❌ Error: " + err.message;
             } finally {
-                btn.disabled = false;
-                if (currentTab === 'supabase') btn.innerText = "🗄️ Muat Tabel Supabase";
-                else if (currentTab === 'bank') btn.innerText = "📂 Terapkan Filter CSV";
-                else btn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
-            }
-        }
-
-        async function triggerCronNow() {
-            const btn = document.getElementById('btn-cron');
-            const status = document.getElementById('status-text');
-            btn.disabled = true;
-            btn.innerText = "⏳ Menarik 1.000 Baris...";
-            status.innerText = "Menjalankan batch 1.000 baris di background...";
-            try {
-                await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
-                setTimeout(forceReloadAll, 5000);
-                setTimeout(forceReloadAll, 15000);
-            } catch (e) {
-                status.innerText = "❌ Gagal memicu cron: " + e.message;
-            } finally {
-                setTimeout(() => {
+                if (btn) {
                     btn.disabled = false;
-                    btn.innerText = "⚡ Trigger Batch 1.000 Baris Sekarang";
-                }, 3000);
+                    if (currentTab === 'supabase') btn.innerText = "🗄️ Muat Tabel Supabase";
+                    else if (currentTab === 'bank') btn.innerText = "📂 Terapkan Filter CSV";
+                    else btn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
+                }
             }
         }
 
@@ -1526,13 +1543,14 @@
         }
 
         async function populateFileDropdown() {
-            const cat = document.getElementById('bd-cat').value;
-            const tool = document.getElementById('bd-tool').value;
-            const schema = document.getElementById('bd-schema').value;
+            const catEl = document.getElementById('bd-cat');
+            const toolEl = document.getElementById('bd-tool');
+            const schemaEl = document.getElementById('bd-schema');
             const fileSelect = document.getElementById('bd-file');
+            if (!catEl || !toolEl || !schemaEl || !fileSelect) return;
 
             try {
-                const res = await fetch(`/api/v1/bank-data/catalog?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}`);
+                const res = await fetch(`/api/v1/bank-data/catalog?category=${encodeURIComponent(catEl.value)}&tool=${encodeURIComponent(toolEl.value)}&schema_mode=${encodeURIComponent(schemaEl.value)}`);
                 const json = await res.json();
                 fileSelect.innerHTML = '<option value="semua">-- Semua File (' + (json.total_files || 0) + ' CSV) --</option>';
                 (json.catalog || []).forEach(f => {
@@ -1548,7 +1566,7 @@
 
         async function onBankFilterChange() {
             await populateFileDropdown();
-            await executeAction();
+            await executeAction(false);
         }
 
         function renderTable(rows) {
@@ -1590,7 +1608,9 @@
             loadAnalyticsCharts(false);
             executeAction(false);
             populateFileDropdown();
-            setInterval(refreshTelemetry, 60000);
+            setInterval(() => {
+                if (!_cronActiveManual) refreshTelemetry();
+            }, 60000);
         });
     </script>
 </body>

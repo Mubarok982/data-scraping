@@ -1426,3 +1426,8 @@ def trigger_test_notification():
     )
     ok = send_chattime_webhook(msg, alert_name="DDC Data Warehouse — Status & Cron Report")
     return {"status": "sent" if ok else "failed", "dashboard_url": DASHBOARD_URL, "message": msg}
+
+@app.post("/api/v1/scheduler/run-now")
+def api_run_scheduler_now():
+    from backend.scheduler import trigger_turbo_cron_async
+    return trigger_turbo_cron_async()
