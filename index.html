@@ -106,6 +106,7 @@
                     <!-- 2. Klasifikasi Kategori & Tag -->
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
+                        <select id="sb-news-cat" onchange="00 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
                         <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="">-- Semua Kategori & Tag --</option>
                             <optgroup label="Pemerintahan & Kebijakan">
@@ -156,31 +157,10 @@
                         </div>
                     </div>
 
-                    <!-- 4. Filter Tokoh / Figur Publik -->
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">4. Filter Tokoh / Entitas</label>
-                        <select id="sb-tokoh" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="">-- Semua Tokoh / Figur --</option>
-                            <option value="prabowo">Prabowo Subianto</option>
-                            <option value="jokowi">Joko Widodo (Jokowi)</option>
-                            <option value="gibran">Gibran Rakabuming Raka</option>
-                            <option value="sri mulyani">Sri Mulyani Indrawati</option>
-                            <option value="bahlil">Bahlil Lahadalia</option>
-                            <option value="luhut">Luhut Binsar Pandjaitan</option>
-                            <option value="ahy">Agus Harimurti Yudhoyono (AHY)</option>
-                            <option value="dasco">Sufmi Dasco Ahmad</option>
-                            <option value="anies">Anies Baswedan</option>
-                            <option value="ganjar">Ganjar Pranowo</option>
-                            <option value="erick thohir">Erick Thohir</option>
-                            <option value="mahfud">Mahfud MD</option>
-                            <option value="roy suryo">Roy Suryo</option>
-                        </select>
-                    </div>
-
-                    <!-- 5. Filter Rentang Waktu (BARU) -->
+                    <!-- 4. Filter Rentang Waktu -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 5. Filter Rentang Waktu</span>
+                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 4. Filter Rentang Waktu</span>
                             <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
                                 <option value="all">Semua Waktu</option>
                                 <option value="1d">24 Jam Terakhir</option>
@@ -202,17 +182,17 @@
                         </div>
                     </div>
 
-                    <!-- 6. Filter Kata Kunci & Mode Teks -->
+                    <!-- 5. Filter Kata Kunci & Mode Teks -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 6. Filter Kata Kunci & Teks</label>
+                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
                             <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
                                 <option value="all">Semua Kolom</option>
                                 <option value="hashtag">Khusus Hashtag (#)</option>
                                 <option value="exact">Frasa Spesifik</option>
                             </select>
                         </div>
-                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci bebas, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
                         <div class="flex flex-wrap gap-1 pt-0.5">
                             <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
                             <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
@@ -223,9 +203,9 @@
                         </div>
                     </div>
 
-                    <!-- 7. Batas Baris Query -->
+                    <!-- 6. Batas Baris Tampilan -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">7. Batas Baris Tampilan</label>
+                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Tampilan</label>
                         <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                 </div>
@@ -531,7 +511,7 @@
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         ⏰ Cron Scheduler (8 Jam)
                     </span>
-                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
                         ACTIVE
                     </span>
                 </div>
@@ -556,6 +536,28 @@
                     <div class="flex justify-between">
                         <span class="text-gray-400">Status:</span>
                         <span id="cron-status" class="font-semibold text-amber-300">idle</span>
+                    </div>
+
+                    <!-- Progress Bar Target Batch & Siklus 8 Jam -->
+                    <div class="pt-2.5 mt-2 border-t border-gray-800/90 space-y-2.5">
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span id="cron-prog-label" class="text-gray-400">Capaian Batch (1.000 Baris):</span>
+                                <span id="cron-prog-pct" class="font-mono font-semibold text-emerald-400">0 / 1.000 (0%)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-0.5">
+                                <div id="cron-prog-bar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span class="text-gray-400">Siklus Waktu (8 Jam):</span>
+                                <span id="cron-cycle-pct" class="font-mono text-[10px] text-indigo-300">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800/80">
+                                <div id="cron-cycle-bar" class="h-full bg-indigo-500/80 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -863,12 +865,10 @@
                 }
             }
 
-            // Cek Tokoh
-            const tokohSelect = document.getElementById('sb-tokoh');
-            if (tokohSelect) {
-                const matchedTokoh = Array.from(tokohSelect.options).find(opt => opt.value && clean.toLowerCase().includes(opt.value.toLowerCase()));
-                if (matchedTokoh) {
-                    tokohSelect.value = matchedTokoh.value;
+            // Jika klik nama Tokoh di grafik, masukkan kata kunci utamanya ke kolom pencarian teks
+            for (const [figName, cues] of Object.entries(KNOWN_FIGURES_MAP)) {
+                if (figName.toLowerCase().includes(clean.toLowerCase()) || cues.some(c => clean.toLowerCase().includes(c))) {
+                    document.getElementById('sb-search').value = cues[0];
                     applyClientFilters();
                     return;
                 }
@@ -1247,6 +1247,62 @@
             }
         }
 
+        
+        let _cronSimTimer = null;
+        let _cronSimProgress = 0;
+
+        function updateCronProgressUI(statusStr, rowsCollected) {
+            const progBar = document.getElementById('cron-prog-bar');
+            const progPct = document.getElementById('cron-prog-pct');
+            const progLabel = document.getElementById('cron-prog-label');
+            const badge = document.getElementById('cron-badge');
+
+            if (progBar && progPct) {
+                const isRunning = String(statusStr).toLowerCase().includes('run') || _cronSimTimer !== null;
+                if (isRunning) {
+                    const pct = Math.max(_cronSimProgress, Math.min(95, Math.round((rowsCollected / 1000) * 100)));
+                    const estRows = Math.round((pct / 100) * 1000);
+                    progBar.style.width = pct + '%';
+                    progBar.classList.add('animate-pulse');
+                    progPct.innerText = `${estRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = '⏳ Mengekstrak Batch...';
+                    if (badge) {
+                        badge.innerText = 'RUNNING';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+                    }
+                } else {
+                    const actualRows = parseInt(rowsCollected) || 0;
+                    const pct = Math.min(100, Math.round((actualRows / 1000) * 100));
+                    progBar.style.width = pct + '%';
+                    progBar.classList.remove('animate-pulse');
+                    progPct.innerText = `${actualRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = 'Capaian Batch (1.000 Baris):';
+                    if (badge) {
+                        badge.innerText = 'ACTIVE';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+                    }
+                }
+            }
+
+            // Hitung progress waktu menuju jadwal 8 jam berikutnya (00:00, 08:00, 16:00 WIB)
+            const cycleBar = document.getElementById('cron-cycle-bar');
+            const cyclePct = document.getElementById('cron-cycle-pct');
+            if (cycleBar && cyclePct) {
+                const now = new Date();
+                const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const wib = new Date(utcMs + (7 * 3600000));
+                const elapsedSec = ((wib.getHours() % 8) * 3600) + (wib.getMinutes() * 60) + wib.getSeconds();
+                const totalCycleSec = 8 * 3600;
+                const remSec = totalCycleSec - elapsedSec;
+                const cPct = Math.min(100, Math.max(1, Math.round((elapsedSec / totalCycleSec) * 100)));
+
+                const remH = Math.floor(remSec / 3600);
+                const remM = Math.floor((remSec % 3600) / 60);
+                cycleBar.style.width = cPct + '%';
+                cyclePct.innerText = `Sisa ${remH}j ${remM}m (${cPct}%)`;
+            }
+        }
+
         async function refreshTelemetry() {
             try {
                 const res = await fetch('/api/v1/scheduler/status');
@@ -1497,12 +1553,30 @@
             btn.disabled = true;
             btn.innerText = "⏳ Menarik 1.000 Baris...";
             status.innerText = "Menjalankan batch 1.000 baris di background...";
+
+            if (_cronSimTimer) clearInterval(_cronSimTimer);
+            _cronSimProgress = 8;
+            updateCronProgressUI('running', 80);
+            _cronSimTimer = setInterval(() => {
+                if (_cronSimProgress < 90) {
+                    _cronSimProgress += Math.floor(Math.random() * 9) + 4;
+                    if (_cronSimProgress > 92) _cronSimProgress = 92;
+                    updateCronProgressUI('running', _cronSimProgress * 10);
+                }
+            }, 1200);
+
             try {
                 await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
                 setTimeout(forceReloadAll, 5000);
-                setTimeout(forceReloadAll, 15000);
+                setTimeout(() => {
+                    if (_cronSimTimer) { clearInterval(_cronSimTimer); _cronSimTimer = null; }
+                    _cronSimProgress = 100;
+                    forceReloadAll();
+                }, 14000);
             } catch (e) {
+                if (_cronSimTimer) { clearInterval(_cronSimTimer); _cronSimTimer = null; }
                 status.innerText = "❌ Gagal memicu cron: " + e.message;
+                updateCronProgressUI('failed', 0);
             } finally {
                 setTimeout(() => {
                     btn.disabled = false;

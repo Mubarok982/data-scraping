@@ -91,7 +91,7 @@
                 <div id="form-supabase" class="space-y-3">
                     <!-- 1. Tabel Skema Domain -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
+                        <label class="block text-xs text-gray-400 mb-1">Tabel Skema Domain</label>
                         <select id="sb-cat" onchange="onDomainChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="berita">news.articles (Berita + Sentimen)</option>
                             <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
@@ -105,7 +105,7 @@
 
                     <!-- 2. Klasifikasi Kategori & Tag -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
+                        <label class="block text-xs text-gray-400 mb-1">Klasifikasi Kategori & Tag Isu</label>
                         <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
                             <option value="">-- Semua Kategori & Tag --</option>
                             <optgroup label="Pemerintahan & Kebijakan">
@@ -139,7 +139,7 @@
                     <!-- 3. Filter Lokasi Berjenjang (Provinsi -> Kabupaten/Kota) -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
                         <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>📍 3. Filter Lokasi Wilayah</span>
+                            <span>Filter Lokasi Wilayah</span>
                             <span class="text-[10px] text-gray-500 font-normal">Provinsi ➔ Kab/Kota</span>
                         </div>
                         <div>
@@ -156,31 +156,10 @@
                         </div>
                     </div>
 
-                    <!-- 4. Filter Tokoh / Figur Publik -->
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">4. Filter Tokoh / Entitas</label>
-                        <select id="sb-tokoh" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="">-- Semua Tokoh / Figur --</option>
-                            <option value="prabowo">Prabowo Subianto</option>
-                            <option value="jokowi">Joko Widodo (Jokowi)</option>
-                            <option value="gibran">Gibran Rakabuming Raka</option>
-                            <option value="sri mulyani">Sri Mulyani Indrawati</option>
-                            <option value="bahlil">Bahlil Lahadalia</option>
-                            <option value="luhut">Luhut Binsar Pandjaitan</option>
-                            <option value="ahy">Agus Harimurti Yudhoyono (AHY)</option>
-                            <option value="dasco">Sufmi Dasco Ahmad</option>
-                            <option value="anies">Anies Baswedan</option>
-                            <option value="ganjar">Ganjar Pranowo</option>
-                            <option value="erick thohir">Erick Thohir</option>
-                            <option value="mahfud">Mahfud MD</option>
-                            <option value="roy suryo">Roy Suryo</option>
-                        </select>
-                    </div>
-
                     <!-- 5. Filter Rentang Waktu (BARU) -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 5. Filter Rentang Waktu</span>
+                            <span class="text-[11px] font-semibold text-amber-300">Filter Rentang Waktu</span>
                             <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
                                 <option value="all">Semua Waktu</option>
                                 <option value="1d">24 Jam Terakhir</option>
@@ -205,7 +184,7 @@
                     <!-- 6. Filter Kata Kunci & Mode Teks -->
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
                         <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 6. Filter Kata Kunci & Teks</label>
+                            <label class="block text-[11px] font-semibold text-emerald-300">Filter Kata Kunci & Teks</label>
                             <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
                                 <option value="all">Semua Kolom</option>
                                 <option value="hashtag">Khusus Hashtag (#)</option>
@@ -225,7 +204,7 @@
 
                     <!-- 7. Batas Baris Query -->
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">7. Batas Baris Tampilan</label>
+                        <label class="block text-xs text-gray-400 mb-1">Batas Baris Tampilan</label>
                         <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                 </div>
@@ -531,7 +510,7 @@
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         ⏰ Cron Scheduler (8 Jam)
                     </span>
-                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
                         ACTIVE
                     </span>
                 </div>
@@ -556,6 +535,28 @@
                     <div class="flex justify-between">
                         <span class="text-gray-400">Status:</span>
                         <span id="cron-status" class="font-semibold text-amber-300">idle</span>
+                    </div>
+
+                    <!-- Progress Bar Target Batch & Siklus 8 Jam -->
+                    <div class="pt-2.5 mt-2 border-t border-gray-800/90 space-y-2.5">
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span id="cron-prog-label" class="text-gray-400">Capaian Batch (1.000 Baris):</span>
+                                <span id="cron-prog-pct" class="font-mono font-semibold text-emerald-400">0 / 1.000 (0%)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-0.5">
+                                <div id="cron-prog-bar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span class="text-gray-400">Siklus Waktu (8 Jam):</span>
+                                <span id="cron-cycle-pct" class="font-mono text-[10px] text-indigo-300">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800/80">
+                                <div id="cron-cycle-bar" class="h-full bg-indigo-500/80 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1331,11 +1332,6 @@
                     const kabs = PROV_KAB_DATA[prov] || [];
                     const matchProvOrKab = rowText.includes(pClean) || kabs.some(k => rowText.includes(k.split('(')[0].trim().toLowerCase()));
                     if (!matchProvOrKab) return false;
-                }
-
-                // 3. Filter Tokoh
-                if (tokoh) {
-                    if (!rowText.includes(tokoh.toLowerCase())) return false;
                 }
 
                 // 4. Filter Kata Kunci
