@@ -1,3 +1,4 @@
+import backend.notifier
 import os, sys
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BACKEND_DIR)
@@ -1408,3 +1409,20 @@ def get_analytics():
         return {"analytics": {}}
     finally:
         conn.close()
+
+
+@app.post("/api/v1/notify/test")
+def trigger_test_notification():
+    from backend.notifier import send_chattime_webhook, DASHBOARD_URL
+    from backend.db import get_warehouse_overview
+    wh = get_warehouse_overview() or {}
+    counts = wh.get("counts", {})
+    msg = (
+        f"✅ Sinkronisasi & Monitoring Aktif!\n"
+        f"• Total Raw Data: {counts.get('raw_data', 0)} baris\n"
+        f"• Artikel Berita: {counts.get('news_articles', 0)} baris\n"
+        f"• Keyword & Tren: {counts.get('keywords', 0) + counts.get('trend_snapshots', 0)} baris\n"
+        f"• Social & Sentimen: {counts.get('social_posts', 0)} baris"
+    )
+    ok = send_chattime_webhook(msg, alert_name="DDC Data Warehouse — Status & Cron Report")
+    return {"status": "sent" if ok else "failed", "dashboard_url": DASHBOARD_URL, "message": msg}
