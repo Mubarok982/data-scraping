@@ -690,6 +690,71 @@
             "hiburan": ["hiburan", "musik", "film", "artis", "viral", "konser", "seleb"]
         };
 
+        
+        function isIndonesianText(txt) {
+            const raw = String(txt || '').trim();
+            if (!raw) return false;
+            const cleaned = raw
+                .replace(/https?:\/\/\S+/gi, ' ')
+                .replace(/[@#][a-zA-Z0-9_]+/g, ' ')
+                .replace(/[^a-zA-Z\s]/g, ' ')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!cleaned) return false;
+
+            if (/[^\x00-\x7F\u00C0-\u024F]/.test(raw) && !/[\u2000-\u3300\uD800-\uDBFF]/.test(raw)) {
+                return false;
+            }
+
+            const words = cleaned.split(' ').filter(w => w.length > 1);
+            if (words.length === 0) return false;
+
+            const idVocab = new Set([
+                'yang','dan','di','ke','dari','ini','itu','untuk','dengan','pada','dalam','tidak','bisa','akan','ada',
+                'oleh','juga','karena','saat','lebih','atau','sudah','jadi','kata','tahun','indonesia','warga','pemerintah',
+                'presiden','dpr','menteri','daerah','wilayah','kota','kabupaten','provinsi','banjir','kebakaran','karhutla',
+                'harga','ekonomi','berita','ramai','viral','heboh','terkini','hari','bulan','makan','bergizi','gratis',
+                'rakyat','negara','masyarakat','hukum','kasus','polisi','tni','timnas','sepak','bola','rupiah','saham',
+                'umkm','jalan','tol','banjir','hujan','cuaca','sekolah','kampus','mahasiswa','guru','dokter','rumah','sakit',
+                'pajak','inflasi','investasi','proyek','ikn','nusantara','jakarta','bandung','surabaya','semarang','jogja',
+                'yogyakarta','medan','makassar','bali','riau','kalimantan','sumatera','sulawesi','papua','maluku','aceh',
+                'banten','lampung','ntb','ntt','kini','baru','awal','akhir','bersama','terhadap','atas','sebagai','bagi',
+                'antara','namun','tetapi','serta','para','kaum','anak','ibu','bapak','keluarga','kerja','gaji','upah',
+                'bbm','listrik','air','bersih','sampah','longsor','gempa','waspada','peringatan','resmi','umumkan','gelar',
+                'dukung','tolak','demo','aksi','sidang','vonis','tersangka','korupsi','tangkap','ungkap','temukan'
+            ]);
+
+            const enVocab = new Set([
+                'the','and','with','from','this','that','your','for','are','was','were','have','has','had','will','would',
+                'could','should','what','when','where','why','how','new','top','best','live','breaking','news','official',
+                'video','watch','follow','subscribe','like','comment','share','repost','thread','post','story','today',
+                'week','year','day','people','world','market','stock','price','crypto','game','gaming','music','movie',
+                'show','season','episode','review','guide','tips','free','win','giveaway','alert','update','report',
+                'analysis','vs','over','under','into','out','off','more','most','all','about','after','before','just',
+                'now','here','there','their','them','they','she','he','his','her','its','our','us','we','you','my','me',
+                'can','cant','wont','dont','didnt','isnt','arent','wasnt','werent','hasnt','havent','hadnt','get','got',
+                'make','made','take','took','come','came','go','went','see','saw','know','knew','think','thought','say','said',
+                'man','woman','men','women','boy','girl','child','children','city','state','country','president','minister',
+                'war','peace','attack','kill','killed','dead','death','fire','flood','storm','rain','snow','heat','cold'
+            ]);
+
+            let idScore = 0;
+            let enScore = 0;
+
+            for (const w of words) {
+                if (idVocab.has(w)) idScore += 2;
+                if (enVocab.has(w)) enScore += 2;
+                if (w.length > 4 && (w.endsWith('nya') || w.endsWith('kan'))) idScore += 1;
+            }
+
+            if (enScore > 0 && idScore <= enScore) return false;
+            if (words.length >= 2 && idScore === 0) return false;
+
+            return idScore > enScore;
+        }
+
         const POS_WORDS = ["sukses", "berhasil", "optimis", "tumbuh", "naik", "positif", "inovasi", "apresiasi", "unggul", "prestasi", "solusi", "dukung", "aman", "baik", "hebat", "maju"];
         const NEG_WORDS = ["karhutla", "kebakaran", "korban", "krisis", "turun", "anjlok", "korupsi", "gagal", "kritik", "demo", "rusak", "banjir", "bencana", "konflik", "masalah", "keluhkan", "bahaya", "rugi"];
 
@@ -1076,13 +1141,14 @@
                 }
             });
 
+            const viralDisplay = viral.filter(x => isIndonesianText(x.title));
             const ctxViral = document.getElementById('chartViral').getContext('2d');
             if (chartViral) chartViral.destroy();
             chartViral = new Chart(ctxViral, {
                 type: 'bar',
                 data: {
-                    labels: viral.map(x => x.title && x.title.length > 26 ? x.title.substring(0, 26) + '...' : (x.title || 'Konten')),
-                    datasets: [{ label: 'Skor Interaksi / Dampak', data: viral.map(x => x.engagement), backgroundColor: '#ec4899', borderRadius: 5 }]
+                    labels: viralDisplay.map(x => x.title && x.title.length > 26 ? x.title.substring(0, 26) + '...' : (x.title || 'Konten')),
+                    datasets: [{ label: 'Skor Interaksi / Dampak', data: viralDisplay.map(x => x.engagement), backgroundColor: '#ec4899', borderRadius: 5 }]
                 },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -1239,7 +1305,7 @@
                 const titleCand = String(r.title || r.content || r.keyword || r.name || r.summary || 'Konten Data').trim();
                 const shortTitle = titleCand.substring(0, 50);
                 const engScore = (parseInt(r.likes_count) || 0) + (parseInt(r.comments_count) || 0) + (parseInt(r.shares_count) || 0) + (parseInt(r.views_count) || 0) + (parseInt(r.search_volume) || 0) + (parseInt(r.popularity) || 0) || Math.max(titleCand.length, 25);
-                if (shortTitle && !seenTitles.has(shortTitle)) {
+                if (shortTitle && !seenTitles.has(shortTitle) && isIndonesianText(titleCand)) {
                     seenTitles.add(shortTitle);
                     viralList.push({ title: shortTitle, engagement: engScore });
                 }

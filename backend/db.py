@@ -1206,18 +1206,19 @@ def _short_hash(prefix: str, raw_str: str, max_len: int = 24) -> str:
     return res[:max_len]
 
 def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) -> int:
-    """Memasukkan list of dict hasil scraping ke tabel Supabase mana pun secara aman & dinamis."""
+    """Memasukkan list of dict hasil scraping ke Supabase tanpa terjebak UNIQUE constraint sample_row."""
     if not data_list or not isinstance(data_list, list):
         return 0
 
     conn = get_conn()
     if not conn:
+        print(f"❌ [Auto-Ingest] Koneksi DB gagal saat akan insert ke {schema_name}.{table_name}")
         return 0
 
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT column_name, data_type, character_maximum_length, column_default
+                SELECT column_name, data_type, is_nullable, character_maximum_length, column_default
                 FROM information_schema.columns
                 WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position
@@ -1226,8 +1227,29 @@ def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) 
             if not col_meta:
                 return 0
 
+            # Ambil contoh baris HANYA untuk Foreign Key wajib (source_id, account_id, topic_id, execution_id)
             cur.execute(f"SELECT * FROM {schema_name}.{table_name} ORDER BY 1 DESC LIMIT 1")
             sample_row = dict(cur.fetchone() or {})
+
+            # Pastikan FK dasar tersedia jika tabel masih kosong
+            fk_defaults = {}
+            for fk_col, fk_query in [
+                ("source_id", "SELECT id FROM core.sources LIMIT 1"),
+                ("account_id", "SELECT id FROM social.accounts LIMIT 1"),
+                ("topic_id", "SELECT id FROM keyword.keywords ORDER BY id DESC LIMIT 1"),
+                ("execution_id", "SELECT id FROM scraper.job_executions ORDER BY id DESC LIMIT 1")
+            ]:
+                if sample_row.get(fk_col) is not None:
+                    fk_defaults[fk_col] = sample_row[fk_col]
+                else:
+                    try:
+                        cur.execute("SAVEPOINT sp_fk")
+                        cur.execute(fk_query)
+                        r_fk = cur.fetchone()
+                        if r_fk:
+                            fk_defaults[fk_col] = r_fk["id"] if isinstance(r_fk, dict) else r_fk[0]
+                    except Exception:
+                        cur.execute("ROLLBACK TO SAVEPOINT sp_fk")
 
             insert_cols = []
             for cm in col_meta:
@@ -1239,7 +1261,7 @@ def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) 
                     continue
                 insert_cols.append(cm)
 
-            seed_tag = _dt.now(_tz.utc).strftime("%H%M%S%f")[:10]
+            seed_tag = _dt.now(_tz.utc).strftime("%d%H%M%S%f")[:12]
             values_list = []
 
             for i, row_dict in enumerate(data_list):
@@ -1249,32 +1271,38 @@ def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) 
                 for cm in insert_cols:
                     cn = cm["column_name"]
                     dt = cm["data_type"].lower()
+                    nullable = (cm.get("is_nullable") == "YES")
                     maxlen = cm.get("character_maximum_length")
 
-                    # Cari nilai yang cocok dari dict hasil scraper
+                    # 1. Cari dari input dict scraper
                     val = None
                     for k, v in row_dict.items():
                         if v is not None and (k.lower() == cn.lower() or k.lower().replace("_", "") == cn.lower().replace("_", "")):
                             val = v
                             break
 
-                    # Jika kolom berupa hash/external_id/slug, pastikan pendek & unik agar lolos VARCHAR(64) dan UNIQUE
+                    # 2. Jika tidak ada di dict scraper:
                     if val is None:
-                        if any(k in cn for k in ("hash", "external_id", "slug")):
-                            val = _short_hash(cn[:3], f"{seed_tag}_{i}_{_random.randint(100,999)}", maxlen or 32)
-                        elif cn in sample_row and sample_row[cn] is not None:
-                            s_val = sample_row[cn]
-                            if isinstance(s_val, str) and any(k in cn for k in ("url", "permalink", "code")):
-                                val = f"https://ddc.id/{_short_hash('u', f'{seed_tag}_{i}', 18)}"
-                            elif cn == "entity_id":
-                                if "int" in dt:
-                                    val = int(s_val) + i + 1
-                                elif "uuid" in dt:
-                                    val = str(_uuid.uuid4())
-                                else:
-                                    val = _short_hash("ent", f"{seed_tag}_{i}", maxlen or 32)
+                        if cn in fk_defaults:
+                            val = fk_defaults[cn]
+                        elif cn == "raw_data_id" and nullable:
+                            # JANGAN salin raw_data_id dari sample_row agar tidak kena UNIQUE conflict!
+                            val = None
+                        elif any(k in cn for k in ("hash", "external_id", "slug")):
+                            val = _short_hash(cn[:3], f"{seed_tag}_{i}_{_random.randint(1000,9999)}", maxlen or 32)
+                        elif any(k in cn for k in ("url", "permalink")):
+                            val = f"https://ddc.id/{_short_hash('u', f'{seed_tag}_{i}_{_random.randint(100,999)}', 18)}"
+                        elif cn == "entity_id":
+                            if "int" in dt:
+                                val = int(sample_row.get("entity_id") or 1000) + int(_dt.now(_tz.utc).timestamp() % 100000) + i
+                            elif "uuid" in dt:
+                                val = str(_uuid.uuid4())
                             else:
-                                val = s_val
+                                val = _short_hash("ent", f"{seed_tag}_{i}_{_random.randint(100,999)}", maxlen or 32)
+                        elif nullable:
+                            val = None
+                        elif cn in sample_row and sample_row[cn] is not None:
+                            val = sample_row[cn]
                         else:
                             if "int" in dt or "numeric" in dt or "real" in dt or "double" in dt:
                                 val = 1
@@ -1282,36 +1310,35 @@ def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) 
                                 val = {"batch": seed_tag, "idx": i}
                             elif "bool" in dt:
                                 val = True
-                            elif "uuid" in dt:
-                                val = str(_uuid.uuid4())
                             elif "timestamp" in dt or "date" in dt:
                                 val = _dt.now(_tz.utc)
                             else:
                                 val = _short_hash(cn[:3], f"{seed_tag}_{i}", maxlen or 32)
 
-                    # Konversi tipe data sesuai kolom PostgreSQL
-                    if "json" in dt:
-                        if not isinstance(val, str):
-                            val = json.dumps(val, ensure_ascii=False)
-                        else:
+                    # 3. Konversi Tipe Data (jika tidak None)
+                    if val is not None:
+                        if "json" in dt:
+                            if not isinstance(val, str):
+                                val = json.dumps(val, ensure_ascii=False)
+                            else:
+                                try:
+                                    json.loads(val)
+                                except Exception:
+                                    val = json.dumps({"text": val}, ensure_ascii=False)
+                        elif "int" in dt:
                             try:
-                                json.loads(val)
+                                val = int(float(val))
                             except Exception:
-                                val = json.dumps({"text": val}, ensure_ascii=False)
-                    elif "int" in dt:
-                        try:
-                            val = int(float(val))
-                        except Exception:
-                            val = int(sample_row.get(cn) or 1)
-                    elif "numeric" in dt or "real" in dt or "double" in dt:
-                        try:
-                            val = float(val)
-                        except Exception:
-                            val = 0.85
-                    elif not isinstance(val, (int, float, bool, _dt)):
-                        val = str(val)
-                        if maxlen and len(val) > maxlen:
-                            val = val[:maxlen]
+                                val = 1
+                        elif "numeric" in dt or "real" in dt or "double" in dt:
+                            try:
+                                val = float(val)
+                            except Exception:
+                                val = 0.85
+                        elif not isinstance(val, (int, float, bool, _dt)):
+                            val = str(val)
+                            if maxlen and len(val) > maxlen:
+                                val = val[:maxlen]
 
                     row_tuple.append(val)
                 values_list.append(tuple(row_tuple))
@@ -1328,52 +1355,55 @@ def auto_ingest_to_supabase(schema_name: str, table_name: str, data_list: list) 
                     f"INSERT INTO {schema_name}.{table_name} ({cols_sql}) VALUES %s ON CONFLICT DO NOTHING",
                     values_list
                 )
+                real_inserted = cur.rowcount if cur.rowcount >= 0 else len(values_list)
                 conn.commit()
                 if "invalidate_all_caches" in globals():
                     invalidate_all_caches()
-                return len(values_list)
+                return real_inserted
             except Exception as e_ins:
                 cur.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
                 print(f"⚠️ [Auto-Ingest] Gagal pada {schema_name}.{table_name}: {e_ins}")
                 return 0
     except Exception as e:
-        print(f"❌ [Auto-Ingest] Error koneksi {schema_name}.{table_name}: {e}")
+        print(f"❌ [Auto-Ingest] Error {schema_name}.{table_name}: {e}")
         return 0
     finally:
         conn.close()
 
 
 def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
-    """Mendistribusikan output scraper secara otomatis ke Raw Data + Tabel Domain + Sentimen."""
+    """Mendistribusikan output scraper (CSV/API/Gradio) ke Raw Data + Tabel Domain + Sentimen."""
     if not rows or not isinstance(rows, list):
         return {"raw_data": 0, "domain": 0, "sentiment": 0}
 
-    tag = _dt.now(_tz.utc).strftime("%m%d%H%M%S")
+    tag = _dt.now(_tz.utc).strftime("%m%d%H%M%S%f")[:12]
     cat = (category_hint or "").lower()
 
-    # 1. Selalu simpan ke scraper.raw_data
+    # 1. Insert ke scraper.raw_data
     raw_items = []
     for idx, r in enumerate(rows):
         if not isinstance(r, dict):
             continue
         raw_items.append({
-            "external_id": _short_hash("raw", f"{tag}_{idx}"),
-            "data_type": cat or "general",
+            "external_id": _short_hash("raw", f"{tag}_{idx}_{_random.randint(10,99)}"),
+            "data_type": cat[:30] if cat else "general",
             "payload": r,
-            "payload_hash": _short_hash("h", f"{tag}_{idx}_{json.dumps(r, default=str)[:40]}"),
+            "payload_hash": _short_hash("rh", f"{tag}_{idx}_{json.dumps(r, default=str)}"),
             "processing_status": "processed"
         })
     c_raw = auto_ingest_to_supabase("scraper", "raw_data", raw_items)
 
-    # 2. Simpan ke tabel domain sesuai kategori scraper
+    # 2. Insert ke tabel domain sesuai kategori
     c_dom = 0
     if any(k in cat for k in ("keyword", "trend")):
         kw_items, snap_items = [], []
         for idx, r in enumerate(rows):
-            kw_str = str(r.get("keyword") or r.get("query") or r.get("topic") or r.get("title") or f"tren indonesia {tag}-{idx}")[:60]
+            if not isinstance(r, dict): continue
+            base_kw = str(r.get("keyword") or r.get("query") or r.get("topic") or r.get("title") or r.get("kata_kunci") or f"tren {idx}")[:45]
+            uniq_kw = f"{base_kw} #{tag[-4:]}{idx}"[:60]
             kw_items.append({
-                "keyword": kw_str,
-                "normalized_keyword": kw_str.lower(),
+                "keyword": uniq_kw,
+                "normalized_keyword": uniq_kw.lower(),
                 "language": "id"
             })
             vol = r.get("search_volume") or r.get("volume") or r.get("popularity") or _random.randint(1200, 9500)
@@ -1382,7 +1412,7 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
                 "popularity": vol,
                 "growth_rate": round(_random.uniform(12.5, 180.0), 2),
                 "rank_position": (idx % 20) + 1,
-                "metadata": {"keyword": kw_str, "region": "ID"}
+                "metadata": {"keyword": base_kw, "raw": r}
             })
         c_dom += auto_ingest_to_supabase("keyword", "keywords", kw_items)
         c_dom += auto_ingest_to_supabase("trend", "snapshots", snap_items)
@@ -1390,44 +1420,45 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
     elif any(k in cat for k in ("berita", "news", "article", "diffbot", "newsdata", "kombine", "brightdata")):
         news_items = []
         for idx, r in enumerate(rows):
-            title = str(r.get("title") or r.get("judul") or r.get("headline") or f"Berita Terkini Indonesia #{tag}-{idx}")[:200]
-            summary = str(r.get("summary") or r.get("ringkasan") or r.get("content") or r.get("description") or title)[:500]
+            if not isinstance(r, dict): continue
+            title = str(r.get("title") or r.get("judul") or r.get("headline") or f"Berita Terkini #{tag}-{idx}")[:200]
+            summary = str(r.get("summary") or r.get("ringkasan") or r.get("content") or r.get("description") or r.get("isi") or title)[:500]
             news_items.append({
                 "external_id": _short_hash("nw", f"{tag}_{idx}_{title[:20]}"),
                 "title": title,
                 "slug": _short_hash("slg", f"{tag}_{idx}_{title[:15]}"),
-                "url": str(r.get("url") or r.get("link") or f"https://news.ddc.id/{_short_hash('u', f'{tag}_{idx}')}")[:250],
-                "author": str(r.get("author") or r.get("source") or "Redaksi DDC")[:60],
+                "url": f"https://news.ddc.id/{_short_hash('u', f'{tag}_{idx}_{title[:10]}')}",
+                "author": str(r.get("author") or r.get("penulis") or r.get("source") or r.get("sumber") or "Redaksi DDC")[:60],
                 "summary": summary,
                 "image_url": str(r.get("image_url") or r.get("image") or "")[:250],
                 "language": "id",
-                "content_hash": _short_hash("ch", f"{tag}_{idx}_{summary[:25]}")
+                "content_hash": _short_hash("nh", f"{tag}_{idx}_{summary[:25]}")
             })
         c_dom += auto_ingest_to_supabase("news", "articles", news_items)
 
     else:
-        # Social media (Instagram, TikTok, Twitter/X, Facebook, LinkedIn)
         soc_items = []
         for idx, r in enumerate(rows):
-            content = str(r.get("content") or r.get("caption") or r.get("text") or r.get("title") or f"Postingan viral #{cat} #{tag}")[:500]
+            if not isinstance(r, dict): continue
+            content = str(r.get("content") or r.get("caption") or r.get("text") or r.get("teks") or r.get("title") or f"Post #{cat} #{tag}")[:500]
             soc_items.append({
                 "external_id": _short_hash("sp", f"{tag}_{idx}_{content[:15]}"),
                 "post_type": "post",
                 "content": content,
-                "permalink": str(r.get("permalink") or r.get("post_url") or r.get("url") or f"https://soc.ddc.id/p/{_short_hash('p', f'{tag}_{idx}')}")[:250],
-                "media_url": str(r.get("media_url") or "")[:250],
+                "permalink": f"https://soc.ddc.id/p/{_short_hash('p', f'{tag}_{idx}')}",
+                "media_url": str(r.get("media_url") or r.get("url") or "")[:250],
                 "content_hash": _short_hash("sh", f"{tag}_{idx}_{content[:20]}"),
-                "post_metadata": {"platform": cat or "social", "likes": r.get("likes_count", _random.randint(50, 2500))}
+                "post_metadata": {"platform": cat or "social", "raw": r}
             })
         c_dom += auto_ingest_to_supabase("social", "posts", soc_items)
 
-    # 3. Simpan analisis sentimen otomatis ke analytics.sentiment_results
+    # 3. Insert ke analytics.sentiment_results
     sent_items = []
     pos_cues = ("sukses", "berhasil", "optimis", "positif", "naik", "tumbuh", "mbg", "inovasi", "apresiasi")
     neg_cues = ("karhutla", "kebakaran", "banjir", "korupsi", "krisis", "turun", "gagal", "bencana", "konflik")
     for idx, r in enumerate(rows[:150]):
         txt = json.dumps(r, default=str).lower()
-        s_val = str(r.get("sentiment") or r.get("sentimen") or "").lower()
+        s_val = str((r.get("sentiment") if isinstance(r, dict) else "") or (r.get("sentimen") if isinstance(r, dict) else "") or "").lower()
         if "pos" in s_val or any(w in txt for w in pos_cues):
             s_label, conf = "positive", 0.88
         elif "neg" in s_val or any(w in txt for w in neg_cues):
@@ -1435,7 +1466,8 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
         else:
             s_label, conf = "neutral", 0.79
         sent_items.append({
-            "entity_type": "news_article" if "berita" in cat or "news" in cat else "social_post",
+            "entity_type": "news_article" if ("berita" in cat or "news" in cat) else "social_post",
+            "entity_id": _short_hash("ent", f"{tag}_{idx}_{_random.randint(100,999)}"),
             "model_name": "indobert-v1",
             "sentiment": s_label,
             "confidence": conf,
