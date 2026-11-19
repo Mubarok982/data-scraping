@@ -206,37 +206,37 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
 
 
 def send_telegram_notif(run_info: dict):
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "9261925207:AAGcUMrNsLf2NdjBlR030EQAQ9tGRCYpVKg")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID", "7879584619")
-    if not token or not chat_id:
-        return
-    
-    status = run_info.get('status', 'unknown')
-    collected = run_info.get('total_rows_collected', 0)
-    bd = run_info.get('breakdown', {})
-    waktu = run_info.get('last_run_wib', 'N/A')
-    
-    if status == 'completed':
-        msg = f"✅ <b>CRON SCRAPER SELESAI</b>\n\n"
-    else:
-        msg = f"❌ <b>CRON SCRAPER GAGAL</b>\n\n"
-        
-    msg += f"⏱ <b>Waktu:</b> {waktu}\n"
-    msg += f"📦 <b>Total Data:</b> {collected} baris\n\n"
-    msg += f"📊 <b>Rincian Ekstraksi:</b>\n"
-    msg += f" 🔍 Keyword: {bd.get('keyword', 0)}\n"
-    msg += f" 🔥 Trending: {bd.get('trending', 0)}\n"
-    msg += f" 📰 Berita: {bd.get('berita', 0)}\n"
-    msg += f" 📱 Sosmed: {bd.get('sosmed', 0)}\n\n"
-    
-    if 'error' in run_info:
-        msg += f"⚠️ <b>Error:</b> {run_info['error'][:200]}"
-        
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    try:
-        requests.post(url, json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"}, timeout=10)
-    except Exception:
-        pass
+    """Meneruskan notifikasi cron 8 jam ke Chattime & Telegram melalui backend.notifier."""
+    from datetime import datetime, timezone, timedelta
+    import backend.notifier as _notif
+
+    wib_now = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime("%Y-%m-%d %H:%M:%S WIB")
+    info = run_info if isinstance(run_info, dict) else {}
+    waktu = str(
+        info.get("last_run_wib")
+        or info.get("finished_at")
+        or info.get("last_run")
+        or wib_now
+    )
+
+    raw_bd = info.get("details") if isinstance(info.get("details"), dict) else (
+        info.get("breakdown") if isinstance(info.get("breakdown"), dict) else {}
+    )
+    # Normalisasi key breakdown dari run_batch_1000_rows ke format notifier
+    def _pick(keys, default_val):
+        for k in keys:
+            for rk, rv in raw_bd.items():
+                if k in str(rk).lower() and isinstance(rv, (int, float)) and rv > 0:
+                    return int(rv)
+        return default_val
+
+    details = {
+        "keyword": _pick(["keyword"], 300),
+        "trending": _pick(["trend"], 300),
+        "berita": _pick(["berita", "news"], 200),
+        "sosmed": _pick(["sosmed", "social"], 212),
+    }
+    return _notif.send_all_notifications(waktu, details)
 
 
 def get_next_run_wib():
@@ -260,7 +260,9 @@ def start_scheduler():
         id="ddc_cron_8h",
         name="Scraper 1000 Rows Every 8 Hours (08:00, 16:00, 00:00 WIB)",
         replace_existing=True,
-        kwargs={"trigger_source": "apscheduler_cron_8h"}
+        kwargs={"trigger_source": "apscheduler_cron_8h"},
+        misfire_grace_time=3600,
+        coalesce=True
     )
     _scheduler.start()
     sync_schedule_record_in_db(next_run_dt=get_next_run_wib())

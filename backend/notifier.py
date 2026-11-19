@@ -5,20 +5,44 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 
 DASHBOARD_URL = "https://huggingface.co/spaces/rizqy123/ddc-scraper-portal"
-CHATTIME_WEBHOOK_URL = (
+DEFAULT_CHATTIME_URL = (
     "https://chattime.geekgarden.my.id/api/webhooks/"
     "50deafeb-3b2b-4643-b32e-f18aec60c013/"
     "HPCi5za28Lr6abMKbBq0RPhel0c1FUMpbKYkrREqbvXCLUNlxJTs_t10O4kQzVBD"
 )
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9261925207:AAGcUMrNsLf2NdjBlR030EQAQ9tGRCYpVKg")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "7879584619")
+
+
+def _load_env_file():
+    """Muat .env tanpa menimpa secret yang sudah di-set di OS/Hugging Face."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(override=False)
+        return
+    except Exception:
+        pass
+    if os.path.exists(".env"):
+        with open(".env", "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+def _get_config():
+    _load_env_file()
+    return {
+        "chattime_url": os.getenv("CHATTIME_WEBHOOK_URL", "").strip() or DEFAULT_CHATTIME_URL,
+        "tg_token": os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
+        "tg_chat_id": os.getenv("TELEGRAM_CHAT_ID", "7879584619").strip(),
+    }
 
 
 def _post_json(url: str, payload: dict):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
-        "User-Agent": "DDC-Warehouse-Notifier/2.2"
+        "User-Agent": "DDC-Warehouse-Notifier/2.3"
     }
     req = urllib.request.Request(
         url,
@@ -31,6 +55,8 @@ def _post_json(url: str, payload: dict):
 
 
 def send_all_notifications(waktu_wib: str, details: dict) -> dict:
+    cfg = _get_config()
+    details = details if isinstance(details, dict) else {}
     kw = int(details.get("keyword", 300))
     tr = int(details.get("trending", 300))
     br = int(details.get("berita", 200))
@@ -58,8 +84,9 @@ def send_all_notifications(waktu_wib: str, details: dict) -> dict:
 
     results = {"chattime": False, "telegram": False}
 
+    # 1. Chattime Webhook
     try:
-        st_code, body = _post_json(CHATTIME_WEBHOOK_URL, chattime_payload)
+        st_code, body = _post_json(cfg["chattime_url"], chattime_payload)
         print(f"[Chattime Webhook] Terkirim! HTTP {st_code} | {body[:200]}")
         results["chattime"] = True
     except urllib.error.HTTPError as he:
@@ -68,21 +95,25 @@ def send_all_notifications(waktu_wib: str, details: dict) -> dict:
     except Exception as e:
         print(f"[Chattime Webhook] Gagal: {type(e).__name__}: {e}")
 
-    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+    # 2. Telegram Bot
+    if cfg["tg_token"] and cfg["tg_chat_id"]:
         try:
-            tg_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            tg_url = f"https://api.telegram.org/bot{cfg['tg_token']}/sendMessage"
             tg_body = {
-                "chat_id": TELEGRAM_CHAT_ID,
+                "chat_id": cfg["tg_chat_id"],
                 "text": pretty_json,
                 "disable_web_page_preview": False
             }
             st_tg, _ = _post_json(tg_url, tg_body)
-            print(f"[Telegram Bot] Terkirim ke {TELEGRAM_CHAT_ID}! HTTP {st_tg}")
+            print(f"[Telegram Bot] Terkirim ke {cfg['tg_chat_id']}! HTTP {st_tg}")
             results["telegram"] = True
+        except urllib.error.HTTPError as he:
+            err_txt = he.read().decode("utf-8", errors="ignore")[:250]
+            print(f"[Telegram Bot] HTTPError {he.code}: {err_txt}")
         except Exception as e:
             print(f"[Telegram Bot] Gagal kirim: {type(e).__name__}: {e}")
     else:
-        print("[Telegram Bot] Token atau Chat ID kosong.")
+        print("[Telegram Bot] TELEGRAM_BOT_TOKEN atau TELEGRAM_CHAT_ID belum diset di .env / HF Secrets.")
 
     return results
 
