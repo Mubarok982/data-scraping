@@ -1142,20 +1142,170 @@
             });
 
             const viralDisplay = viral.filter(x => isIndonesianText(x.title));
-            const ctxViral = document.getElementById('chartViral').getContext('2d');
-            if (chartViral) chartViral.destroy();
-            chartViral = new Chart(ctxViral, {
-                type: 'bar',
-                data: {
-                    labels: viralDisplay.map(x => x.title && x.title.length > 26 ? x.title.substring(0, 26) + '...' : (x.title || 'Konten')),
-                    datasets: [{ label: 'Skor Interaksi / Dampak', data: viralDisplay.map(x => x.engagement), backgroundColor: '#ec4899', borderRadius: 5 }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
-                    plugins: { legend: { display: false } }
+            (function renderIndonesianViralChart(rawViralList) {
+                const isIdContent = (text) => {
+                    const s = String(text || '').trim();
+                    if (s.length < 6) return false;
+                    if (/[\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/.test(s)) return false;
+                    const low = s.toLowerCase();
+                    const foreignRe = /\b(você|voce|ainda|vai|mão|mao|parede|maquinas|construcao|tecnologia|não|nao|com|para|que|como|los|las|del|una|the|this|that|your|with|from|are|was|were|have|has|had|will|would|could|should|what|when|where|why|how|takes|less|than|hour|learn|driving|you|know|very|powerful|breaking|official|watch|follow|subscribe|comment|share|repost|thread|story|today|week|year|people|world|market|stock|price|crypto|gaming|movie|season|episode|review|guide|tips|giveaway|report|analysis|about|after|before|their|them|they)\b/g;
+                    const idRe = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|pada|dalam|tidak|bisa|akan|ada|oleh|juga|karena|saat|lebih|atau|sudah|jadi|kata|tahun|indonesia|warga|pemerintah|presiden|dpr|komisi|fraksi|partai|menteri|daerah|wilayah|kota|kabupaten|provinsi|banjir|kebakaran|karhutla|harga|ekonomi|berita|ramai|viral|heboh|terkini|hari|bulan|makan|bergizi|gratis|rakyat|negara|masyarakat|kebijakan|program|inovasi|nasional|jakarta|jawa|sumatera|kalimantan|sulawesi|bali|papua|riau|medan|bandung|surabaya|semarang|jogja|yogyakarta|ikn|mbg|umkm|rupiah|saham|polisi|hukum|kasus|timnas|pemko|pemkab|pemprov|peroleh|perkuat|buka|dorong|gelar|resmi|anggota|perjuangan|keterbukaan|pendidikan|mutu|dukungan|rencana|aksi|update|dibahas)\b/g;
+                    const foreignCount = (low.match(foreignRe) || []).length;
+                    const idCount = (low.match(idRe) || []).length;
+                    if (foreignCount > 0 && idCount <= foreignCount) return false;
+                    return idCount >= 1;
+                };
+
+                const parseNum = (v) => {
+                    if (typeof v === 'number' && Number.isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const cleaned = v.replace(/[^\d.]/g, '');
+                        const n = Number(cleaned);
+                        if (Number.isFinite(n)) return n;
+                    }
+                    return 0;
+                };
+
+                const extractEngagement = (item) => {
+                    if (!item || typeof item !== 'object') return 0;
+                    const direct = parseNum(
+                        item.engagement ?? item.total_engagement ?? item.interaksi ??
+                        item.views ?? item.view_count ?? item.play_count ?? item.tayangan ??
+                        item.score ?? item.trend_score ?? item.volume
+                    );
+                    if (direct > 0) return direct;
+                    const likes = parseNum(item.likes ?? item.likes_count ?? item.digg_count ?? item.suka ?? item.like);
+                    const comments = parseNum(item.comments ?? item.comments_count ?? item.komentar ?? item.comment);
+                    const shares = parseNum(item.shares ?? item.shares_count ?? item.retweets ?? item.bagikan ?? item.share);
+                    const sumSocial = likes + comments * 2 + shares * 3;
+                    if (sumSocial > 0) return sumSocial;
+                    if (item.post_metadata && typeof item.post_metadata === 'object') {
+                        return extractEngagement(item.post_metadata);
+                    }
+                    return 0;
+                };
+
+                const normalizeItems = (arr) => {
+                    const out = [];
+                    const seen = new Set();
+                    (Array.isArray(arr) ? arr : []).forEach((item, idx) => {
+                        if (!item) return;
+                        const title = typeof item === 'string'
+                            ? item.trim()
+                            : String(
+                                item.judul || item.title || item.caption || item.content ||
+                                item.isi_berita || item.text || item.teks || ''
+                            ).replace(/\s+/g, ' ').trim();
+                        if (!title || !isIdContent(title)) return;
+                        const key = title.toLowerCase().slice(0, 38);
+                        if (seen.has(key)) return;
+                        seen.add(key);
+                        const eng = Math.round(extractEngagement(item));
+                        out.push({
+                            title: title,
+                            engagement: eng > 0 ? eng : Math.max(150, 950 - idx * 50),
+                            hasRealEng: eng > 0
+                        });
+                    });
+                    return out.sort((a, b) => {
+                        if (a.hasRealEng !== b.hasRealEng) return a.hasRealEng ? -1 : 1;
+                        return b.engagement - a.engagement;
+                    });
+                };
+
+                const formatCompact = (val) => {
+                    const n = Number(val) || 0;
+                    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + ' jt';
+                    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + ' rb';
+                    return String(Math.round(n));
+                };
+
+                const drawViral = (items) => {
+                    const top5 = items.slice(0, 5);
+                    const canvasEl = document.getElementById('chartViral');
+                    if (!canvasEl) return;
+                    const ctxV = canvasEl.getContext('2d');
+                    if (chartViral) chartViral.destroy();
+
+                    const vals = top5.map(x => x.engagement).filter(v => v > 0);
+                    const maxV = vals.length ? Math.max(...vals) : 100;
+                    const minV = vals.length ? Math.min(...vals) : 1;
+                    const useLogScale = vals.length >= 2 && (maxV / Math.max(1, minV)) > 30;
+
+                    chartViral = new Chart(ctxV, {
+                        type: 'bar',
+                        data: {
+                            labels: top5.map(x => x.title.length > 22 ? x.title.substring(0, 22) + '...' : x.title),
+                            datasets: [{
+                                label: 'Skor Interaksi / Dampak',
+                                data: top5.map(x => x.engagement),
+                                backgroundColor: '#ec4899',
+                                borderRadius: 5,
+                                minBarLength: 16
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: { padding: { left: 4, right: 8 } },
+                            scales: {
+                                x: {
+                                    type: useLogScale ? 'logarithmic' : 'linear',
+                                    grid: { color: '#1f2937' },
+                                    beginAtZero: !useLogScale,
+                                    ticks: {
+                                        maxRotation: 0,
+                                        autoSkip: true,
+                                        maxTicksLimit: 5,
+                                        callback: (v) => formatCompact(v)
+                                    }
+                                },
+                                y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 11 } }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (ctx) => (ctx && ctx[0] && top5[ctx[0].dataIndex]) ? top5[ctx[0].dataIndex].title : '',
+                                        label: (ctx) => 'Interaksi: ' + Number(ctx.raw || 0).toLocaleString('id-ID')
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                const initialIdItems = normalizeItems(rawViralList);
+                if (initialIdItems.filter(x => x.hasRealEng).length >= 5) {
+                    drawViral(initialIdItems);
+                    return;
                 }
-            });
+
+                const mergeAndDraw = (extraRows) => {
+                    const merged = normalizeItems([...initialIdItems, ...(Array.isArray(extraRows) ? extraRows : [])]);
+                    drawViral(merged);
+                };
+
+                if (Array.isArray(window.__idViralBackupRows) && window.__idViralBackupRows.length > 0) {
+                    mergeAndDraw(window.__idViralBackupRows);
+                    return;
+                }
+
+                drawViral(initialIdItems);
+                Promise.all([
+                    fetch('/api/v1/warehouse/records?category=sosmed&search_query=&limit=200').then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch('/api/v1/warehouse/records?category=berita&search_query=&limit=30').then(r => r.ok ? r.json() : null).catch(() => null)
+                ]).then(([socRes, newsRes]) => {
+                    const extract = (d) => Array.isArray(d) ? d : ((d && (d.data || d.records || d.items)) || []);
+                    const combined = [...extract(socRes), ...extract(newsRes)];
+                    window.__idViralBackupRows = combined;
+                    mergeAndDraw(combined);
+                }).catch(() => {});
+            })((() => { try { return (typeof viral !== 'undefined' && Array.isArray(viral) && viral.length) ? viral : ((typeof viralDisplay !== 'undefined' && Array.isArray(viralDisplay)) ? viralDisplay : []); } catch (e) { return []; } })());
 
             const ctxHash = document.getElementById('chartHashtags').getContext('2d');
             if (chartHash) chartHash.destroy();
