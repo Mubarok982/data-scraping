@@ -248,7 +248,7 @@ let currentTab = 'supabase';
                         _cronSimProgress = 100;
                         updateCronProgressUI('completed', stData.rows || 1012);
                         status.innerText = `✅ Sukses! ${stData.rows || 1012} baris baru masuk ke Supabase & notifikasi terkirim ke Telegram + Chattime!`;
-                        await forceReloadAll();
+                        if (currentTab !== 'project') await forceReloadAll(); else await refreshTelemetry();
                         break;
                     }
                 }
@@ -303,6 +303,7 @@ let currentTab = 'supabase';
                 });
             }
             applyClientFilters();
+            if (currentTab === 'project' && typeof applyProjectFilters === 'function') applyProjectFilters();
         }
 
         function onTimePresetChange() {
@@ -367,7 +368,7 @@ let currentTab = 'supabase';
 
         function switchTab(tab) {
             currentTab = tab;
-            ['supabase', 'bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
+            ['supabase', 'bank', 'keyword', 'berita', 'sosmed', 'project'].forEach(t => {
                 const el = document.getElementById('form-' + t);
                 if (el) el.classList.add('hidden');
                 const tabBtn = document.getElementById('tab-' + t);
@@ -391,6 +392,7 @@ let currentTab = 'supabase';
             const runBtn = document.getElementById('btn-run');
             if (tab === 'supabase') runBtn.innerText = "🗄️ Muat Tabel Supabase";
             else if (tab === 'bank') runBtn.innerText = "📂 Terapkan Filter CSV";
+            else if (tab === 'project') runBtn.innerText = "🎯 Cari Project & Cek Confidence";
             else runBtn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
 
             if (tab === 'supabase' || tab === 'bank') executeAction(false);
@@ -400,6 +402,12 @@ let currentTab = 'supabase';
             const pf = document.getElementById('sm-platform').value;
             document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
             document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
+            const liBox = document.getElementById('sm-linkedin-box');
+            if (liBox) liBox.classList.toggle('hidden', pf !== 'linkedin');
+            const smInput = document.getElementById('sm-input');
+            if (smInput && pf === 'linkedin' && smInput.value === 'kebakaranhutan') {
+                smInput.value = 'web developer aplikasi';
+            }
         }
 
         function filterByTerm(term) {
@@ -447,6 +455,10 @@ let currentTab = 'supabase';
             if (document.getElementById('sb-text-mode')) document.getElementById('sb-text-mode').value = 'all';
             if (document.getElementById('sb-search')) document.getElementById('sb-search').value = '';
             if (document.getElementById('bd-search')) document.getElementById('bd-search').value = '';
+            ['li-filter-conf', 'li-filter-source', 'li-filter-service', 'bd-li-filter-conf', 'bd-li-filter-source', 'bd-li-filter-service', 'proj-filter-conf', 'proj-filter-source', 'proj-filter-service'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
             applyClientFilters();
         }
 
@@ -1127,6 +1139,8 @@ let currentTab = 'supabase';
         function applyClientFilters() {
             if (currentTab !== 'supabase') return;
             const cat = document.getElementById('sb-cat').value;
+            const liBox = document.getElementById('linkedin-filter-box');
+            if (liBox) liBox.classList.toggle('hidden', cat !== 'linkedin');
             const rawRows = DOMAIN_ROWS_CACHE[cat];
             if (!rawRows) return;
 
@@ -1158,6 +1172,17 @@ let currentTab = 'supabase';
                     if (!rowText.includes(pClean) && !kabs.some(k => rowText.includes(k.split('(')[0].trim().toLowerCase()))) return false;
                 }
                 if (q && !rowText.includes(q.toLowerCase())) return false;
+                if (cat === 'linkedin') {
+                    const liConf = (document.getElementById('li-filter-conf')?.value || '').toLowerCase();
+                    const liSrc = (document.getElementById('li-filter-source')?.value || '').toLowerCase();
+                    const liSrv = (document.getElementById('li-filter-service')?.value || '').toLowerCase();
+                    const confVal = String(r.confidence_status || '').toLowerCase();
+                    const srcVal = String(r.source_platform || r.platform || '').toLowerCase();
+                    const srvVal = String(r.project_service_type || r.matched_services || '').toLowerCase();
+                    if (liConf && !confVal.includes(liConf) && !rowText.includes(liConf)) return false;
+                    if (liSrc && !srcVal.includes(liSrc) && !rowText.includes(liSrc)) return false;
+                    if (liSrv && !srvVal.includes(liSrv) && !rowText.includes(liSrv)) return false;
+                }
                 if (fromTs || toTs) {
                     const d = extractRowDate(r);
                     if (!d) return false;
@@ -1238,8 +1263,16 @@ let currentTab = 'supabase';
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
                     }
-                    const reactiveAn = buildReactiveAnalyticsFromRows(rows, '', cat);
-                    renderChartsFromObject(reactiveAn, true, `[Bank Data CSV: ${cat}] (${rows.length} baris)`);
+                    window.__LAST_BANK_ROWS = rows;
+                    window.__LAST_BANK_CAT = cat;
+                    const bdLiBox = document.getElementById('bd-linkedin-filter-box');
+                    if (bdLiBox) bdLiBox.classList.toggle('hidden', cat !== 'linkedin');
+                    if (cat === 'linkedin') {
+                        applyBankLinkedInFilters();
+                    } else {
+                        const reactiveAn = buildReactiveAnalyticsFromRows(rows, '', cat);
+                        renderChartsFromObject(reactiveAn, true, `[Bank Data CSV: ${cat}] (${rows.length} baris)`);
+                    }
                 } else {
                     if (btn) btn.innerText = "⏳ Sedang Scraping...";
                     status.innerText = "Mengekstrak data & mengunggah ke 7 skema Supabase...";
@@ -1259,6 +1292,16 @@ let currentTab = 'supabase';
                             keyword_or_url: document.getElementById('br-input').value,
                             max_results: Math.max(parseInt(document.getElementById('br-limit').value) || 10, 1)
                         };
+                    } else if (currentTab === 'project') {
+                        if (btn) btn.innerText = "⏳ Mencari Project & Evaluasi Fit...";
+                        status.innerText = "Mencari project multi-sumber & menghitung confidence Geekgarden...";
+                        endpoint = '/api/v1/project/search';
+                        payload = {
+                            keyword: document.getElementById('proj-input')?.value || 'web developer aplikasi',
+                            project_sources: document.getElementById('proj-sources')?.value || 'all',
+                            region_indonesia: (document.getElementById('proj-region')?.value || 'id') === 'id',
+                            max_results: Math.max(parseInt(document.getElementById('proj-limit')?.value) || 20, 1)
+                        };
                     } else {
                         const pf = document.getElementById('sm-platform').value;
                         const eng = document.getElementById('sm-engine').value;
@@ -1267,7 +1310,7 @@ let currentTab = 'supabase';
                         const lim = Math.max(parseInt(document.getElementById('sm-limit').value) || 10, 1);
                         endpoint = '/api/v1/sosmed/' + pf;
 
-                        if (pf === 'linkedin') payload = { keyword: val, region_indonesia: true, max_results: lim };
+                        if (pf === 'linkedin') payload = { keyword: val, region_indonesia: true, max_results: lim, search_mode: 'profile' };
                         else if (pf === 'facebook') payload = { keyword_or_url: val, engine: eng, mode_apify: mode === 'full' ? 'full_39_kolom' : 'bersih', max_results: lim };
                         else if (pf === 'instagram') payload = { keyword_or_hashtag: val, engine: eng, mode_apify: mode === 'full' ? 'full_29_kolom' : 'bersih', max_results: lim };
                         else if (pf === 'tiktok') payload = { keyword_or_hashtag: val, engine: eng, max_results: lim };
@@ -1281,9 +1324,16 @@ let currentTab = 'supabase';
                     });
                     const json = await res.json();
                     const rows = json.data || [];
-                    renderTable(rows);
-                    document.getElementById('row-count').innerText = json.total || 0;
-                    status.innerText = "✅ Selesai! Data tersimpan ke CSV & masuk ke Supabase Data Warehouse.";
+                    if (currentTab === 'project') {
+                        window.__LAST_PROJECT_ROWS = rows;
+                        const s = json.confidence_summary || {};
+                        applyProjectFilters();
+                        status.innerText = `✅ Ditemukan ${rows.length} project • Fix Bisa Masuk: ${s.fix_bisa_masuk || 0} • Fifty-Fifty: ${s.fifty_fifty || 0} • Tidak Bisa: ${s.tidak_bisa || 0}`;
+                    } else {
+                        renderTable(rows);
+                        document.getElementById('row-count').innerText = json.total || 0;
+                        status.innerText = "✅ Selesai! Data tersimpan ke CSV & masuk ke Supabase Data Warehouse.";
+                    }
                     if (json.csv && dlBtn) {
                         dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
                         dlBtn.classList.remove('hidden');
@@ -1297,6 +1347,7 @@ let currentTab = 'supabase';
                     btn.disabled = false;
                     if (currentTab === 'supabase') btn.innerText = "🗄️ Muat Tabel Supabase";
                     else if (currentTab === 'bank') btn.innerText = "📂 Terapkan Filter CSV";
+                    else if (currentTab === 'project') btn.innerText = "🎯 Cari Project & Cek Confidence";
                     else btn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
                 }
             }
@@ -1371,6 +1422,17 @@ let currentTab = 'supabase';
                     let val = r[c] !== null && r[c] !== undefined ? String(r[c]) : '';
                     if (val.startsWith('http')) {
                         return `<td class="px-3.5 py-2 whitespace-nowrap"><a href="${val}" target="_blank" class="text-indigo-400 hover:underline">🔗 Buka Link</a></td>`;
+                    }
+                    if (c === 'confidence_status') {
+                        const low = val.toLowerCase();
+                        let cls = 'bg-gray-800 text-gray-300 border-gray-700';
+                        if (low.includes('fix')) cls = 'bg-emerald-950/90 text-emerald-300 border-emerald-700';
+                        else if (low.includes('fifty')) cls = 'bg-amber-950/90 text-amber-300 border-amber-700';
+                        else if (low.includes('tidak')) cls = 'bg-rose-950/90 text-rose-300 border-rose-700';
+                        return `<td class="px-3.5 py-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cls}">${val}</span></td>`;
+                    }
+                    if (c === 'confidence_score' && val !== '') {
+                        return `<td class="px-3.5 py-2 whitespace-nowrap font-mono font-bold text-indigo-300">${val}%</td>`;
                     }
                     if (val.length > 85) val = val.substring(0, 85) + '...';
                     return `<td class="px-3.5 py-2 whitespace-nowrap">${val}</td>`;
@@ -1494,7 +1556,7 @@ let currentTab = 'supabase';
 
     const __origExecuteAction = executeAction;
     executeAction = async function (...args) {
-        const isManualScraper = ['keyword', 'berita', 'sosmed'].includes(currentTab);
+        const isManualScraper = ['keyword', 'berita', 'sosmed', 'project'].includes(currentTab);
         if (isManualScraper) startScraperProgress();
         try {
             const res = await __origExecuteAction.apply(this, args);
@@ -1523,5 +1585,329 @@ let currentTab = 'supabase';
         }
         return __origSwitchTab.call(this, tab);
     };
+})();
+
+
+
+// === LINKEDIN PROJECT FILTERING (BANK DATA CSV & INIT) ===
+function applyBankLinkedInFilters() {
+    const rows = window.__LAST_BANK_ROWS || [];
+    const cat = window.__LAST_BANK_CAT || document.getElementById('bd-cat')?.value || 'linkedin';
+    const bdLiBox = document.getElementById('bd-linkedin-filter-box');
+    if (bdLiBox) bdLiBox.classList.toggle('hidden', cat !== 'linkedin');
+
+    const conf = (document.getElementById('bd-li-filter-conf')?.value || '').toLowerCase();
+    const src = (document.getElementById('bd-li-filter-source')?.value || '').toLowerCase();
+    const srv = (document.getElementById('bd-li-filter-service', 'proj-filter-conf', 'proj-filter-source', 'proj-filter-service')?.value || '').toLowerCase();
+
+    const filtered = rows.filter(r => {
+        const allTxt = Object.values(r).join(' ').toLowerCase();
+        const confVal = String(r.confidence_status || '').toLowerCase();
+        const srcVal = String(r.source_platform || r.platform || '').toLowerCase();
+        const srvVal = String(r.project_service_type || r.matched_services || '').toLowerCase();
+        if (conf && !confVal.includes(conf) && !allTxt.includes(conf)) return false;
+        if (src && !srcVal.includes(src) && !allTxt.includes(src)) return false;
+        if (srv && !srvVal.includes(srv) && !allTxt.includes(srv)) return false;
+        return true;
+    });
+
+    renderTable(filtered);
+    const rc = document.getElementById('row-count');
+    if (rc) rc.innerText = filtered.length;
+    const reactiveAn = buildReactiveAnalyticsFromRows(filtered, '', cat);
+    renderChartsFromObject(reactiveAn, true, `[Bank Data LinkedIn Fit] (${filtered.length} baris)`);
+}
+window.applyBankLinkedInFilters = applyBankLinkedInFilters;
+
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof toggleSosmedOptions === 'function') toggleSosmedOptions();
+    const bdCat = document.getElementById('bd-cat');
+    const bdLiBox = document.getElementById('bd-linkedin-filter-box');
+    if (bdCat && bdLiBox) bdLiBox.classList.toggle('hidden', bdCat.value !== 'linkedin');
+});
+
+// === FILTER REALTIME KHUSUS TAB PROJECT HUNTER ===
+(function () {
+    let chartProjConf = null;
+    let chartProjSrc = null;
+    let chartProjSrv = null;
+    let chartProjTop = null;
+
+    function toggleCenterChartsByTab(tab) {
+        const defaultGrid = document.getElementById('default-charts-grid');
+        const projPanel = document.getElementById('project-charts-panel');
+        if (!defaultGrid || !projPanel) return;
+
+        if (tab === 'project') {
+            defaultGrid.classList.add('hidden');
+            projPanel.classList.remove('hidden');
+        } else {
+            projPanel.classList.add('hidden');
+            defaultGrid.classList.remove('hidden');
+        }
+    }
+
+    function getFilteredProjectRows() {
+        const rows = window.__LAST_PROJECT_ROWS || [];
+        const conf = (document.getElementById('proj-filter-conf')?.value || '').toLowerCase();
+        const src = (document.getElementById('proj-filter-source')?.value || '').toLowerCase();
+        const srv = (document.getElementById('proj-filter-service')?.value || '').toLowerCase();
+
+        return rows.filter(r => {
+            const allTxt = Object.values(r).join(' ').toLowerCase();
+            const confVal = String(r.confidence_status || '').toLowerCase();
+            const srcVal = String(r.source_platform || '').toLowerCase();
+            const srvVal = String(r.project_service_type || r.matched_services || '').toLowerCase();
+            if (conf && !confVal.includes(conf)) return false;
+            if (src && !srcVal.includes(src) && !allTxt.includes(src)) return false;
+            if (srv && !srvVal.includes(srv) && !allTxt.includes(srv)) return false;
+            return true;
+        });
+    }
+
+    function renderProjectCharts(rows) {
+        const list = Array.isArray(rows) ? rows : [];
+
+        // 1. Update 4 KPI mini
+        let cFix = 0, cFifty = 0, cNo = 0, scoreSum = 0;
+        const srcMap = {};
+        const srvMap = {};
+
+        list.forEach(r => {
+            const st = String(r.confidence_status || '').toLowerCase();
+            if (st.includes('fix')) cFix++;
+            else if (st.includes('fifty')) cFifty++;
+            else cNo++;
+
+            const sc = Number(r.confidence_score) || 0;
+            scoreSum += sc;
+
+            const src = String(r.source_platform || 'Lainnya').trim();
+            srcMap[src] = (srcMap[src] || 0) + 1;
+
+            const srv = String(r.project_service_type || 'Lainnya / Non-IT').trim();
+            srvMap[srv] = (srvMap[srv] || 0) + 1;
+        });
+
+        const avgScore = list.length ? Math.round(scoreSum / list.length) : 0;
+        const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+        setTxt('pkpi-fix', cFix);
+        setTxt('pkpi-fifty', cFifty);
+        setTxt('pkpi-no', cNo);
+        setTxt('pkpi-avg', `${avgScore}%`);
+        setTxt('pkpi-total', `${list.length} project tampil`);
+
+        // 2. Chart 1: Doughnut Distribusi Confidence
+        const elConf = document.getElementById('chartProjConfidence');
+        if (elConf) {
+            if (chartProjConf) chartProjConf.destroy();
+            const confLabels = ['Fix Bisa Masuk', 'Fifty-Fifty', 'Tidak Bisa'];
+            const confFilterVals = ['fix bisa masuk', 'fifty-fifty', 'tidak bisa'];
+            chartProjConf = new Chart(elConf.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: confLabels,
+                    datasets: [{
+                        data: [cFix, cFifty, cNo],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '58%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+                    onClick: (_, elements) => {
+                        if (!elements.length) return;
+                        quickFilterProjectConf(confFilterVals[elements[0].index]);
+                    }
+                }
+            });
+        }
+
+        // 3. Chart 2: Bar Sebaran Sumber Platform
+        const elSrc = document.getElementById('chartProjSources');
+        if (elSrc) {
+            if (chartProjSrc) chartProjSrc.destroy();
+            const srcEntries = Object.entries(srcMap).sort((a, b) => b[1] - a[1]);
+            chartProjSrc = new Chart(elSrc.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: srcEntries.map(x => x[0]),
+                    datasets: [{
+                        label: 'Jumlah Project',
+                        data: srcEntries.map(x => x[1]),
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: '#1f2937' }, beginAtZero: true, ticks: { precision: 0 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 4. Chart 3: Horizontal Bar Tipe Layanan Geekgarden
+        const elSrv = document.getElementById('chartProjServices');
+        if (elSrv) {
+            if (chartProjSrv) chartProjSrv.destroy();
+            const srvEntries = Object.entries(srvMap).sort((a, b) => b[1] - a[1]).slice(0, 7);
+            chartProjSrv = new Chart(elSrv.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: srvEntries.map(x => x[0].length > 26 ? x[0].slice(0, 26) + '...' : x[0]),
+                    datasets: [{
+                        label: 'Jumlah Project',
+                        data: srvEntries.map(x => x[1]),
+                        backgroundColor: '#14b8a6',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#1f2937' }, beginAtZero: true, ticks: { precision: 0 } },
+                        y: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 5. Chart 4: Top 8 Project Skor Tertinggi
+        const elTop = document.getElementById('chartProjTopScores');
+        if (elTop) {
+            if (chartProjTop) chartProjTop.destroy();
+            const topRows = [...list]
+                .sort((a, b) => (Number(b.confidence_score) || 0) - (Number(a.confidence_score) || 0))
+                .slice(0, 8);
+
+            chartProjTop = new Chart(elTop.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: topRows.map(r => {
+                        const t = String(r.title || 'Project');
+                        return t.length > 24 ? t.slice(0, 24) + '...' : t;
+                    }),
+                    datasets: [{
+                        label: 'Confidence Score (%)',
+                        data: topRows.map(r => Number(r.confidence_score) || 0),
+                        backgroundColor: topRows.map(r => {
+                            const s = Number(r.confidence_score) || 0;
+                            return s >= 70 ? '#10b981' : s >= 40 ? '#f59e0b' : '#ef4444';
+                        }),
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { max: 100, beginAtZero: true, grid: { color: '#1f2937' } },
+                        y: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => {
+                                    const row = items[0] ? topRows[items[0].dataIndex] : null;
+                                    return row ? String(row.title || '') : '';
+                                },
+                                label: (ctx) => {
+                                    const row = topRows[ctx.dataIndex] || {};
+                                    return [
+                                        `Confidence: ${ctx.raw}% (${row.confidence_status || '-'})`,
+                                        `Sumber: ${row.source_platform || '-'} | Budget: ${row.budget || '-'}`,
+                                        `Layanan: ${row.project_service_type || '-'}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    onClick: (_, elements) => {
+                        if (!elements.length) return;
+                        const row = topRows[elements[0].index];
+                        if (row && row.url && String(row.url).startsWith('http')) {
+                            window.open(row.url, '_blank');
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function applyProjectFilters() {
+        const allRows = window.__LAST_PROJECT_ROWS || [];
+        const filtered = getFilteredProjectRows();
+
+        toggleCenterChartsByTab('project');
+        renderTable(filtered);
+        const rc = document.getElementById('row-count');
+        if (rc) rc.innerText = filtered.length;
+
+        const banner = document.getElementById('reactive-banner');
+        const bannerText = document.getElementById('reactive-banner-text');
+        if (banner && bannerText) {
+            if (allRows.length > 0) {
+                banner.classList.remove('hidden');
+                bannerText.innerText = `💼 Mode Analitik Project Hunter: Menampilkan ${filtered.length} dari ${allRows.length} project hasil evaluasi Geekgarden`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        renderProjectCharts(filtered);
+    }
+
+    function quickFilterProjectConf(val) {
+        const sel = document.getElementById('proj-filter-conf');
+        if (!sel) return;
+        sel.value = (sel.value === val) ? '' : val;
+        applyProjectFilters();
+    }
+
+    async function showProjectResults() {
+        toggleCenterChartsByTab('project');
+        const rows = window.__LAST_PROJECT_ROWS || [];
+        if (rows.length === 0) {
+            await executeAction(true);
+        } else {
+            applyProjectFilters();
+        }
+        const panel = document.getElementById('project-charts-panel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Bungkus switchTab agar otomatis mengganti grafik tengah tanpa merusak 7 grafik asli
+    const __prevSwitchTabProjUI = switchTab;
+    switchTab = function (tab) {
+        const res = __prevSwitchTabProjUI.call(this, tab);
+        toggleCenterChartsByTab(tab);
+        if (tab === 'project') {
+            applyProjectFilters();
+        } else {
+            const banner = document.getElementById('reactive-banner');
+            if (banner && (tab === 'keyword' || tab === 'berita' || tab === 'sosmed')) {
+                banner.classList.add('hidden');
+            }
+        }
+        return res;
+    };
+
+    window.switchTab = switchTab;
+    window.applyProjectFilters = applyProjectFilters;
+    window.showProjectResults = showProjectResults;
+    window.quickFilterProjectConf = quickFilterProjectConf;
 })();
 

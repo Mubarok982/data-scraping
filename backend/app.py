@@ -616,6 +616,9 @@ class LinkedInRequest(BaseModel):
 # =====================================================================
 # 1. ENDPOINT KEYWORD & TRENDING
 # =====================================================================
+    search_mode: str = "profile"
+    project_sources: str = "all"
+
 def harvest_expanded_suggestions(base_query: str, geo: str, max_target: int) -> list[str]:
     target_cap = min(max_target, 300)
     prefixes = [""] + [
@@ -1212,6 +1215,36 @@ def _extract_single_linkedin_brightdata(url_target: str) -> Optional[dict]:
 @app.post("/api/v1/sosmed/linkedin", tags=["3. Social Media"])
 def scrape_linkedin_service(req: LinkedInRequest):
     target_limit = min(req.max_results, 50)
+    # === LINKEDIN PROJECT HUNTER + GEEKGARDEN CONFIDENCE ===
+    if getattr(req, "search_mode", "profile") == "project":
+        from backend.project_matcher import run_project_hunter
+        proj_rows = run_project_hunter(
+            keyword=req.keyword,
+            sources=getattr(req, "project_sources", "all"),
+            region_indonesia=req.region_indonesia,
+            max_results=target_limit,
+            harvest_fn=globals().get("harvest_search_snippets"),
+        )
+        ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_kw = re.sub(r"[^a-zA-Z0-9_-]+", "_", str(req.keyword or "project"))[:30]
+        csv_path = os.path.join(BASE_OUTPUT_DIR, f"linkedin_project_{safe_kw}_{ts_str}.csv")
+        if proj_rows:
+            pd.DataFrame(proj_rows).to_csv(csv_path, index=False, encoding="utf-8-sig")
+        summary = {
+            "fix_bisa_masuk": sum(1 for r in proj_rows if r.get("confidence_status") == "Fix Bisa Masuk"),
+            "fifty_fifty": sum(1 for r in proj_rows if r.get("confidence_status") == "Fifty-Fifty"),
+            "tidak_bisa": sum(1 for r in proj_rows if r.get("confidence_status") == "Tidak Bisa"),
+        }
+        return {
+            "status": "success",
+            "platform": "linkedin",
+            "search_mode": "project",
+            "project_sources": getattr(req, "project_sources", "all"),
+            "confidence_summary": summary,
+            "total": len(proj_rows),
+            "csv": csv_path if proj_rows else "",
+            "data": proj_rows,
+        }
     dork = f"{req.keyword} Indonesia site:linkedin.com/in/" if req.region_indonesia else f"{req.keyword} site:linkedin.com/in/"
     snippets = harvest_search_snippets(dork, max_items=target_limit * 2)
 
@@ -1268,6 +1301,49 @@ def analytics_ui():
         with open(FRONTEND_ANALYTICS_PATH, "r", encoding="utf-8") as f:
             return f.read()
     return "<h1>Error: File frontend/analytics.html tidak ditemukan.</h1>"
+
+
+class ProjectHunterRequest(BaseModel):
+    keyword: str = "web developer aplikasi"
+    project_sources: str = "all"
+    region_indonesia: bool = True
+    max_results: int = Field(default=20, ge=1, le=50)
+
+
+@app.post("/api/v1/project/search", tags=["4. Project Hunter (Geekgarden Fit)"])
+def scrape_project_hunter_service(req: ProjectHunterRequest):
+    from backend.project_matcher import run_project_hunter
+
+    target_limit = min(req.max_results, 50)
+    proj_rows = run_project_hunter(
+        keyword=req.keyword,
+        sources=req.project_sources,
+        region_indonesia=req.region_indonesia,
+        max_results=target_limit,
+        harvest_fn=globals().get("harvest_search_snippets"),
+    )
+
+    ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_kw = re.sub(r"[^a-zA-Z0-9_-]+", "_", str(req.keyword or "project"))[:30]
+    csv_path = os.path.join(BASE_OUTPUT_DIR, f"project_hunter_{safe_kw}_{ts_str}.csv")
+    if proj_rows:
+        pd.DataFrame(proj_rows).to_csv(csv_path, index=False, encoding="utf-8-sig")
+
+    summary = {
+        "fix_bisa_masuk": sum(1 for r in proj_rows if r.get("confidence_status") == "Fix Bisa Masuk"),
+        "fifty_fifty": sum(1 for r in proj_rows if r.get("confidence_status") == "Fifty-Fifty"),
+        "tidak_bisa": sum(1 for r in proj_rows if r.get("confidence_status") == "Tidak Bisa"),
+    }
+    return {
+        "status": "success",
+        "platform": "project_hunter",
+        "project_sources": req.project_sources,
+        "confidence_summary": summary,
+        "total": len(proj_rows),
+        "csv": csv_path if proj_rows else "",
+        "data": proj_rows,
+    }
+
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def dashboard_ui():

@@ -57,7 +57,7 @@
                         🧭 Pilih Mode Sumber & Scraper
                     </div>
                     <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        5 Mode
+                        6 Mode
                     </span>
                 </div>
 
@@ -106,6 +106,21 @@
                                 <span>📱 3. Social Media</span>
                             </span>
                             <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Social</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-800/80 pt-2.5 mt-2.5">
+                    <div class="text-[10px] font-medium uppercase tracking-wider text-emerald-400/90 px-1 mb-1.5">
+                        Project & Lead Hunter
+                    </div>
+                    <div class="space-y-1.5">
+                        <button type="button" onclick="switchTab('project')" id="tab-project" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>💼 4. Pencarian Project</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Project</span>
                         </button>
                     </div>
                 </div>
@@ -167,6 +182,46 @@
                                 <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
                             </optgroup>
                         </select>
+                    </div>
+
+                    <div id="linkedin-filter-box" class="hidden p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-700/60 space-y-2.5">
+                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
+                            <span>💼 Filter Khusus LinkedIn & Project Fit</span>
+                            <span class="text-[10px] text-emerald-400">Geekgarden</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence (Peluang Masuk)</label>
+                            <select id="li-filter-conf" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Status Confidence --</option>
+                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
+                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
+                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Sumber Platform Project</label>
+                            <select id="li-filter-source" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Sumber Project --</option>
+                                <option value="linkedin">LinkedIn</option>
+                                <option value="projects.co.id">Projects.co.id</option>
+                                <option value="freelancer">Freelancer.com</option>
+                                <option value="sribu">Sribu</option>
+                                <option value="upwork">Upwork</option>
+                                <option value="fastwork">Fastwork</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
+                            <select id="li-filter-service" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Tipe Layanan --</option>
+                                <option value="web & mobile">Web & Mobile Development</option>
+                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                                <option value="ui/ux">UI/UX Design & Product</option>
+                                <option value="qa">QA & Software Testing</option>
+                                <option value="staff augmentation">IT Staff Augmentation</option>
+                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
@@ -252,6 +307,45 @@
                             <option value="linkedin">LinkedIn</option>
                             <option value="semua">Semua Kategori</option>
                         </select>
+                    </div>
+                    <div id="bd-linkedin-filter-box" class="hidden p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-700/60 space-y-2.5">
+                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
+                            <span>💼 Filter Khusus LinkedIn CSV</span>
+                            <span class="text-[10px] text-emerald-400">Geekgarden</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence</label>
+                            <select id="bd-li-filter-conf" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Status Confidence --</option>
+                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
+                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
+                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Sumber Platform Project</label>
+                            <select id="bd-li-filter-source" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Sumber Project --</option>
+                                <option value="linkedin">LinkedIn</option>
+                                <option value="projects.co.id">Projects.co.id</option>
+                                <option value="freelancer">Freelancer.com</option>
+                                <option value="sribu">Sribu</option>
+                                <option value="upwork">Upwork</option>
+                                <option value="fastwork">Fastwork</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
+                            <select id="bd-li-filter-service" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Tipe Layanan --</option>
+                                <option value="web & mobile">Web & Mobile Development</option>
+                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                                <option value="ui/ux">UI/UX Design & Product</option>
+                                <option value="qa">QA & Software Testing</option>
+                                <option value="staff augmentation">IT Staff Augmentation</option>
+                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
@@ -354,6 +448,7 @@
                             <option value="full">Full Kolom Asli (29/39 Kolom)</option>
                         </select>
                     </div>
+                    
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
                         <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
@@ -361,6 +456,80 @@
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
                         <input id="sm-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <!-- Form Pencarian Project & Geekgarden Confidence -->
+                <div id="form-project" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">1. Sumber Platform Project</label>
+                        <select id="proj-sources" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                            <option value="all">🌐 Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
+                            <option value="linkedin">🔗 LinkedIn Project Leads</option>
+                            <option value="projects_coid">🇮🇩 Projects.co.id (Lokal Indonesia)</option>
+                            <option value="freelancer">🌍 Freelancer.com (Public API)</option>
+                            <option value="web_leads">🕸️ Sribu / Upwork / Fastwork / Portal Lain</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">2. Keyword / Tech Stack / Jenis Project</label>
+                        <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">3. Wilayah</label>
+                            <select id="proj-region" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200">
+                                <option value="id">🇮🇩 Indonesia</option>
+                                <option value="global">🌍 Global</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">4. Jumlah Target</label>
+                            <input id="proj-limit" type="number" value="20" min="1" max="50" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200">
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-800/50 space-y-2">
+                        <div class="text-[11px] font-semibold text-emerald-300 flex items-center justify-between">
+                            <span>🎯 Filter Hasil & Confidence Geekgarden</span>
+                            <span class="text-[10px] text-gray-400">Realtime</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence</label>
+                            <select id="proj-filter-conf" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Status --</option>
+                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
+                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
+                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Filter Sumber Hasil</label>
+                            <select id="proj-filter-source" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Sumber --</option>
+                                <option value="linkedin">LinkedIn Project Lead</option>
+                                <option value="projects.co.id">Projects.co.id</option>
+                                <option value="freelancer">Freelancer.com</option>
+                                <option value="sribu">Sribu</option>
+                                <option value="upwork">Upwork</option>
+                                <option value="fastwork">Fastwork</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
+                            <select id="proj-filter-service" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
+                                <option value="">-- Semua Tipe Layanan --</option>
+                                <option value="web & mobile">Web & Mobile Development</option>
+                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                                <option value="ui/ux">UI/UX Design & Product</option>
+                                <option value="qa">QA & Software Testing</option>
+                                <option value="staff augmentation">IT Staff Augmentation</option>
+                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="showProjectResults()" id="btn-proj-show" class="mt-2 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg shadow transition flex items-center justify-center gap-1.5">
+                            <span>📊 Tampilkan Hasil & Grafik</span>
+                        </button>
                     </div>
                 </div>
 
@@ -435,7 +604,67 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- PANEL GRAFIK KHUSUS PROJECT HUNTER (GEEKGARDEN FIT) -->
+            <div id="project-charts-panel" class="hidden space-y-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div onclick="quickFilterProjectConf('fix bisa masuk')" class="cursor-pointer bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-800/60 rounded-2xl p-3 transition">
+                        <div class="text-[11px] text-emerald-300">✅ Fix Bisa Masuk</div>
+                        <div id="pkpi-fix" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
+                        <div class="text-[10px] text-gray-400">Skor ≥ 70% (Klik filter)</div>
+                    </div>
+                    <div onclick="quickFilterProjectConf('fifty-fifty')" class="cursor-pointer bg-amber-950/30 hover:bg-amber-950/50 border border-amber-800/60 rounded-2xl p-3 transition">
+                        <div class="text-[11px] text-amber-300">⚖️ Fifty-Fifty</div>
+                        <div id="pkpi-fifty" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
+                        <div class="text-[10px] text-gray-400">Skor 40–69% (Klik filter)</div>
+                    </div>
+                    <div onclick="quickFilterProjectConf('tidak bisa')" class="cursor-pointer bg-rose-950/30 hover:bg-rose-950/50 border border-rose-800/60 rounded-2xl p-3 transition">
+                        <div class="text-[11px] text-rose-300">❌ Tidak Bisa</div>
+                        <div id="pkpi-no" class="text-xl font-bold text-rose-400 mt-0.5">0</div>
+                        <div class="text-[10px] text-gray-400">Skor &lt; 40% (Klik filter)</div>
+                    </div>
+                    <div onclick="quickFilterProjectConf('')" class="cursor-pointer bg-indigo-950/30 hover:bg-indigo-950/50 border border-indigo-800/60 rounded-2xl p-3 transition">
+                        <div class="text-[11px] text-indigo-300">⭐ Rata-rata Fit</div>
+                        <div id="pkpi-avg" class="text-xl font-bold text-indigo-300 mt-0.5">0%</div>
+                        <div id="pkpi-total" class="text-[10px] text-gray-400">0 project tampil</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-[#131726] border border-emerald-900/60 rounded-2xl p-4 shadow-xl">
+                        <div class="mb-2">
+                            <h3 class="text-xs font-bold text-white">🎯 Distribusi Confidence Geekgarden</h3>
+                            <p class="text-[10px] text-gray-400">Proporsi kelayakan project (Klik slice untuk filter)</p>
+                        </div>
+                        <div class="h-56"><canvas id="chartProjConfidence"></canvas></div>
+                    </div>
+
+                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                        <div class="mb-2">
+                            <h3 class="text-xs font-bold text-white">🌐 Sebaran Sumber Platform Project</h3>
+                            <p class="text-[10px] text-gray-400">Jumlah lead dari LinkedIn, Projects.co.id, Freelancer, dll.</p>
+                        </div>
+                        <div class="h-56"><canvas id="chartProjSources"></canvas></div>
+                    </div>
+
+                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                        <div class="mb-2">
+                            <h3 class="text-xs font-bold text-white">🛠️ Kecocokan Tipe Layanan Geekgarden</h3>
+                            <p class="text-[10px] text-gray-400">Klasifikasi kebutuhan project berdasarkan layanan perusahaan</p>
+                        </div>
+                        <div class="h-56"><canvas id="chartProjServices"></canvas></div>
+                    </div>
+
+                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                        <div class="mb-2">
+                            <h3 class="text-xs font-bold text-white">🏆 Top Project Paling Potensial (Skor %)</h3>
+                            <p class="text-[10px] text-gray-400">Peringkat skor confidence tertinggi (Klik bar untuk buka link)</p>
+                        </div>
+                        <div class="h-56"><canvas id="chartProjTopScores"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
@@ -660,6 +889,6 @@
         </aside>
     </main>
 
-    <script src="/app.js"></script>
+    <script src="/app.js?v=project4"></script>
 </body>
 </html>

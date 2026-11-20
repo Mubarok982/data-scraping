@@ -6,3 +6,4 @@ env/
 __pycache__/
 output_csv
 output_csv/output_csv/*.csv
+*.bak
