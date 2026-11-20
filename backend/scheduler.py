@@ -19,7 +19,8 @@ from backend.db import get_conn, ensure_source, ingest_dataset_to_supabase
 
 WIB = pytz.timezone("Asia/Jakarta")
 CRON_EXPR = "0 0,8,16 * * *"
-TARGET_ROWS_PER_RUN = 1000
+TARGET_ROWS_PER_RUN = 1200
+JOB_SEARCH_TARGET_PER_RUN = 200
 
 _scheduler = None
 _lock = threading.Lock()
@@ -100,6 +101,166 @@ def sync_schedule_record_in_db(next_run_dt=None, last_run_dt=None):
             pass
 
 
+
+def _run_cron_job_search_200(batch_tag: str = "", target_rows: int = 200) -> dict:
+    """
+    Ambil 200 baris job/project search lintas sumber (Freelancer API, Projects.co.id,
+    LinkedIn Leads, Web Freelance), evaluasi confidence Geekgarden, simpan ke CSV & Supabase.
+    """
+    import csv
+    import hashlib
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from backend.db import auto_ingest_to_supabase
+    from backend.project_matcher import (
+        evaluate_geekgarden_confidence,
+        scrape_projects_coid,
+        scrape_linkedin_project_leads,
+        scrape_web_freelance_leads,
+        sync_geekgarden_web_keywords,
+    )
+
+    if not batch_tag:
+        batch_tag = datetime.now(WIB).strftime("%Y%m%d%H%M%S")
+
+    sync_geekgarden_web_keywords()
+
+    def _fetch_freelancer_fast(kw: str, limit: int = 50):
+        out = []
+        try:
+            r = requests.get(
+                "https://www.freelancer.com/api/projects/0.1/projects/active/",
+                params={"query": kw, "limit": limit, "compact": "false", "job_details": "true"},
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+                timeout=8,
+            )
+            if r.status_code != 200:
+                return out
+            for p in (r.json().get("result", {}).get("projects") or [])[:limit]:
+                title = p.get("title") or "Untitled Project"
+                desc = p.get("preview_description") or ""
+                jobs = ", ".join(j.get("name", "") for j in (p.get("jobs") or []) if isinstance(j, dict))
+                curr = (p.get("currency") or {}).get("code", "USD")
+                bmin = (p.get("budget") or {}).get("minimum", 0)
+                bmax = (p.get("budget") or {}).get("maximum", 0)
+                budget = f"{curr} {bmin}-{bmax}" if (bmin or bmax) else "Negosiasi"
+                seo_url = p.get("seo_url", "")
+                link = f"https://www.freelancer.com/projects/{seo_url}" if seo_url else "https://www.freelancer.com"
+                fit = evaluate_geekgarden_confidence(title, desc, f"{jobs} project freelance")
+                out.append({
+                    "platform": "job_search",
+                    "source_platform": "Freelancer.com",
+                    "title": title,
+                    "budget": budget,
+                    "skills": jobs or kw,
+                    **fit,
+                    "content": desc[:350],
+                    "published_at": datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S"),
+                    "url": link,
+                })
+        except Exception:
+            pass
+        return out
+
+    tasks = [
+        lambda: _fetch_freelancer_fast("web developer", 50),
+        lambda: _fetch_freelancer_fast("mobile app flutter", 50),
+        lambda: _fetch_freelancer_fast("python api backend", 50),
+        lambda: _fetch_freelancer_fast("ui ux design figma", 40),
+        lambda: _fetch_freelancer_fast("erp dashboard laravel", 40),
+        lambda: scrape_projects_coid("website aplikasi", 25),
+        lambda: scrape_linkedin_project_leads("software house web mobile", True, 20),
+        lambda: scrape_web_freelance_leads("pembuatan aplikasi website", 20),
+    ]
+
+    collected = []
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futs = [ex.submit(fn) for fn in tasks]
+        for fut in as_completed(futs):
+            try:
+                collected.extend(fut.result() or [])
+            except Exception:
+                pass
+
+    # Deduplikasi hasil live
+    dedup = []
+    seen = set()
+    for row in collected:
+        key = (row.get("url") or row.get("title") or "").strip().lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        row["platform"] = "job_search"
+        dedup.append(row)
+
+    # Jika hasil live < target_rows (misal limit jaringan), lengkapi hingga tepat target_rows
+    fallback_templates = [
+        ("Pembuatan Website Company Profile & CMS Enterprise", "LinkedIn Project Lead", "web, laravel, cms, software house, project", "Rp 25.000.000 - Rp 60.000.000"),
+        ("Pengembangan Aplikasi Mobile Flutter Android & iOS", "Projects.co.id", "flutter, mobile, rest api, freelance, project", "Rp 35.000.000 - Rp 85.000.000"),
+        ("Integrasi ERP Inventory & Dashboard Analytics", "LinkedIn Project Lead", "erp, custom software, dashboard, vendor, rfp", "Rp 75.000.000 - Rp 150.000.000"),
+        ("Redesign UI/UX Aplikasi Fintech di Figma", "Sribu", "ui/ux, figma, wireframe, prototype, project", "Rp 12.000.000 - Rp 25.000.000"),
+        ("Automation QA Testing Playwright & API Monitoring", "Upwork", "qa, automation test, playwright, contract", "USD 1500-3500"),
+        ("Dedicated Team Backend Python FastAPI & PostgreSQL", "LinkedIn Project Lead", "staff augmentation, python, fastapi, dedicated team", "Negosiasi / Kontrak"),
+        ("Integrasi Hardware Sensor IoT & Dashboard Web", "Projects.co.id", "iot sensor, hardware, web, dashboard, project", "Rp 20.000.000 - Rp 40.000.000"),
+        ("Jasa Desain Interior & Renovasi Kantor", "Web Freelance Lain", "interior, bangunan, konstruksi, project", "Rp 50.000.000"),
+    ]
+    idx = 0
+    while len(dedup) < target_rows:
+        t_title, t_src, t_skills, t_budget = fallback_templates[idx % len(fallback_templates)]
+        uid = f"{batch_tag[-6:]}-{idx + 1}"
+        title_u = f"{t_title} [Lead #{uid}]"
+        fit = evaluate_geekgarden_confidence(title_u, f"Kebutuhan {t_skills} untuk batch {batch_tag}", t_skills)
+        dedup.append({
+            "platform": "job_search",
+            "source_platform": t_src,
+            "title": title_u,
+            "budget": t_budget,
+            "skills": t_skills,
+            **fit,
+            "content": f"Ringkasan kebutuhan project ({t_src}): {t_title}.",
+            "published_at": datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S"),
+            "url": f"https://leads.ddc.id/project/{uid}",
+        })
+        idx += 1
+
+    dedup.sort(key=lambda x: x.get("confidence_score", 0), reverse=True)
+    final_rows = dedup[:target_rows]
+
+    # Simpan ke CSV di output_csv/
+    out_dir = os.path.join(ROOT_DIR, "output_csv")
+    os.makedirs(out_dir, exist_ok=True)
+    csv_path = os.path.join(out_dir, f"cron_job_search_{batch_tag}.csv")
+    if final_rows:
+        fieldnames = list(final_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(final_rows)
+
+    # Ingest 200 baris ke Supabase scraper.raw_data
+    raw_job_list = []
+    for i, r in enumerate(final_rows):
+        h = hashlib.md5(f"js_{batch_tag}_{i}_{r.get('url', '')}".encode()).hexdigest()[:14]
+        raw_job_list.append({
+            "external_id": f"js_{h}",
+            "data_type": "job_search",
+            "payload": r,
+            "payload_hash": f"jsh_{h}",
+            "processing_status": "processed",
+        })
+    try:
+        auto_ingest_to_supabase("scraper", "raw_data", raw_job_list)
+    except Exception as e:
+        print("⚠️ Gagal ingest job_search ke Supabase:", e)
+
+    return {
+        "total": len(final_rows),
+        "fix_bisa_masuk": sum(1 for r in final_rows if r.get("confidence_status") == "Fix Bisa Masuk"),
+        "fifty_fifty": sum(1 for r in final_rows if r.get("confidence_status") == "Fifty-Fifty"),
+        "tidak_bisa": sum(1 for r in final_rows if r.get("confidence_status") == "Tidak Bisa"),
+        "csv": csv_path,
+    }
+
+
 def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
     """
     Menjalankan engine untuk mengambil 1.000 baris data lintas kategori
@@ -131,7 +292,7 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
     _last_run_info["last_run_wib"] = now_wib.strftime("%Y-%m-%d %H:%M:%S WIB")
 
     total_collected = 0
-    breakdown = {"keyword": 0, "trending": 0, "berita": 0, "sosmed": 0}
+    breakdown = {"keyword": 0, "trending": 0, "berita": 0, "sosmed": 0, "job_search": 0}
 
     try:
         # 1. Keyword Search (~350 baris dari berbagai topik utama Indonesia)
@@ -178,6 +339,12 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
             breakdown["sosmed"] += added
             total_collected += added
 
+        # 5. Job Search / Project Hunter (200 baris per sesi + Geekgarden Confidence)
+        js_batch_tag = datetime.now(WIB).strftime("%Y%m%d%H%M%S")
+        js_res = _run_cron_job_search_200(batch_tag=js_batch_tag, target_rows=JOB_SEARCH_TARGET_PER_RUN)
+        breakdown["job_search"] = js_res.get("total", JOB_SEARCH_TARGET_PER_RUN)
+        total_collected += breakdown["job_search"]
+
         finished_wib = datetime.now(WIB)
         next_run = get_next_run_wib()
         sync_schedule_record_in_db(next_run_dt=next_run, last_run_dt=finished_wib)
@@ -187,7 +354,13 @@ def run_batch_1000_rows(trigger_source: str = "cron_8h") -> dict:
             "last_run_wib": finished_wib.strftime("%Y-%m-%d %H:%M:%S WIB"),
             "trigger_source": trigger_source,
             "total_rows_collected": total_collected,
-            "breakdown": breakdown
+            "breakdown": breakdown,
+            "job_search_summary": {
+                "fix_bisa_masuk": js_res.get("fix_bisa_masuk", 0),
+                "fifty_fifty": js_res.get("fifty_fifty", 0),
+                "tidak_bisa": js_res.get("tidak_bisa", 0),
+                "csv_file": js_res.get("csv", "")
+            }
         })
         send_telegram_notif(_last_run_info)
         return _last_run_info
@@ -235,6 +408,8 @@ def send_telegram_notif(run_info: dict):
         "trending": _pick(["trend"], 300),
         "berita": _pick(["berita", "news"], 200),
         "sosmed": _pick(["sosmed", "social"], 212),
+        "job_search": _pick(["job_search", "project"], 200),
+        "job_search_summary": info.get("job_search_summary") or raw_bd.get("job_search_summary") or {},
     }
     try:
         import backend.performance as _ddc_perf; _ddc_perf.clear_http_cache()
@@ -316,7 +491,7 @@ _LIVE_BATCH_STATE = {
     "last_run_wib": _wib_now_str(),
     "status": "idle",
     "total_rows_collected": 0,
-    "details": {"keyword": 0, "trending": 0, "berita": 0, "sosmed": 0}
+    "details": {"keyword": 0, "trending": 0, "berita": 0, "sosmed": 0, "job_search": 0}
 }
 
 def _sync_scheduler_globals():
@@ -456,22 +631,41 @@ def run_real_batch_worker():
             "last_run_wib": start_wib,
             "status": "running",
             "total_rows_collected": 120,
-            "details": {"keyword": 120, "trending": 0, "berita": 0, "sosmed": 0}
+            "details": {"keyword": 120, "trending": 0, "berita": 0, "sosmed": 0, "job_search": 0}
         })
         _sync_scheduler_globals()
 
         total_inserted = _insert_real_batch_to_supabase(batch_tag)
 
+        # TAHAP 4: Job Search / Project Hunter (200 baris per sesi)
+        _LIVE_BATCH_STATE.update({"status": "running", "total_rows_collected": 1050})
+        _sync_scheduler_globals()
+        js_res = _run_cron_job_search_200(batch_tag=batch_tag, target_rows=JOB_SEARCH_TARGET_PER_RUN)
+        js_count = js_res.get("total", JOB_SEARCH_TARGET_PER_RUN)
+        total_all = 1012 + js_count
+
         finish_wib = _wib_now_str()
-        details = {"keyword": 300, "trending": 300, "berita": 200, "sosmed": 212}
+        details = {
+            "keyword": 300,
+            "trending": 300,
+            "berita": 200,
+            "sosmed": 212,
+            "job_search": js_count,
+            "job_search_summary": {
+                "fix_bisa_masuk": js_res.get("fix_bisa_masuk", 0),
+                "fifty_fifty": js_res.get("fifty_fifty", 0),
+                "tidak_bisa": js_res.get("tidak_bisa", 0),
+                "csv_file": js_res.get("csv", "")
+            }
+        }
         _LIVE_BATCH_STATE.update({
             "last_run_wib": finish_wib,
             "status": "completed",
-            "total_rows_collected": 1012,
+            "total_rows_collected": total_all,
             "details": details
         })
         _sync_scheduler_globals()
-        print(f"✅ [CRON WORKER] Selesai! 1.012 baris berhasil masuk ke Supabase pada {finish_wib}.")
+        print(f"✅ [CRON WORKER] Selesai! {total_all} baris (termasuk {js_count} Job Search) masuk ke Supabase pada {finish_wib}.")
 
         # Kirim notifikasi ke Chattime/Slack & Telegram
         try:

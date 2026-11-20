@@ -42,7 +42,7 @@ def _post_json(url: str, payload: dict):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
-        "User-Agent": "DDC-Warehouse-Notifier/2.3"
+        "User-Agent": "DDC-Warehouse-Notifier/2.4"
     }
     req = urllib.request.Request(
         url,
@@ -54,16 +54,18 @@ def _post_json(url: str, payload: dict):
         return resp.status, resp.read().decode("utf-8", errors="ignore")
 
 
-def send_all_notifications(waktu_wib: str, details: dict) -> dict:
-    cfg = _get_config()
+def build_cron_json_payload(waktu_wib: str, details: dict) -> dict:
     details = details if isinstance(details, dict) else {}
     kw = int(details.get("keyword", 300))
     tr = int(details.get("trending", 300))
     br = int(details.get("berita", 200))
     sm = int(details.get("sosmed", 212))
-    total_batch = kw + tr + br + sm
+    js = int(details.get("job_search", 200))
+    js_meta = details.get("job_search_summary") if isinstance(details.get("job_search_summary"), dict) else {}
 
-    json_payload = {
+    total_batch = kw + tr + br + sm + js
+
+    return {
         "status": "CRON SCRAPER SELESAI",
         "waktu": str(waktu_wib),
         "total_data": f"{total_batch} baris",
@@ -71,10 +73,24 @@ def send_all_notifications(waktu_wib: str, details: dict) -> dict:
             "keyword": kw,
             "trending": tr,
             "berita": br,
-            "sosmed": sm
+            "sosmed": sm,
+            "job_search": js
+        },
+        "keterangan_job_search": {
+            "target_per_sesi": "200 baris",
+            "terkumpul": f"{js} baris",
+            "fix_bisa_masuk": int(js_meta.get("fix_bisa_masuk", 0)),
+            "fifty_fifty": int(js_meta.get("fifty_fifty", 0)),
+            "tidak_bisa": int(js_meta.get("tidak_bisa", 0)),
+            "sumber": "LinkedIn, Projects.co.id, Freelancer.com, Web Freelance"
         },
         "dashboard_url": DASHBOARD_URL
     }
+
+
+def send_all_notifications(waktu_wib: str, details: dict) -> dict:
+    cfg = _get_config()
+    json_payload = build_cron_json_payload(waktu_wib, details)
 
     pretty_json = json.dumps(json_payload, indent=2, ensure_ascii=False)
     chattime_payload = {
@@ -120,4 +136,7 @@ def send_all_notifications(waktu_wib: str, details: dict) -> dict:
 
 def send_chattime_webhook(raw_text: str = "", alert_name: str = ""):
     wib_now = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime("%Y-%m-%d %H:%M:%S WIB")
-    return send_all_notifications(wib_now, {"keyword": 300, "trending": 300, "berita": 200, "sosmed": 212})
+    return send_all_notifications(
+        wib_now,
+        {"keyword": 300, "trending": 300, "berita": 200, "sosmed": 212, "job_search": 200}
+    )
