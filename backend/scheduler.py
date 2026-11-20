@@ -434,7 +434,7 @@ def start_scheduler():
     _scheduler = BackgroundScheduler(timezone=WIB)
     trigger = CronTrigger(hour="0,8,16", minute=0, second=0, timezone=WIB)
     _scheduler.add_job(
-        run_batch_1000_rows,
+        run_real_batch_worker,
         trigger=trigger,
         id="ddc_cron_8h",
         name="Scraper 1000 Rows Every 8 Hours (08:00, 16:00, 00:00 WIB)",
