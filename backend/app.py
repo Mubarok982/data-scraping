@@ -1362,6 +1362,10 @@ from backend.db import get_warehouse_summary_stats
 
 start_scheduler()
 
+@app.on_event("startup")
+def _ensure_scheduler_on_startup():
+    start_scheduler()
+
 
 @app.get("/api/v1/scheduler/status", tags=["4. Cron Scheduler & Supabase"])
 def api_scheduler_status():
@@ -1373,17 +1377,13 @@ def api_scheduler_status():
 
 
 @app.post("/api/v1/scheduler/run-now", tags=["4. Cron Scheduler & Supabase"])
-def api_scheduler_run_now(background_tasks: BackgroundTasks, sync: bool = False):
-    """Memicu penarikan 1.000 baris data secara langsung atau di background."""
+def api_scheduler_run_now(sync: bool = False):
+    """Memicu penarikan batch turbo (1.200 baris) secara langsung atau di background."""
+    from backend.scheduler import trigger_turbo_cron_async, run_real_batch_worker
     if sync:
-        result = run_batch_1000_rows(trigger_source="manual_sync_api")
-        return {"status": "success", "execution": result}
-    background_tasks.add_task(run_batch_1000_rows, "webhook_cron_trigger")
-    return {
-        "status": "accepted",
-        "message": "Job ekstraksi 1.000 baris data sedang berjalan di background.",
-        "scheduler": get_scheduler_status()
-    }
+        run_real_batch_worker("manual_sync_api")
+        return {"status": "success", "scheduler": get_scheduler_status()}
+    return trigger_turbo_cron_async()
 
 
 
@@ -1508,10 +1508,7 @@ def trigger_test_notification():
     return {"status": "sent" if ok else "failed", "dashboard_url": DASHBOARD_URL, "message": msg}
 
 
-@app.post("/api/v1/scheduler/run-now")
-def api_run_scheduler_now():
-    from backend.scheduler import trigger_turbo_cron_async
-    return trigger_turbo_cron_async()
+# [Cleaned] Duplicate /api/v1/scheduler/run-now digabung ke L1375
 
 
 # === AUTO INGEST SCRAPER MIDDLEWARE ===

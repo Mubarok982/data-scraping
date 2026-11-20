@@ -618,7 +618,7 @@ def _insert_real_batch_to_supabase(batch_tag: str):
     return inserted_total
 
 
-def run_real_batch_worker():
+def run_real_batch_worker(*args, **kwargs):
     if not _BATCH_LOCK.acquire(blocking=False):
         print("⚠️ Batch worker sedang berjalan, request diabaikan.")
         return

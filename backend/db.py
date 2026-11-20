@@ -1617,3 +1617,23 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
     c_sent = auto_ingest_to_supabase("analytics", "sentiment_results", sent_items)
 
     return {"raw_data": c_raw, "domain": c_dom, "sentiment": c_sent}
+
+
+# === CACHE get_warehouse_summary_stats (ANTI-TIMEOUT /scheduler/status) ===
+if "get_warehouse_summary_stats" in globals():
+    _orig_get_warehouse_summary_stats = get_warehouse_summary_stats
+    _SUMMARY_STATS_CACHE = {"data": None, "ts": 0}
+    def get_warehouse_summary_stats(*args, **kwargs):
+        now = _time.time()
+        if _SUMMARY_STATS_CACHE["data"] is not None and (now - _SUMMARY_STATS_CACHE["ts"]) < 30:
+            return _SUMMARY_STATS_CACHE["data"]
+        res = _orig_get_warehouse_summary_stats(*args, **kwargs)
+        _SUMMARY_STATS_CACHE["data"] = res
+        _SUMMARY_STATS_CACHE["ts"] = now
+        return res
+
+    _orig_invalidate_all = invalidate_all_caches
+    def invalidate_all_caches():
+        _orig_invalidate_all()
+        _SUMMARY_STATS_CACHE["data"] = None
+        _SUMMARY_STATS_CACHE["ts"] = 0
