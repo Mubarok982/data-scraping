@@ -1440,7 +1440,157 @@
             });
         }
 
+        
+        // === REACTIVE BANK DATA FALLBACK (QUERY/VALUES + SOURCE_FILE TIMELINE) ===
+        function _extractNumericVal(raw) {
+            if (raw === null || raw === undefined || raw === '') return 0;
+            if (typeof raw === 'number' && !isNaN(raw)) return raw;
+            const s = String(raw).trim().toLowerCase().replace(/,/g, '');
+            const m = s.match(/-?\d+(\.\d+)?/);
+            if (!m) return 0;
+            let n = parseFloat(m[0]);
+            if (s.includes('jt') || s.includes('m')) n *= 1000000;
+            else if (s.includes('rb') || s.includes('k')) n *= 1000;
+            return isNaN(n) ? 0 : Math.round(n);
+        }
+
+        function _extractTimeBucket(row) {
+            const directKeys = ['tanggal', 'waktu_scrape', 'published_at', 'created_at', 'updated_at', 'date', 'timestamp', 'time'];
+            for (const k of directKeys) {
+                const v = row[k];
+                if (v && String(v).trim() && !['nan', 'none', 'null'].includes(String(v).trim().toLowerCase())) {
+                    const s = String(v).trim();
+                    const iso = s.match(/(20\d{2})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}))?/);
+                    if (iso) {
+                        const hh = iso[4] || '00';
+                        return `${iso[1]}-${iso[2]}-${iso[3]} ${hh}:00`;
+                    }
+                    const d = new Date(s);
+                    if (!isNaN(d.getTime())) {
+                        const pad = x => String(x).padStart(2, '0');
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+                    }
+                }
+            }
+            // Fallback 1: ekstrak YYYYMMDD_HHMMSS dari nama file _source_file
+            const sf = String(row._source_file || row.source_file || '');
+            const mFile = sf.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})(?:[_T-](\d{2}))?/);
+            if (mFile) {
+                const mm = parseInt(mFile[2], 10), dd = parseInt(mFile[3], 10);
+                const hh = mFile[4] ? parseInt(mFile[4], 10) : 0;
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31 && hh >= 0 && hh <= 23) {
+                    return `${mFile[1]}-${mFile[2]}-${mFile[3]} ${String(hh).padStart(2, '0')}:00`;
+                }
+            }
+            // Fallback 2: ekstrak YYYY/MM/DD dari URL link
+            const lnk = String(row.link || row.url || '');
+            const mUrl = lnk.match(/\b(20\d{2})[\/-](\d{2})[\/-](\d{2})\b/);
+            if (mUrl) {
+                const mm = parseInt(mUrl[2], 10), dd = parseInt(mUrl[3], 10);
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+                    return `${mUrl[1]}-${mUrl[2]}-${mUrl[3]} 00:00`;
+                }
+            }
+            return null;
+        }
+
         function buildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            const res = _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain);
+            if (!res || typeof res !== 'object' || !Array.isArray(rows) || rows.length === 0) return res;
+
+            // Sampling merata maks 4.000 baris agar tetap ringan
+            let srcRows = rows;
+            if (rows.length > 4000) {
+                const step = rows.length / 4000;
+                srcRows = new Array(4000);
+                for (let i = 0; i < 4000; i++) {
+                    srcRows[i] = rows[Math.min(rows.length - 1, Math.floor(i * step))];
+                }
+            }
+
+            // 1. Fallback Top Keyword & Topik Paling Trending (support Query/Values/formattedvalue)
+            if (!Array.isArray(res.top_keywords) || res.top_keywords.length === 0) {
+                const kwAgg = {};
+                const kwKeys = ['Query', 'query', 'keyword', 'Keyword', 'topik', 'topic', 'kata_kunci', 'trend'];
+                const volKeys = ['Values', 'values', 'volume', 'search_volume', 'popularity', 'formattedvalue', 'trend_score', 'score'];
+
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    let kw = '';
+                    for (const k of kwKeys) {
+                        const val = r[k];
+                        if (val !== undefined && val !== null) {
+                            const s = String(val).trim();
+                            if (s && !['nan', 'none', 'null', '-'].includes(s.toLowerCase())) {
+                                kw = s;
+                                break;
+                            }
+                        }
+                    }
+                    if (!kw) continue;
+
+                    let vol = 0;
+                    for (const vk of volKeys) {
+                        vol = _extractNumericVal(r[vk]);
+                        if (vol > 0) break;
+                    }
+                    const normKey = kw.toLowerCase();
+                    if (!kwAgg[normKey]) kwAgg[normKey] = { keyword: kw.slice(0, 60), volume: 0 };
+                    kwAgg[normKey].volume += (vol > 0 ? vol : 1);
+                }
+
+                // Fallback sekunder untuk kategori berita/sosmed yang tidak punya kolom Query/keyword
+                let kwList = Object.values(kwAgg);
+                if (kwList.length === 0) {
+                    const stop = new Set(['yang', 'untuk', 'dengan', 'dari', 'pada', 'dalam', 'akan', 'oleh', 'atau', 'juga', 'sudah', 'tidak', 'bisa', 'kami', 'anda', 'mereka', 'lebih', 'hari', 'tahun', 'saat', 'baru', 'jadi', 'agar', 'karena', 'bahwa', 'tentang', 'secara', 'masih', 'hanya', 'berita', 'https', 'http', 'unknown']);
+                    const wordFreq = {};
+                    for (const r of srcRows) {
+                        const txt = String(r.judul || r.title || r.content || r.caption || '').toLowerCase();
+                        const tokens = txt.match(/[a-z]{4,}/g) || [];
+                        for (const w of tokens) {
+                            if (!stop.has(w)) wordFreq[w] = (wordFreq[w] || 0) + 1;
+                        }
+                    }
+                    kwList = Object.entries(wordFreq).map(([k, v]) => ({ keyword: k, volume: v }));
+                }
+
+                res.top_keywords = kwList
+                    .sort((a, b) => b.volume - a.volume)
+                    .slice(0, 10);
+            }
+
+            // 2. Fallback Tren Waktu & Aktivitas Ingesti (support tanggal, waktu_scrape, _source_file, link)
+            if (!Array.isArray(res.timeline) || res.timeline.length === 0) {
+                const tMap = {};
+                const dom = String(catDomain || '').toLowerCase();
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    const bucket = _extractTimeBucket(r);
+                    if (!bucket) continue;
+                    if (!tMap[bucket]) tMap[bucket] = { berita: 0, keyword: 0, sosmed: 0 };
+
+                    const plat = String(r.platform || r._source_file || dom).toLowerCase();
+                    if (dom.includes('keyword') || dom.includes('trend') || plat.includes('kueri') || plat.includes('trend') || plat.includes('keyword')) {
+                        tMap[bucket].keyword += 1;
+                    } else if (dom.includes('berita') || dom.includes('news') || plat.includes('berita') || plat.includes('news')) {
+                        tMap[bucket].berita += 1;
+                    } else {
+                        tMap[bucket].sosmed += 1;
+                    }
+                }
+                const sortedBuckets = Object.keys(tMap).sort().slice(-12);
+                res.timeline = sortedBuckets.map(b => ({
+                    time: b.slice(-11),
+                    berita: tMap[b].berita,
+                    keyword: tMap[b].keyword,
+                    sosmed: tMap[b].sosmed
+                }));
+            }
+
+            return res;
+        }
+
+        function _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
             // Stratified uniform sampling agar >4.000 baris tetap cepat & merata di browser
             if (Array.isArray(rows) && rows.length > 4000) {
                 const _target = 4000;

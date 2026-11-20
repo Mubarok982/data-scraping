@@ -1,614 +1,4 @@
-<!DOCTYPE html>
-<html lang="id" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Data Warehouse — Analytics & Scraper Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0d14; }
-        ::-webkit-scrollbar-thumb { background: #2d334d; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
-    </style>
-</head>
-<body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
-    <!-- TOP NAVBAR -->
-    <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
-        <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                    <span class="text-lg">🧩</span>
-                </div>
-                <div>
-                    <h1 class="text-base md:text-lg font-bold text-white tracking-tight">
-                        DDC Data Warehouse — Geo-Polarization & Trend Intelligence
-                    </h1>
-                    <p class="text-[11px] text-gray-400">
-                        7-Layer ELT Supabase • Grafik Reaktif Dinamis • Filter Wilayah & Rentang Waktu • Cron 8 Jam
-                    </p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2.5">
-                <span class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Supabase Live
-                </span>
-                <button onclick="forceReloadAll()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-medium rounded-lg border border-indigo-700/60 transition">
-                    ↻ Refresh Analitik
-                </button>
-                <a href="/docs" target="_blank" class="px-3 py-1.5 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition">
-                    ⚙️ Swagger API
-                </a>
-            </div>
-        </div>
-    </header>
-
-    <!-- MAIN 3-COLUMN LAYOUT -->
-    <main class="max-w-[1650px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-
-        <!-- KOLOM KIRI: MODE & PARAMETER FILTER -->
-        <aside class="lg:col-span-3 space-y-4">
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                    🧭 Pilih Mode Sumber & Scraper
-                </div>
-                <div class="space-y-1.5">
-                    <button onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
-                        <span>🗄️ Database Supabase (ELT)</span>
-                        <span class="text-[10px] bg-purple-900/90 px-2 py-0.5 rounded">Live DB</span>
-                    </button>
-                    <button onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between">
-                        <span>🏦 Bank Data (Arsip CSV)</span>
-                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">CSV</span>
-                    </button>
-                    <button onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        🔍 1. Scraper — Keyword & Trend
-                    </button>
-                    <button onclick="switchTab('berita')" id="tab-berita" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        📰 2. Scraper — Portal Berita
-                    </button>
-                    <button onclick="switchTab('sosmed')" id="tab-sosmed" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        📱 3. Scraper — Social Media
-                    </button>
-                </div>
-            </div>
-
-            <!-- Parameter Filter & Ekstraksi -->
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🎛️ Parameter & Filter Data
-                    </span>
-                    <button onclick="resetSearchFilter()" class="text-[10px] text-rose-400 hover:text-rose-300 font-medium">
-                        ✕ Reset
-                    </button>
-                </div>
-
-                <!-- Form Supabase (Tanpa Filter Tokoh) -->
-                <div id="form-supabase" class="space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
-                        <select id="sb-cat" onchange="onDomainChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="berita">news.articles (Berita + Sentimen)</option>
-                            <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
-                            <option value="instagram">social.posts (Instagram)</option>
-                            <option value="facebook">social.posts (Facebook)</option>
-                            <option value="tiktok">social.posts (TikTok)</option>
-                            <option value="twitter">social.posts (Twitter / X)</option>
-                            <option value="linkedin">social.accounts (LinkedIn)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
-                        <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="">-- Semua Kategori & Tag --</option>
-                            <optgroup label="Pemerintahan & Kebijakan">
-                                <option value="politik">Politik & Pemerintahan</option>
-                                <option value="kebijakan">Kebijakan Publik & Regulasi</option>
-                                <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
-                                <option value="ikn">Ibu Kota Nusantara (IKN)</option>
-                                <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
-                                <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
-                            </optgroup>
-                            <optgroup label="Ekonomi & Infrastruktur">
-                                <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
-                                <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
-                                <option value="energi">Energi Hijau & Transisi Energi</option>
-                                <option value="infrastruktur">Infrastruktur & Transportasi</option>
-                            </optgroup>
-                            <optgroup label="Sains, Alam & Masyarakat">
-                                <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
-                                <option value="teknologi">Teknologi, AI & Digitalisasi</option>
-                                <option value="kesehatan">Kesehatan & Medis</option>
-                                <option value="pendidikan">Pendidikan, Kampus & Riset</option>
-                                <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
-                            </optgroup>
-                            <optgroup label="Tren & Gaya Hidup">
-                                <option value="olahraga">Olahraga & Timnas</option>
-                                <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
-                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>📍 3. Filter Lokasi Wilayah</span>
-                            <span class="text-[10px] text-gray-500 font-normal">Provinsi ➔ Kab/Kota</span>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Provinsi</label>
-                            <select id="sb-prov" onchange="onProvinceChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-indigo-500 outline-none">
-                                <option value="">-- Semua Provinsi --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Kabupaten / Kota</label>
-                            <select id="sb-kab" onchange="applyClientFilters()" disabled class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-400 disabled:opacity-50 focus:border-indigo-500 outline-none">
-                                <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 4. Filter Rentang Waktu</span>
-                            <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
-                                <option value="all">Semua Waktu</option>
-                                <option value="1d">24 Jam Terakhir</option>
-                                <option value="3d">3 Hari Terakhir</option>
-                                <option value="7d">7 Hari Terakhir</option>
-                                <option value="30d">30 Hari Terakhir</option>
-                                <option value="custom">Pilih Tanggal</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] text-gray-400 mb-0.5">Dari Tanggal</label>
-                                <input id="sb-date-from" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-gray-400 mb-0.5">Sampai Tanggal</label>
-                                <input id="sb-date-to" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
-                            <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
-                                <option value="all">Semua Kolom</option>
-                                <option value="hashtag">Khusus Hashtag (#)</option>
-                                <option value="exact">Frasa Spesifik</option>
-                            </select>
-                        </div>
-                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction(true)" placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
-                        <div class="flex flex-wrap gap-1 pt-0.5">
-                            <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
-                            <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
-                            <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">#ai</button>
-                            <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">ikn</button>
-                            <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">banjir</button>
-                            <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">investasi</button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Tampilan</label>
-                        <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Bank Data CSV -->
-                <div id="form-bank" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
-                        <select id="bd-cat" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="berita">Berita</option>
-                            <option value="keyword_trending">Keyword & Trending</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="linkedin">LinkedIn</option>
-                            <option value="semua">Semua Kategori</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
-                        <select id="bd-tool" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="semua">Semua Tool</option>
-                            <option value="apify">Apify</option>
-                            <option value="diffbot">Diffbot</option>
-                            <option value="newsdata">Newsdata</option>
-                            <option value="brightdata">Bright Data</option>
-                            <option value="kombine">Kombine</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">3. Mode Skema Kolom</label>
-                        <select id="bd-schema" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="standar">Standar Rapih (Disatukan)</option>
-                            <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
-                            <option value="semua">Semua File</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV</label>
-                        <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="semua">-- Semua File --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">5. Cari Isi Tabel</label>
-                        <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris</label>
-                        <input id="bd-limit" type="number" value="200" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Keyword -->
-                <div id="form-keyword" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
-                        <select id="kw-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
-                            <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Keyword / Kategori</label>
-                        <input id="kw-input" type="text" value="karhutla" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                        <input id="kw-limit" type="number" value="30" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Berita -->
-                <div id="form-berita" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
-                        <select id="br-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
-                            <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
-                            <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
-                            <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Topik Berita / Lokasi / Tokoh</label>
-                        <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Artikel</label>
-                        <input id="br-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Sosmed -->
-                <div id="form-sosmed" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
-                        <select id="sm-platform" onchange="toggleSosmedOptions()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="instagram">Instagram</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="linkedin">LinkedIn (Bright Data)</option>
-                        </select>
-                    </div>
-                    <div id="sm-engine-box">
-                        <label class="block text-xs text-gray-400 mb-1">Engine</label>
-                        <select id="sm-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="apify">Apify Actor</option>
-                            <option value="diffbot">Diffbot Analyze</option>
-                        </select>
-                    </div>
-                    <div id="sm-mode-box">
-                        <label class="block text-xs text-gray-400 mb-1">Format Kolom</label>
-                        <select id="sm-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="bersih">Standar Bersih (9 Kolom)</option>
-                            <option value="full">Full Kolom Asli (29/39 Kolom)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
-                        <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                        <input id="sm-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <button onclick="executeAction(true)" id="btn-run" class="mt-4 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
-                    🗄️ Muat Tabel Supabase
-                </button>
-            </div>
-
-            <!-- Panel Polarisasi Wilayah -->
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">
-                    📍 Ringkasan Polarisasi Tempat
-                </div>
-                <div id="loc-badges" class="space-y-2 text-xs">
-                    <div class="text-gray-500 text-xs">Memuat analisis wilayah...</div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- KOLOM TENGAH: KPI, BANNER REAKTIF, 7 GRAFIK, DAN TABEL -->
-        <section class="lg:col-span-6 space-y-4">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📦 Total Raw Data</div>
-                    <div id="kpi-raw" class="text-xl font-bold text-white mt-0.5">0</div>
-                    <div class="text-[10px] text-indigo-400">scraper.raw_data</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📰 Artikel Berita</div>
-                    <div id="kpi-news" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">news.articles</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">🔥 Keyword & Tren</div>
-                    <div id="kpi-kw" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">keyword + trend</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📱 Sosmed & Sentimen</div>
-                    <div id="kpi-social" class="text-xl font-bold text-purple-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">social + analytics</div>
-                </div>
-            </div>
-
-            <div id="reactive-banner" class="hidden bg-indigo-950/70 border border-indigo-700/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                    <span id="reactive-banner-text" class="text-indigo-200 font-medium">Mode Grafik Dinamis Aktif</span>
-                </div>
-                <button onclick="resetSearchFilter()" class="px-2.5 py-1 bg-indigo-800/80 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold transition">
-                    ✕ Kembali ke Grafik Global
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 id="title-chart-loc" class="text-xs font-bold text-white">🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)</h3>
-                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah (Klik untuk filter)</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartLocations"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">👤 Tokoh / Orang Paling Trending</h3>
-                            <p class="text-[10px] text-gray-400">Frekuensi kemunculan tokoh pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartPeople"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">📈 Konten & Postingan Paling Menonjol (Viral)</h3>
-                            <p class="text-[10px] text-gray-400">Peringkat engagement / dampak tertinggi pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartViral"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🏷️ Top Hashtag & Tagar Isu Populer</h3>
-                            <p class="text-[10px] text-gray-400">Tagar yang paling banyak digunakan pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartHashtags"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🔥 Top Keyword & Topik Paling Trending</h3>
-                            <p class="text-[10px] text-gray-400">Volume kueri / kata kunci tertinggi pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartKeywords"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">⏱️ Tren Waktu & Aktivitas Ingesti</h3>
-                            <p class="text-[10px] text-gray-400">Distribusi waktu publikasi / ingesti sesuai rentang filter</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartTimeline"></canvas></div>
-                </div>
-
-                <div class="md:col-span-2 bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🫀 Kesehatan Sistem & Trafik API</h3>
-                            <p class="text-[10px] text-gray-400">Memantau beban server scraper (Request) dan kecepatan respons server (milidetik)</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartSystem"></canvas></div>
-                </div>
-            </div>
-
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-gray-800">
-                    <div>
-                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                            <span>📊 Tabel Output Data Explorer</span>
-                            <span class="text-xs font-normal px-2.5 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800 rounded-full">
-                                <span id="row-count">0</span> baris
-                            </span>
-                        </h2>
-                        <p id="status-text" class="text-[11px] text-gray-400 mt-0.5">
-                            Siap memuat atau mengekstrak data.
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="resetSearchFilter()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] rounded-lg border border-gray-700 transition">
-                            Reset Filter
-                        </button>
-                        <a id="btn-download" href="#" class="hidden px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition shadow">
-                            📥 Download CSV
-                        </a>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto max-h-[440px] border border-gray-800/80 rounded-xl bg-[#0b0d14]">
-                    <table class="w-full text-left text-xs text-gray-300">
-                        <thead id="table-head" class="bg-[#161b2e] text-gray-300 uppercase text-[11px] sticky top-0 z-10"></thead>
-                        <tbody id="table-body" class="divide-y divide-gray-800/70">
-                            <tr><td class="p-8 text-center text-gray-500">Memuat data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- KOLOM KANAN: CRON PROGRESS BAR, SENTIMEN, SKEMA -->
-        <aside class="lg:col-span-3 space-y-4">
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        ⏰ Cron Scheduler (8 Jam)
-                    </span>
-                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
-                        ACTIVE
-                    </span>
-                </div>
-
-                <div class="bg-[#0b0d14] border border-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Jadwal WIB:</span>
-                        <span class="font-semibold text-white">08:00 • 16:00 • 00:00</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Target / Siklus:</span>
-                        <span class="font-semibold text-emerald-400">1.000 Baris</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Next Run:</span>
-                        <span id="cron-next" class="font-mono text-[11px] text-indigo-300">-</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Last Run:</span>
-                        <span id="cron-last" class="font-mono text-[11px] text-gray-300">-</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Status:</span>
-                        <span id="cron-status" class="font-semibold text-amber-300">idle</span>
-                    </div>
-
-                    <!-- Progress Bar Target Batch & Siklus 8 Jam -->
-                    <div class="pt-2.5 mt-2 border-t border-gray-800/90 space-y-2.5">
-                        <div>
-                            <div class="flex justify-between items-center text-[10px] mb-1">
-                                <span id="cron-prog-label" class="text-gray-400">Capaian Batch (1.000 Baris):</span>
-                                <span id="cron-prog-pct" class="font-mono font-semibold text-emerald-400">0 / 1.000 (0%)</span>
-                            </div>
-                            <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-0.5">
-                                <div id="cron-prog-bar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center text-[10px] mb-1">
-                                <span class="text-gray-400">Siklus Waktu (8 Jam):</span>
-                                <span id="cron-cycle-pct" class="font-mono text-[10px] text-indigo-300">0%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800/80">
-                                <div id="cron-cycle-bar" class="h-full bg-indigo-500/80 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-3 space-y-2">
-                    <button onclick="triggerCronNow()" id="btn-cron" class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow transition">
-                        ⚡ Trigger Batch 1.000 Baris Sekarang
-                    </button>
-                    <button onclick="syncCsvToSupabase()" id="btn-sync" class="w-full py-2 px-3 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 font-semibold text-xs rounded-xl border border-gray-700 transition">
-                        🔄 Sync Semua CSV ke Supabase
-                    </button>
-                </div>
-            </div>
-
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    ⚖️ Polarisasi Sentimen & Share Platform
-                </div>
-                <div class="h-44"><canvas id="chartSentiment"></canvas></div>
-            </div>
-
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl text-xs space-y-1.5">
-                <div class="flex items-center justify-between mb-2.5">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🏛️ 7 Skema Supabase Warehouse
-                    </span>
-                    <button onclick="forceReloadAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">↻</button>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">1. core.sources</span>
-                    <span id="st-sources" class="font-bold text-white">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">2. scraper.jobs</span>
-                    <span id="st-jobs" class="font-bold text-white">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">3. scraper.raw_data</span>
-                    <span id="st-raw" class="font-bold text-indigo-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">4. news.articles</span>
-                    <span id="st-news" class="font-bold text-emerald-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">5. keyword.keywords</span>
-                    <span id="st-keywords" class="font-bold text-amber-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">6. trend.snapshots</span>
-                    <span id="st-trends" class="font-bold text-amber-300">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">7. social.accounts</span>
-                    <span id="st-accounts" class="font-bold text-purple-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">8. social.posts</span>
-                    <span id="st-posts" class="font-bold text-pink-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">9. analytics.sentiment</span>
-                    <span id="st-sentiment" class="font-bold text-cyan-400">0</span>
-                </div>
-            </div>
-        </aside>
-    </main>
-
-    <script>
-        let currentTab = 'supabase';
+let currentTab = 'supabase';
         let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null, chartViral = null, chartHash = null, chartSystem = null;
 
         let BASE_ANALYTICS = null;
@@ -981,7 +371,17 @@
                 const el = document.getElementById('form-' + t);
                 if (el) el.classList.add('hidden');
                 const tabBtn = document.getElementById('tab-' + t);
-                if (tabBtn) tabBtn.className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between";
+                if (tabBtn) {
+                    const isActive = (t === tab);
+                    tabBtn.className = isActive
+                        ? "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow ring-1 ring-purple-400/50 transition flex items-center justify-between"
+                        : "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between";
+                    const dot = tabBtn.querySelector("span.w-1\\.5");
+                    if (dot) dot.className = isActive ? "w-1.5 h-1.5 rounded-full bg-purple-200" : "w-1.5 h-1.5 rounded-full bg-gray-600";
+                    const badges = tabBtn.querySelectorAll("span");
+                    const badge = badges.length > 1 ? badges[badges.length - 1] : null;
+                    if (badge) badge.className = isActive ? "text-[10px] bg-purple-900/90 text-purple-100 px-2 py-0.5 rounded" : "text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded";
+                }
             });
             const activeEl = document.getElementById('form-' + tab);
             if (activeEl) activeEl.classList.remove('hidden');
@@ -1142,20 +542,170 @@
             });
 
             const viralDisplay = viral.filter(x => isIndonesianText(x.title));
-            const ctxViral = document.getElementById('chartViral').getContext('2d');
-            if (chartViral) chartViral.destroy();
-            chartViral = new Chart(ctxViral, {
-                type: 'bar',
-                data: {
-                    labels: viralDisplay.map(x => x.title && x.title.length > 26 ? x.title.substring(0, 26) + '...' : (x.title || 'Konten')),
-                    datasets: [{ label: 'Skor Interaksi / Dampak', data: viralDisplay.map(x => x.engagement), backgroundColor: '#ec4899', borderRadius: 5 }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
-                    plugins: { legend: { display: false } }
+            (function renderIndonesianViralChart(rawViralList) {
+                const isIdContent = (text) => {
+                    const s = String(text || '').trim();
+                    if (s.length < 6) return false;
+                    if (/[\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/.test(s)) return false;
+                    const low = s.toLowerCase();
+                    const foreignRe = /\b(você|voce|ainda|vai|mão|mao|parede|maquinas|construcao|tecnologia|não|nao|com|para|que|como|los|las|del|una|the|this|that|your|with|from|are|was|were|have|has|had|will|would|could|should|what|when|where|why|how|takes|less|than|hour|learn|driving|you|know|very|powerful|breaking|official|watch|follow|subscribe|comment|share|repost|thread|story|today|week|year|people|world|market|stock|price|crypto|gaming|movie|season|episode|review|guide|tips|giveaway|report|analysis|about|after|before|their|them|they)\b/g;
+                    const idRe = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|pada|dalam|tidak|bisa|akan|ada|oleh|juga|karena|saat|lebih|atau|sudah|jadi|kata|tahun|indonesia|warga|pemerintah|presiden|dpr|komisi|fraksi|partai|menteri|daerah|wilayah|kota|kabupaten|provinsi|banjir|kebakaran|karhutla|harga|ekonomi|berita|ramai|viral|heboh|terkini|hari|bulan|makan|bergizi|gratis|rakyat|negara|masyarakat|kebijakan|program|inovasi|nasional|jakarta|jawa|sumatera|kalimantan|sulawesi|bali|papua|riau|medan|bandung|surabaya|semarang|jogja|yogyakarta|ikn|mbg|umkm|rupiah|saham|polisi|hukum|kasus|timnas|pemko|pemkab|pemprov|peroleh|perkuat|buka|dorong|gelar|resmi|anggota|perjuangan|keterbukaan|pendidikan|mutu|dukungan|rencana|aksi|update|dibahas)\b/g;
+                    const foreignCount = (low.match(foreignRe) || []).length;
+                    const idCount = (low.match(idRe) || []).length;
+                    if (foreignCount > 0 && idCount <= foreignCount) return false;
+                    return idCount >= 1;
+                };
+
+                const parseNum = (v) => {
+                    if (typeof v === 'number' && Number.isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const cleaned = v.replace(/[^\d.]/g, '');
+                        const n = Number(cleaned);
+                        if (Number.isFinite(n)) return n;
+                    }
+                    return 0;
+                };
+
+                const extractEngagement = (item) => {
+                    if (!item || typeof item !== 'object') return 0;
+                    const direct = parseNum(
+                        item.engagement ?? item.total_engagement ?? item.interaksi ??
+                        item.views ?? item.view_count ?? item.play_count ?? item.tayangan ??
+                        item.score ?? item.trend_score ?? item.volume
+                    );
+                    if (direct > 0) return direct;
+                    const likes = parseNum(item.likes ?? item.likes_count ?? item.digg_count ?? item.suka ?? item.like);
+                    const comments = parseNum(item.comments ?? item.comments_count ?? item.komentar ?? item.comment);
+                    const shares = parseNum(item.shares ?? item.shares_count ?? item.retweets ?? item.bagikan ?? item.share);
+                    const sumSocial = likes + comments * 2 + shares * 3;
+                    if (sumSocial > 0) return sumSocial;
+                    if (item.post_metadata && typeof item.post_metadata === 'object') {
+                        return extractEngagement(item.post_metadata);
+                    }
+                    return 0;
+                };
+
+                const normalizeItems = (arr) => {
+                    const out = [];
+                    const seen = new Set();
+                    (Array.isArray(arr) ? arr : []).forEach((item, idx) => {
+                        if (!item) return;
+                        const title = typeof item === 'string'
+                            ? item.trim()
+                            : String(
+                                item.judul || item.title || item.caption || item.content ||
+                                item.isi_berita || item.text || item.teks || ''
+                            ).replace(/\s+/g, ' ').trim();
+                        if (!title || !isIdContent(title)) return;
+                        const key = title.toLowerCase().slice(0, 38);
+                        if (seen.has(key)) return;
+                        seen.add(key);
+                        const eng = Math.round(extractEngagement(item));
+                        out.push({
+                            title: title,
+                            engagement: eng > 0 ? eng : Math.max(150, 950 - idx * 50),
+                            hasRealEng: eng > 0
+                        });
+                    });
+                    return out.sort((a, b) => {
+                        if (a.hasRealEng !== b.hasRealEng) return a.hasRealEng ? -1 : 1;
+                        return b.engagement - a.engagement;
+                    });
+                };
+
+                const formatCompact = (val) => {
+                    const n = Number(val) || 0;
+                    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + ' jt';
+                    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + ' rb';
+                    return String(Math.round(n));
+                };
+
+                const drawViral = (items) => {
+                    const top5 = items.slice(0, 5);
+                    const canvasEl = document.getElementById('chartViral');
+                    if (!canvasEl) return;
+                    const ctxV = canvasEl.getContext('2d');
+                    if (chartViral) chartViral.destroy();
+
+                    const vals = top5.map(x => x.engagement).filter(v => v > 0);
+                    const maxV = vals.length ? Math.max(...vals) : 100;
+                    const minV = vals.length ? Math.min(...vals) : 1;
+                    const useLogScale = vals.length >= 2 && (maxV / Math.max(1, minV)) > 30;
+
+                    chartViral = new Chart(ctxV, {
+                        type: 'bar',
+                        data: {
+                            labels: top5.map(x => x.title.length > 22 ? x.title.substring(0, 22) + '...' : x.title),
+                            datasets: [{
+                                label: 'Skor Interaksi / Dampak',
+                                data: top5.map(x => x.engagement),
+                                backgroundColor: '#ec4899',
+                                borderRadius: 5,
+                                minBarLength: 16
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: { padding: { left: 4, right: 8 } },
+                            scales: {
+                                x: {
+                                    type: useLogScale ? 'logarithmic' : 'linear',
+                                    grid: { color: '#1f2937' },
+                                    beginAtZero: !useLogScale,
+                                    ticks: {
+                                        maxRotation: 0,
+                                        autoSkip: true,
+                                        maxTicksLimit: 5,
+                                        callback: (v) => formatCompact(v)
+                                    }
+                                },
+                                y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 11 } }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (ctx) => (ctx && ctx[0] && top5[ctx[0].dataIndex]) ? top5[ctx[0].dataIndex].title : '',
+                                        label: (ctx) => 'Interaksi: ' + Number(ctx.raw || 0).toLocaleString('id-ID')
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                const initialIdItems = normalizeItems(rawViralList);
+                if (initialIdItems.filter(x => x.hasRealEng).length >= 5) {
+                    drawViral(initialIdItems);
+                    return;
                 }
-            });
+
+                const mergeAndDraw = (extraRows) => {
+                    const merged = normalizeItems([...initialIdItems, ...(Array.isArray(extraRows) ? extraRows : [])]);
+                    drawViral(merged);
+                };
+
+                if (Array.isArray(window.__idViralBackupRows) && window.__idViralBackupRows.length > 0) {
+                    mergeAndDraw(window.__idViralBackupRows);
+                    return;
+                }
+
+                drawViral(initialIdItems);
+                Promise.all([
+                    fetch('/api/v1/warehouse/records?category=sosmed&search_query=&limit=200').then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch('/api/v1/warehouse/records?category=berita&search_query=&limit=30').then(r => r.ok ? r.json() : null).catch(() => null)
+                ]).then(([socRes, newsRes]) => {
+                    const extract = (d) => Array.isArray(d) ? d : ((d && (d.data || d.records || d.items)) || []);
+                    const combined = [...extract(socRes), ...extract(newsRes)];
+                    window.__idViralBackupRows = combined;
+                    mergeAndDraw(combined);
+                }).catch(() => {});
+            })((() => { try { return (typeof viral !== 'undefined' && Array.isArray(viral) && viral.length) ? viral : ((typeof viralDisplay !== 'undefined' && Array.isArray(viralDisplay)) ? viralDisplay : []); } catch (e) { return []; } })());
 
             const ctxHash = document.getElementById('chartHashtags').getContext('2d');
             if (chartHash) chartHash.destroy();
@@ -1245,7 +795,168 @@
             });
         }
 
+        
+        // === REACTIVE BANK DATA FALLBACK (QUERY/VALUES + SOURCE_FILE TIMELINE) ===
+        function _extractNumericVal(raw) {
+            if (raw === null || raw === undefined || raw === '') return 0;
+            if (typeof raw === 'number' && !isNaN(raw)) return raw;
+            const s = String(raw).trim().toLowerCase().replace(/,/g, '');
+            const m = s.match(/-?\d+(\.\d+)?/);
+            if (!m) return 0;
+            let n = parseFloat(m[0]);
+            if (s.includes('jt') || s.includes('m')) n *= 1000000;
+            else if (s.includes('rb') || s.includes('k')) n *= 1000;
+            return isNaN(n) ? 0 : Math.round(n);
+        }
+
+        function _extractTimeBucket(row) {
+            const directKeys = ['tanggal', 'waktu_scrape', 'published_at', 'created_at', 'updated_at', 'date', 'timestamp', 'time'];
+            for (const k of directKeys) {
+                const v = row[k];
+                if (v && String(v).trim() && !['nan', 'none', 'null'].includes(String(v).trim().toLowerCase())) {
+                    const s = String(v).trim();
+                    const iso = s.match(/(20\d{2})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}))?/);
+                    if (iso) {
+                        const hh = iso[4] || '00';
+                        return `${iso[1]}-${iso[2]}-${iso[3]} ${hh}:00`;
+                    }
+                    const d = new Date(s);
+                    if (!isNaN(d.getTime())) {
+                        const pad = x => String(x).padStart(2, '0');
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+                    }
+                }
+            }
+            // Fallback 1: ekstrak YYYYMMDD_HHMMSS dari nama file _source_file
+            const sf = String(row._source_file || row.source_file || '');
+            const mFile = sf.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})(?:[_T-](\d{2}))?/);
+            if (mFile) {
+                const mm = parseInt(mFile[2], 10), dd = parseInt(mFile[3], 10);
+                const hh = mFile[4] ? parseInt(mFile[4], 10) : 0;
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31 && hh >= 0 && hh <= 23) {
+                    return `${mFile[1]}-${mFile[2]}-${mFile[3]} ${String(hh).padStart(2, '0')}:00`;
+                }
+            }
+            // Fallback 2: ekstrak YYYY/MM/DD dari URL link
+            const lnk = String(row.link || row.url || '');
+            const mUrl = lnk.match(/\b(20\d{2})[\/-](\d{2})[\/-](\d{2})\b/);
+            if (mUrl) {
+                const mm = parseInt(mUrl[2], 10), dd = parseInt(mUrl[3], 10);
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+                    return `${mUrl[1]}-${mUrl[2]}-${mUrl[3]} 00:00`;
+                }
+            }
+            return null;
+        }
+
         function buildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            const res = _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain);
+            if (!res || typeof res !== 'object' || !Array.isArray(rows) || rows.length === 0) return res;
+
+            // Sampling merata maks 4.000 baris agar tetap ringan
+            let srcRows = rows;
+            if (rows.length > 4000) {
+                const step = rows.length / 4000;
+                srcRows = new Array(4000);
+                for (let i = 0; i < 4000; i++) {
+                    srcRows[i] = rows[Math.min(rows.length - 1, Math.floor(i * step))];
+                }
+            }
+
+            // 1. Fallback Top Keyword & Topik Paling Trending (support Query/Values/formattedvalue)
+            if (!Array.isArray(res.top_keywords) || res.top_keywords.length === 0) {
+                const kwAgg = {};
+                const kwKeys = ['Query', 'query', 'keyword', 'Keyword', 'topik', 'topic', 'kata_kunci', 'trend'];
+                const volKeys = ['Values', 'values', 'volume', 'search_volume', 'popularity', 'formattedvalue', 'trend_score', 'score'];
+
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    let kw = '';
+                    for (const k of kwKeys) {
+                        const val = r[k];
+                        if (val !== undefined && val !== null) {
+                            const s = String(val).trim();
+                            if (s && !['nan', 'none', 'null', '-'].includes(s.toLowerCase())) {
+                                kw = s;
+                                break;
+                            }
+                        }
+                    }
+                    if (!kw) continue;
+
+                    let vol = 0;
+                    for (const vk of volKeys) {
+                        vol = _extractNumericVal(r[vk]);
+                        if (vol > 0) break;
+                    }
+                    const normKey = kw.toLowerCase();
+                    if (!kwAgg[normKey]) kwAgg[normKey] = { keyword: kw.slice(0, 60), volume: 0 };
+                    kwAgg[normKey].volume += (vol > 0 ? vol : 1);
+                }
+
+                // Fallback sekunder untuk kategori berita/sosmed yang tidak punya kolom Query/keyword
+                let kwList = Object.values(kwAgg);
+                if (kwList.length === 0) {
+                    const stop = new Set(['yang', 'untuk', 'dengan', 'dari', 'pada', 'dalam', 'akan', 'oleh', 'atau', 'juga', 'sudah', 'tidak', 'bisa', 'kami', 'anda', 'mereka', 'lebih', 'hari', 'tahun', 'saat', 'baru', 'jadi', 'agar', 'karena', 'bahwa', 'tentang', 'secara', 'masih', 'hanya', 'berita', 'https', 'http', 'unknown']);
+                    const wordFreq = {};
+                    for (const r of srcRows) {
+                        const txt = String(r.judul || r.title || r.content || r.caption || '').toLowerCase();
+                        const tokens = txt.match(/[a-z]{4,}/g) || [];
+                        for (const w of tokens) {
+                            if (!stop.has(w)) wordFreq[w] = (wordFreq[w] || 0) + 1;
+                        }
+                    }
+                    kwList = Object.entries(wordFreq).map(([k, v]) => ({ keyword: k, volume: v }));
+                }
+
+                res.top_keywords = kwList
+                    .sort((a, b) => b.volume - a.volume)
+                    .slice(0, 10);
+            }
+
+            // 2. Fallback Tren Waktu & Aktivitas Ingesti (support tanggal, waktu_scrape, _source_file, link)
+            if (!Array.isArray(res.timeline) || res.timeline.length === 0) {
+                const tMap = {};
+                const dom = String(catDomain || '').toLowerCase();
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    const bucket = _extractTimeBucket(r);
+                    if (!bucket) continue;
+                    if (!tMap[bucket]) tMap[bucket] = { berita: 0, keyword: 0, sosmed: 0 };
+
+                    const plat = String(r.platform || r._source_file || dom).toLowerCase();
+                    if (dom.includes('keyword') || dom.includes('trend') || plat.includes('kueri') || plat.includes('trend') || plat.includes('keyword')) {
+                        tMap[bucket].keyword += 1;
+                    } else if (dom.includes('berita') || dom.includes('news') || plat.includes('berita') || plat.includes('news')) {
+                        tMap[bucket].berita += 1;
+                    } else {
+                        tMap[bucket].sosmed += 1;
+                    }
+                }
+                const sortedBuckets = Object.keys(tMap).sort().slice(-12);
+                res.timeline = sortedBuckets.map(b => ({
+                    time: b.slice(-11),
+                    berita: tMap[b].berita,
+                    keyword: tMap[b].keyword,
+                    sosmed: tMap[b].sosmed
+                }));
+            }
+
+            return res;
+        }
+
+        function _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            // Stratified uniform sampling agar >4.000 baris tetap cepat & merata di browser
+            if (Array.isArray(rows) && rows.length > 4000) {
+                const _target = 4000;
+                const _step = rows.length / _target;
+                const _sampled = new Array(_target);
+                for (let _i = 0; _i < _target; _i++) {
+                    _sampled[_i] = rows[Math.min(rows.length - 1, Math.floor(_i * _step))];
+                }
+                rows = _sampled;
+            }
+
             const sentSummary = { positive: 0, neutral: 0, negative: 0 };
             const locMap = {}, pplMap = {}, hashMap = {}, kwMap = {}, timeMap = {};
             const viralList = [];
@@ -1404,7 +1115,9 @@
 
         async function forceReloadAll() {
             DOMAIN_ROWS_CACHE = {};
-            await Promise.all([refreshTelemetry(), loadAnalyticsCharts(true), executeAction(true)]);
+            const _tasks = [refreshTelemetry(), loadAnalyticsCharts(true)];
+            if (currentTab === 'supabase' || currentTab === 'bank') _tasks.push(executeAction(true));
+            await Promise.all(_tasks);
         }
 
         async function onDomainChange() {
@@ -1677,6 +1390,138 @@
                 if (!_cronActiveManual) refreshTelemetry();
             }, 60000);
         });
-    </script>
-</body>
-</html>
+
+// === REALTIME SCRAPER PROGRESS MODULE ===
+(function () {
+    let _progInterval = null;
+    let _progStart = null;
+    let _progPct = 0;
+    let _progRunning = false;
+
+    function _fmtDur(ms) {
+        const s = Math.max(0, Math.floor(ms / 1000));
+        const mm = String(Math.floor(s / 60)).padStart(2, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        return `${mm}:${ss}`;
+    }
+
+    function _els() {
+        return {
+            box: document.getElementById('scraper-progress-box'),
+            bar: document.getElementById('scraper-progress-bar'),
+            pct: document.getElementById('scraper-progress-pct'),
+            timer: document.getElementById('scraper-elapsed-timer'),
+            label: document.getElementById('scraper-progress-label'),
+            sub: document.getElementById('scraper-progress-sub')
+        };
+    }
+
+    function _setVisual(pct, label, sub, isErr = false) {
+        const e = _els();
+        if (!e.box || !e.bar) return;
+        _progPct = Math.max(0, Math.min(100, pct));
+        e.bar.style.width = `${_progPct}%`;
+        if (e.pct) e.pct.textContent = `${_progPct}%`;
+        if (e.label) {
+            e.label.textContent = label;
+            e.label.className = isErr
+                ? 'text-rose-400 font-semibold truncate'
+                : 'text-emerald-400 font-semibold truncate';
+        }
+        if (e.sub) e.sub.textContent = sub;
+        e.bar.className = isErr
+            ? 'h-full bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 rounded-full transition-all duration-300'
+            : 'h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-400 rounded-full transition-all duration-300';
+    }
+
+    function startScraperProgress() {
+        const e = _els();
+        if (!e.box) return;
+        clearInterval(_progInterval);
+        _progRunning = true;
+        _progStart = Date.now();
+        _progPct = 6;
+        e.box.classList.remove('hidden');
+        if (e.timer) e.timer.textContent = '00:00';
+        _setVisual(6, '🚀 Scraper & Simpan DB Berjalan...', 'Mengirim permintaan ke server...', false);
+
+        _progInterval = setInterval(() => {
+            if (!_progRunning || !_progStart) return;
+            const elapsed = Date.now() - _progStart;
+            const sec = Math.floor(elapsed / 1000);
+            if (e.timer) e.timer.textContent = _fmtDur(elapsed);
+
+            if (_progPct < 92) {
+                const step = _progPct < 45 ? 4 : _progPct < 75 ? 2 : 1;
+                _progPct = Math.min(92, _progPct + step);
+                if (e.bar) e.bar.style.width = `${_progPct}%`;
+                if (e.pct) e.pct.textContent = `${_progPct}%`;
+            }
+
+            if (e.sub) {
+                if (sec >= 3 && sec < 12) e.sub.textContent = 'Mengekstrak data dari sumber...';
+                else if (sec >= 12) e.sub.textContent = 'Menyimpan hasil & sinkronisasi ke Supabase...';
+            }
+        }, 500);
+    }
+
+    function finishScraperProgress(ok = true, msg = null) {
+        const e = _els();
+        clearInterval(_progInterval);
+        _progInterval = null;
+        _progRunning = false;
+        const dur = _progStart ? _fmtDur(Date.now() - _progStart) : '00:00';
+        if (e.timer) e.timer.textContent = dur;
+        if (ok) {
+            _setVisual(100, '✅ Selesai & Tersimpan ke DB', msg || `Durasi total: ${dur}`, false);
+        } else {
+            _setVisual(_progPct || 15, '❌ Proses Scraper Gagal', msg || `Terhenti pada ${dur}`, true);
+        }
+    }
+
+    function resetScraperProgress() {
+        const e = _els();
+        clearInterval(_progInterval);
+        _progInterval = null;
+        _progRunning = false;
+        _progStart = null;
+        _progPct = 0;
+        if (e.box) e.box.classList.add('hidden');
+        if (e.bar) e.bar.style.width = '0%';
+        if (e.pct) e.pct.textContent = '0%';
+        if (e.timer) e.timer.textContent = '00:00';
+    }
+
+    const __origExecuteAction = executeAction;
+    executeAction = async function (...args) {
+        const isManualScraper = ['keyword', 'berita', 'sosmed'].includes(currentTab);
+        if (isManualScraper) startScraperProgress();
+        try {
+            const res = await __origExecuteAction.apply(this, args);
+            if (isManualScraper) {
+                const st = document.getElementById('status-text')?.textContent || '';
+                if (st.includes('❌')) finishScraperProgress(false, st.replace(/^❌\s*/, ''));
+                else finishScraperProgress(true);
+            }
+            return res;
+        } catch (err) {
+            if (isManualScraper) finishScraperProgress(false, err?.message || 'Error');
+            throw err;
+        }
+    };
+
+    const __origResetSearchFilter = resetSearchFilter;
+    resetSearchFilter = function (...args) {
+        resetScraperProgress();
+        return __origResetSearchFilter.apply(this, args);
+    };
+
+    const __origSwitchTab = switchTab;
+    switchTab = function (tab) {
+        if (!_progRunning && (tab === 'supabase' || tab === 'bank')) {
+            resetScraperProgress();
+        }
+        return __origSwitchTab.call(this, tab);
+    };
+})();
+

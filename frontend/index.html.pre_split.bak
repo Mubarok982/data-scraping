@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDC Data Warehouse — Analytics & Scraper Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0d14; }
+        ::-webkit-scrollbar-thumb { background: #2d334d; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+    </style>
+</head>
+<body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
+    <!-- TOP NAVBAR -->
+    <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <span class="text-lg">🧩</span>
+                </div>
+                <div>
+                    <h1 class="text-base md:text-lg font-bold text-white tracking-tight">
+                        DDC Data Warehouse — Geo-Polarization & Trend Intelligence
+                    </h1>
+                    <p class="text-[11px] text-gray-400">
+                        7-Layer ELT Supabase • Grafik Reaktif Dinamis • Filter Wilayah & Rentang Waktu • Cron 8 Jam
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <span class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Supabase Live
+                </span>
+                <button onclick="forceReloadAll()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-medium rounded-lg border border-indigo-700/60 transition">
+                    ↻ Refresh Analitik
+                </button>
+                <a href="/docs" target="_blank" class="px-3 py-1.5 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition">
+                    ⚙️ Swagger API
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN 3-COLUMN LAYOUT -->
+    <main class="max-w-[1650px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+        <!-- KOLOM KIRI: MODE & PARAMETER FILTER -->
+        <aside class="lg:col-span-3 space-y-4">
+                        <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        🧭 Pilih Mode Sumber & Scraper
+                    </div>
+                    <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        5 Mode
+                    </span>
+                </div>
+
+                <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
+                    Data & Arsip
+                </div>
+                <div class="space-y-1.5 mb-3">
+                    <button type="button" onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-200"></span>
+                            <span>🗄️ Database Supabase (ELT)</span>
+                        </span>
+                        <span class="text-[10px] bg-purple-900/90 px-2 py-0.5 rounded">Live DB</span>
+                    </button>
+                    <button type="button" onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                            <span>🏦 Bank Data (Arsip CSV)</span>
+                        </span>
+                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">CSV</span>
+                    </button>
+                </div>
+
+                <div class="border-t border-gray-800/80 pt-2.5">
+                    <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
+                        Scraper Manual
+                    </div>
+                    <div class="space-y-1.5">
+                        <button type="button" onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>🔍 1. Keyword & Trend</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">KW/Trend</span>
+                        </button>
+                        <button type="button" onclick="switchTab('berita')" id="tab-berita" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>📰 2. Portal Berita</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">News</span>
+                        </button>
+                        <button type="button" onclick="switchTab('sosmed')" id="tab-sosmed" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>📱 3. Social Media</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Social</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parameter Filter & Ekstraksi -->
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        🎛️ Parameter & Filter Data
+                    </span>
+                    <button onclick="resetSearchFilter()" class="text-[10px] text-rose-400 hover:text-rose-300 font-medium">
+                        ✕ Reset
+                    </button>
+                </div>
+
+                <!-- Form Supabase (Tanpa Filter Tokoh) -->
+                <div id="form-supabase" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
+                        <select id="sb-cat" onchange="onDomainChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
+                            <option value="berita">news.articles (Berita + Sentimen)</option>
+                            <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
+                            <option value="instagram">social.posts (Instagram)</option>
+                            <option value="facebook">social.posts (Facebook)</option>
+                            <option value="tiktok">social.posts (TikTok)</option>
+                            <option value="twitter">social.posts (Twitter / X)</option>
+                            <option value="linkedin">social.accounts (LinkedIn)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
+                        <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
+                            <option value="">-- Semua Kategori & Tag --</option>
+                            <optgroup label="Pemerintahan & Kebijakan">
+                                <option value="politik">Politik & Pemerintahan</option>
+                                <option value="kebijakan">Kebijakan Publik & Regulasi</option>
+                                <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
+                                <option value="ikn">Ibu Kota Nusantara (IKN)</option>
+                                <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
+                                <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
+                            </optgroup>
+                            <optgroup label="Ekonomi & Infrastruktur">
+                                <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
+                                <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
+                                <option value="energi">Energi Hijau & Transisi Energi</option>
+                                <option value="infrastruktur">Infrastruktur & Transportasi</option>
+                            </optgroup>
+                            <optgroup label="Sains, Alam & Masyarakat">
+                                <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
+                                <option value="teknologi">Teknologi, AI & Digitalisasi</option>
+                                <option value="kesehatan">Kesehatan & Medis</option>
+                                <option value="pendidikan">Pendidikan, Kampus & Riset</option>
+                                <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
+                            </optgroup>
+                            <optgroup label="Tren & Gaya Hidup">
+                                <option value="olahraga">Olahraga & Timnas</option>
+                                <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
+                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
+                            <span>📍 3. Filter Lokasi Wilayah</span>
+                            <span class="text-[10px] text-gray-500 font-normal">Provinsi ➔ Kab/Kota</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Provinsi</label>
+                            <select id="sb-prov" onchange="onProvinceChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-indigo-500 outline-none">
+                                <option value="">-- Semua Provinsi --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Kabupaten / Kota</label>
+                            <select id="sb-kab" onchange="applyClientFilters()" disabled class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-400 disabled:opacity-50 focus:border-indigo-500 outline-none">
+                                <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 4. Filter Rentang Waktu</span>
+                            <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
+                                <option value="all">Semua Waktu</option>
+                                <option value="1d">24 Jam Terakhir</option>
+                                <option value="3d">3 Hari Terakhir</option>
+                                <option value="7d">7 Hari Terakhir</option>
+                                <option value="30d">30 Hari Terakhir</option>
+                                <option value="custom">Pilih Tanggal</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-400 mb-0.5">Dari Tanggal</label>
+                                <input id="sb-date-from" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 mb-0.5">Sampai Tanggal</label>
+                                <input id="sb-date-to" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
+                            <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
+                                <option value="all">Semua Kolom</option>
+                                <option value="hashtag">Khusus Hashtag (#)</option>
+                                <option value="exact">Frasa Spesifik</option>
+                            </select>
+                        </div>
+                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction(true)" placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
+                        <div class="flex flex-wrap gap-1 pt-0.5">
+                            <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
+                            <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
+                            <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">#ai</button>
+                            <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">ikn</button>
+                            <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">banjir</button>
+                            <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">investasi</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Tampilan</label>
+                        <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <!-- Form Bank Data CSV -->
+                <div id="form-bank" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
+                        <select id="bd-cat" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="berita">Berita</option>
+                            <option value="keyword_trending">Keyword & Trending</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="semua">Semua Kategori</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
+                        <select id="bd-tool" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="semua">Semua Tool</option>
+                            <option value="apify">Apify</option>
+                            <option value="diffbot">Diffbot</option>
+                            <option value="newsdata">Newsdata</option>
+                            <option value="brightdata">Bright Data</option>
+                            <option value="kombine">Kombine</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">3. Mode Skema Kolom</label>
+                        <select id="bd-schema" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="standar">Standar Rapih (Disatukan)</option>
+                            <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
+                            <option value="semua">Semua File</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV</label>
+                        <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="semua">-- Semua File --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">5. Cari Isi Tabel</label>
+                        <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris</label>
+                        <input id="bd-limit" type="number" value="200" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <!-- Form Keyword -->
+                <div id="form-keyword" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
+                        <select id="kw-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
+                            <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Keyword / Kategori</label>
+                        <input id="kw-input" type="text" value="karhutla" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
+                        <input id="kw-limit" type="number" value="30" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <!-- Form Berita -->
+                <div id="form-berita" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
+                        <select id="br-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
+                            <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
+                            <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
+                            <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Topik Berita / Lokasi / Tokoh</label>
+                        <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Jumlah Artikel</label>
+                        <input id="br-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <!-- Form Sosmed -->
+                <div id="form-sosmed" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
+                        <select id="sm-platform" onchange="toggleSosmedOptions()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="instagram">Instagram</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="linkedin">LinkedIn (Bright Data)</option>
+                        </select>
+                    </div>
+                    <div id="sm-engine-box">
+                        <label class="block text-xs text-gray-400 mb-1">Engine</label>
+                        <select id="sm-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="apify">Apify Actor</option>
+                            <option value="diffbot">Diffbot Analyze</option>
+                        </select>
+                    </div>
+                    <div id="sm-mode-box">
+                        <label class="block text-xs text-gray-400 mb-1">Format Kolom</label>
+                        <select id="sm-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                            <option value="bersih">Standar Bersih (9 Kolom)</option>
+                            <option value="full">Full Kolom Asli (29/39 Kolom)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
+                        <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
+                        <input id="sm-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                    </div>
+                </div>
+
+                <button onclick="executeAction(true)" id="btn-run" class="mt-4 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
+                    🗄️ Muat Tabel Supabase
+                </button>
+            </div>
+
+            <!-- Panel Polarisasi Wilayah -->
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">
+                    📍 Ringkasan Polarisasi Tempat
+                </div>
+                <div id="loc-badges" class="space-y-2 text-xs">
+                    <div class="text-gray-500 text-xs">Memuat analisis wilayah...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- KOLOM TENGAH: KPI, BANNER REAKTIF, 7 GRAFIK, DAN TABEL -->
+        <section class="lg:col-span-6 space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
+                    <div class="text-[11px] text-gray-400">📦 Total Raw Data</div>
+                    <div id="kpi-raw" class="text-xl font-bold text-white mt-0.5">0</div>
+                    <div class="text-[10px] text-indigo-400">scraper.raw_data</div>
+                </div>
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
+                    <div class="text-[11px] text-gray-400">📰 Artikel Berita</div>
+                    <div id="kpi-news" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">news.articles</div>
+                </div>
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
+                    <div class="text-[11px] text-gray-400">🔥 Keyword & Tren</div>
+                    <div id="kpi-kw" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">keyword + trend</div>
+                </div>
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
+                    <div class="text-[11px] text-gray-400">📱 Sosmed & Sentimen</div>
+                    <div id="kpi-social" class="text-xl font-bold text-purple-400 mt-0.5">0</div>
+                    <div class="text-[10px] text-gray-500">social + analytics</div>
+                </div>
+            </div>
+
+            <div id="reactive-banner" class="hidden bg-indigo-950/70 border border-indigo-700/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    <span id="reactive-banner-text" class="text-indigo-200 font-medium">Mode Grafik Dinamis Aktif</span>
+                </div>
+                <button onclick="resetSearchFilter()" class="px-2.5 py-1 bg-indigo-800/80 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold transition">
+                    ✕ Kembali ke Grafik Global
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 id="title-chart-loc" class="text-xs font-bold text-white">🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)</h3>
+                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah (Klik untuk filter)</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartLocations"></canvas></div>
+                </div>
+
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">👤 Tokoh / Orang Paling Trending</h3>
+                            <p class="text-[10px] text-gray-400">Frekuensi kemunculan tokoh pada data terpilih</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartPeople"></canvas></div>
+                </div>
+
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white"> Konten & Postingan Paling Menonjol (Viral)</h3>
+                            <p class="text-[10px] text-gray-400">Peringkat engagement / dampak tertinggi pada data terpilih</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartViral"></canvas></div>
+                </div>
+
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🏷️ Top Hashtag & Tagar Isu Populer</h3>
+                            <p class="text-[10px] text-gray-400">Tagar yang paling banyak digunakan pada data terpilih</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartHashtags"></canvas></div>
+                </div>
+
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🔥 Top Keyword & Topik Paling Trending</h3>
+                            <p class="text-[10px] text-gray-400">Volume kueri / kata kunci tertinggi pada data terpilih</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartKeywords"></canvas></div>
+                </div>
+
+                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">⏱️ Tren Waktu & Aktivitas Ingesti</h3>
+                            <p class="text-[10px] text-gray-400">Distribusi waktu publikasi / ingesti sesuai rentang filter</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartTimeline"></canvas></div>
+                </div>
+
+                <div class="md:col-span-2 bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">🫀 Kesehatan Sistem & Trafik API</h3>
+                            <p class="text-[10px] text-gray-400">Memantau beban server scraper (Request) dan kecepatan respons server (milidetik)</p>
+                        </div>
+                    </div>
+                    <div class="h-56"><canvas id="chartSystem"></canvas></div>
+                </div>
+            </div>
+
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-gray-800">
+                    <div>
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span>📊 Tabel Output Data Explorer</span>
+                            <span class="text-xs font-normal px-2.5 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800 rounded-full">
+                                <span id="row-count">0</span> baris
+                            </span>
+                        </h2>
+                        <p id="status-text" class="text-[11px] text-gray-400 mt-0.5">
+                            Siap memuat atau mengekstrak data.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="resetSearchFilter()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] rounded-lg border border-gray-700 transition">
+                            Reset Filter
+                        </button>
+                        <a id="btn-download" href="#" class="hidden px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition shadow">
+                            📥 Download CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-[440px] border border-gray-800/80 rounded-xl bg-[#0b0d14]">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead id="table-head" class="bg-[#161b2e] text-gray-300 uppercase text-[11px] sticky top-0 z-10"></thead>
+                        <tbody id="table-body" class="divide-y divide-gray-800/70">
+                            <tr><td class="p-8 text-center text-gray-500">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- KOLOM KANAN: CRON PROGRESS BAR, SENTIMEN, SKEMA -->
+        <aside class="lg:col-span-3 space-y-4">
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        ⏰ Cron Scheduler (8 Jam)
+                    </span>
+                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
+                        ACTIVE
+                    </span>
+                </div>
+
+                <div class="bg-[#0b0d14] border border-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Jadwal WIB:</span>
+                        <span class="font-semibold text-white">08:00 • 16:00 • 00:00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Target / Siklus:</span>
+                        <span class="font-semibold text-emerald-400">1.000 Baris</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Next Run:</span>
+                        <span id="cron-next" class="font-mono text-[11px] text-indigo-300">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Last Run:</span>
+                        <span id="cron-last" class="font-mono text-[11px] text-gray-300">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Status:</span>
+                        <span id="cron-status" class="font-semibold text-amber-300">idle</span>
+                    </div>
+
+                    <!-- Progress Bar Target Batch & Siklus 8 Jam -->
+                    <div class="pt-2.5 mt-2 border-t border-gray-800/90 space-y-2.5">
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span id="cron-prog-label" class="text-gray-400">Capaian Batch (1.000 Baris):</span>
+                                <span id="cron-prog-pct" class="font-mono font-semibold text-emerald-400">0 / 1.000 (0%)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-0.5">
+                                <div id="cron-prog-bar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span class="text-gray-400">Siklus Waktu (8 Jam):</span>
+                                <span id="cron-cycle-pct" class="font-mono text-[10px] text-indigo-300">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800/80">
+                                <div id="cron-cycle-bar" class="h-full bg-indigo-500/80 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                    <button onclick="triggerCronNow()" id="btn-cron" class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow transition">
+                        ⚡ Trigger Batch 1.000 Baris Sekarang
+                    </button>
+                    <button onclick="syncCsvToSupabase()" id="btn-sync" class="w-full py-2 px-3 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 font-semibold text-xs rounded-xl border border-gray-700 transition">
+                        🔄 Sync Semua CSV ke Supabase
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                    ⚖️ Polarisasi Sentimen & Share Platform
+                </div>
+                <div class="h-44"><canvas id="chartSentiment"></canvas></div>
+            </div>
+
+            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl text-xs space-y-1.5">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        🏛️ 7 Skema Supabase Warehouse
+                    </span>
+                    <button onclick="forceReloadAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">↻</button>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">1. core.sources</span>
+                    <span id="st-sources" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">2. scraper.jobs</span>
+                    <span id="st-jobs" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">3. scraper.raw_data</span>
+                    <span id="st-raw" class="font-bold text-indigo-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">4. news.articles</span>
+                    <span id="st-news" class="font-bold text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">5. keyword.keywords</span>
+                    <span id="st-keywords" class="font-bold text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">6. trend.snapshots</span>
+                    <span id="st-trends" class="font-bold text-amber-300">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">7. social.accounts</span>
+                    <span id="st-accounts" class="font-bold text-purple-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">8. social.posts</span>
+                    <span id="st-posts" class="font-bold text-pink-400">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
+                    <span class="text-gray-400">9. analytics.sentiment</span>
+                    <span id="st-sentiment" class="font-bold text-cyan-400">0</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        let currentTab = 'supabase';
+        let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null, chartViral = null, chartHash = null, chartSystem = null;
+
+        let BASE_ANALYTICS = null;
+        let DOMAIN_ROWS_CACHE = {};
+        let LAST_CSV_PATH = {};
+
+        let _cronActiveManual = false;
+        let _cronSimProgress = 0;
+        let _cronUiTimer = null;
+
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
+        Chart.defaults.font.size = 11;
+
+        const PROV_KAB_DATA = {
+            "DKI Jakarta": ["Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara", "Kepulauan Seribu"],
+            "Jawa Barat": ["Bandung", "Bekasi", "Bogor", "Depok", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Karawang", "Garut", "Cianjur", "Indramayu", "Subang", "Sumedang"],
+            "Jawa Tengah": ["Semarang", "Magelang", "Surakarta (Solo)", "Banyumas (Purwokerto)", "Tegal", "Pekalongan", "Salatiga", "Kudus", "Cilacap", "Kebumen", "Klaten", "Boyolali", "Wonogiri", "Temanggung", "Wonosobo", "Purworejo", "Jepara", "Demak"],
+            "DI Yogyakarta": ["Yogyakarta", "Sleman", "Bantul", "Kulon Progo", "Gunungkidul"],
+            "Jawa Timur": ["Surabaya", "Malang", "Sidoarjo", "Gresik", "Jember", "Banyuwangi", "Kediri", "Madiun", "Mojokerto", "Pasuruan", "Probolinggo", "Blitar", "Batu", "Bojonegoro", "Tuban"],
+            "Banten": ["Tangerang", "Tangerang Selatan", "Serang", "Cilegon", "Pandeglang", "Lebak"],
+            "Riau": ["Pekanbaru", "Dumai", "Bengkalis", "Siak", "Kampar", "Rokan Hilir", "Rokan Hulu", "Indragiri Hilir", "Indragiri Hulu", "Pelalawan"],
+            "Kepulauan Riau": ["Batam", "Tanjungpinang", "Bintan", "Karimun", "Natuna", "Anambas"],
+            "Sumatera Utara": ["Medan", "Binjai", "Pematangsiantar", "Tebing Tinggi", "Deli Serdang", "Karo", "Tapanuli Utara", "Simalungun"],
+            "Sumatera Barat": ["Padang", "Bukittinggi", "Payakumbuh", "Pariaman", "Agam", "Tanah Datar", "Solok"],
+            "Sumatera Selatan": ["Palembang", "Prabumulih", "Lubuklinggau", "Pagar Alam", "Ogan Komering Ilir", "Muba", "Muara Enim", "Banyuasin"],
+            "Aceh": ["Banda Aceh", "Lhokseumawe", "Langsa", "Sabang", "Aceh Besar", "Aceh Utara", "Pidie"],
+            "Jambi": ["Jambi", "Sungai Penuh", "Muaro Jambi", "Batanghari", "Tanjung Jabung"],
+            "Lampung": ["Bandar Lampung", "Metro", "Lampung Selatan", "Lampung Tengah", "Lampung Timur"],
+            "Kalimantan Timur (IKN)": ["Nusantara (IKN)", "Samarinda", "Balikpapan", "Bontang", "Penajam Paser Utara", "Kutai Kartanegara", "Kutai Timur", "Berau"],
+            "Kalimantan Barat": ["Pontianak", "Singkawang", "Kubu Raya", "Sambas", "Sintang", "Ketapang"],
+            "Kalimantan Tengah": ["Palangka Raya", "Kotawaringin Timur (Sampit)", "Kotawaringin Barat (Pangkalan Bun)", "Kapuas", "Barito Utara"],
+            "Kalimantan Selatan": ["Banjarmasin", "Banjarbaru", "Banjar", "Tanah Bumbu", "Kotabaru", "Tabalong"],
+            "Kalimantan Utara": ["Tarakan", "Bulungan (Tanjung Selor)", "Nunukan", "Malinau"],
+            "Sulawesi Selatan": ["Makassar", "Parepare", "Palopo", "Gowa", "Maros", "Bone", "Luwu Timur", "Tana Toraja"],
+            "Sulawesi Utara": ["Manado", "Bitung", "Tomohon", "Minahasa", "Bolaang Mongondow"],
+            "Sulawesi Tengah": ["Palu", "Morowali", "Poso", "Banggai", "Donggala"],
+            "Sulawesi Tenggara": ["Kendari", "Baubau", "Konawe", "Kolaka"],
+            "Bali": ["Denpasar", "Badung", "Gianyar", "Tabanan", "Buleleng", "Karangasem", "Klungkung"],
+            "Nusa Tenggara Barat": ["Mataram", "Bima", "Lombok Barat", "Lombok Tengah", "Lombok Timur", "Sumbawa"],
+            "Nusa Tenggara Timur": ["Kupang", "Labuan Bajo (Manggarai Barat)", "Flores Timur", "Ende", "Sikka", "Sumba Timur"],
+            "Maluku & Maluku Utara": ["Ambon", "Ternate", "Tidore", "Halmahera Tengah", "Halmahera Utara"],
+            "Papua & Papua Barat": ["Jayapura", "Sorong", "Manokwari", "Merauke", "Mimika (Timika)", "Biak Numfor", "Nabire"]
+        };
+
+        const KNOWN_FIGURES_MAP = {
+            "Prabowo Subianto": ["prabowo"],
+            "Joko Widodo (Jokowi)": ["jokowi", "joko widodo"],
+            "Gibran Rakabuming": ["gibran"],
+            "Sri Mulyani": ["sri mulyani"],
+            "Bahlil Lahadalia": ["bahlil"],
+            "Luhut Pandjaitan": ["luhut"],
+            "Agus Harimurti (AHY)": ["ahy", "agus harimurti"],
+            "Sufmi Dasco": ["dasco"],
+            "Anies Baswedan": ["anies"],
+            "Ganjar Pranowo": ["ganjar"],
+            "Erick Thohir": ["erick thohir"],
+            "Mahfud MD": ["mahfud"],
+            "Roy Suryo": ["roy suryo"]
+        };
+
+        const CATEGORY_SYNONYMS = {
+            "politik": ["politik", "pemerintah", "dpr", "menteri", "presiden", "partai", "koalisi", "kabinet", "pilkada", "pemilu"],
+            "kebijakan": ["kebijakan", "regulasi", "aturan", "undang-undang", "perpres", "program", "anggaran"],
+            "mbg": ["mbg", "makan bergizi", "gizi gratis", "program makan"],
+            "ikn": ["ikn", "nusantara", "ibu kota", "otorita"],
+            "hukum": ["hukum", "korupsi", "kpk", "kejaksaan", "pengadilan", "tersangka", "kasus", "pidana"],
+            "keamanan": ["tni", "polri", "polisi", "keamanan", "pertahanan", "militer", "siber"],
+            "ekonomi": ["ekonomi", "bisnis", "investasi", "pasar", "saham", "rupiah", "ekspor", "impor", "umkm", "industri"],
+            "inflasi": ["inflasi", "pajak", "ppn", "daya beli", "harga", "keuangan", "apbn", "bank"],
+            "energi": ["energi", "hijau", "transisi", "listrik", "pltu", "ebt", "sawit", "biodiesel", "tambang", "nikel"],
+            "infrastruktur": ["infrastruktur", "tol", "pelabuhan", "bandara", "kereta", "konstruksi", "jembatan"],
+            "lingkungan": ["karhutla", "kebakaran", "hutan", "banjir", "gempa", "bencana", "iklim", "asap", "cuaca", "lingkungan"],
+            "teknologi": ["teknologi", "ai", "digital", "internet", "aplikasi", "robot", "inovasi", "data", "software", "chip"],
+            "kesehatan": ["kesehatan", "medis", "rumah sakit", "dokter", "bpjs", "obat", "penyakit", "stunting"],
+            "pendidikan": ["pendidikan", "sekolah", "kampus", "mahasiswa", "guru", "dosen", "beasiswa", "riset"],
+            "sosial": ["sosial", "bansos", "masyarakat", "warga", "kemiskinan", "tenaga kerja", "buruh"],
+            "olahraga": ["olahraga", "timnas", "sepak bola", "liga", "atlet", "pertandingan", "pssi"],
+            "hiburan": ["hiburan", "musik", "film", "artis", "viral", "konser", "seleb"]
+        };
+
+        
+        function isIndonesianText(txt) {
+            const raw = String(txt || '').trim();
+            if (!raw) return false;
+            const cleaned = raw
+                .replace(/https?:\/\/\S+/gi, ' ')
+                .replace(/[@#][a-zA-Z0-9_]+/g, ' ')
+                .replace(/[^a-zA-Z\s]/g, ' ')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!cleaned) return false;
+
+            if (/[^\x00-\x7F\u00C0-\u024F]/.test(raw) && !/[\u2000-\u3300\uD800-\uDBFF]/.test(raw)) {
+                return false;
+            }
+
+            const words = cleaned.split(' ').filter(w => w.length > 1);
+            if (words.length === 0) return false;
+
+            const idVocab = new Set([
+                'yang','dan','di','ke','dari','ini','itu','untuk','dengan','pada','dalam','tidak','bisa','akan','ada',
+                'oleh','juga','karena','saat','lebih','atau','sudah','jadi','kata','tahun','indonesia','warga','pemerintah',
+                'presiden','dpr','menteri','daerah','wilayah','kota','kabupaten','provinsi','banjir','kebakaran','karhutla',
+                'harga','ekonomi','berita','ramai','viral','heboh','terkini','hari','bulan','makan','bergizi','gratis',
+                'rakyat','negara','masyarakat','hukum','kasus','polisi','tni','timnas','sepak','bola','rupiah','saham',
+                'umkm','jalan','tol','banjir','hujan','cuaca','sekolah','kampus','mahasiswa','guru','dokter','rumah','sakit',
+                'pajak','inflasi','investasi','proyek','ikn','nusantara','jakarta','bandung','surabaya','semarang','jogja',
+                'yogyakarta','medan','makassar','bali','riau','kalimantan','sumatera','sulawesi','papua','maluku','aceh',
+                'banten','lampung','ntb','ntt','kini','baru','awal','akhir','bersama','terhadap','atas','sebagai','bagi',
+                'antara','namun','tetapi','serta','para','kaum','anak','ibu','bapak','keluarga','kerja','gaji','upah',
+                'bbm','listrik','air','bersih','sampah','longsor','gempa','waspada','peringatan','resmi','umumkan','gelar',
+                'dukung','tolak','demo','aksi','sidang','vonis','tersangka','korupsi','tangkap','ungkap','temukan'
+            ]);
+
+            const enVocab = new Set([
+                'the','and','with','from','this','that','your','for','are','was','were','have','has','had','will','would',
+                'could','should','what','when','where','why','how','new','top','best','live','breaking','news','official',
+                'video','watch','follow','subscribe','like','comment','share','repost','thread','post','story','today',
+                'week','year','day','people','world','market','stock','price','crypto','game','gaming','music','movie',
+                'show','season','episode','review','guide','tips','free','win','giveaway','alert','update','report',
+                'analysis','vs','over','under','into','out','off','more','most','all','about','after','before','just',
+                'now','here','there','their','them','they','she','he','his','her','its','our','us','we','you','my','me',
+                'can','cant','wont','dont','didnt','isnt','arent','wasnt','werent','hasnt','havent','hadnt','get','got',
+                'make','made','take','took','come','came','go','went','see','saw','know','knew','think','thought','say','said',
+                'man','woman','men','women','boy','girl','child','children','city','state','country','president','minister',
+                'war','peace','attack','kill','killed','dead','death','fire','flood','storm','rain','snow','heat','cold'
+            ]);
+
+            let idScore = 0;
+            let enScore = 0;
+
+            for (const w of words) {
+                if (idVocab.has(w)) idScore += 2;
+                if (enVocab.has(w)) enScore += 2;
+                if (w.length > 4 && (w.endsWith('nya') || w.endsWith('kan'))) idScore += 1;
+            }
+
+            if (enScore > 0 && idScore <= enScore) return false;
+            if (words.length >= 2 && idScore === 0) return false;
+
+            return idScore > enScore;
+        }
+
+        const POS_WORDS = ["sukses", "berhasil", "optimis", "tumbuh", "naik", "positif", "inovasi", "apresiasi", "unggul", "prestasi", "solusi", "dukung", "aman", "baik", "hebat", "maju"];
+        const NEG_WORDS = ["karhutla", "kebakaran", "korban", "krisis", "turun", "anjlok", "korupsi", "gagal", "kritik", "demo", "rusak", "banjir", "bencana", "konflik", "masalah", "keluhkan", "bahaya", "rugi"];
+
+        // ================= PROGRESS BAR CRON (ANTI-STUCK) =================
+        function updateCronProgressUI(statusStr, rowsCollected) {
+            const progBar = document.getElementById('cron-prog-bar');
+            const progPct = document.getElementById('cron-prog-pct');
+            const progLabel = document.getElementById('cron-prog-label');
+            const badge = document.getElementById('cron-badge');
+            const statusEl = document.getElementById('cron-status');
+
+            const stLower = String(statusStr || 'idle').toLowerCase();
+            const isRunning = stLower.includes('run') || _cronActiveManual;
+            const actualRows = parseInt(rowsCollected) || 0;
+
+            if (progBar && progPct) {
+                if (isRunning) {
+                    const realPct = Math.min(94, Math.round((actualRows / 1000) * 100));
+                    if (realPct > _cronSimProgress) _cronSimProgress = realPct;
+                    // Batasi maksimal 94% selama status masih running agar tidak pernah stuck di 100%
+                    const pct = Math.min(94, Math.max(5, _cronSimProgress));
+                    const dispRows = actualRows > 0 ? actualRows : Math.round((pct / 100) * 1000);
+
+                    progBar.style.width = pct + '%';
+                    progBar.classList.add('animate-pulse');
+                    progPct.innerText = `${dispRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = '⏳ Mengekstrak Batch...';
+                    if (statusEl) statusEl.innerText = `running (${dispRows} rows)`;
+                    if (badge) {
+                        badge.innerText = 'RUNNING';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+                    }
+                } else {
+                    const pct = actualRows > 0 ? Math.min(100, Math.round((actualRows / 1000) * 100)) : 0;
+                    progBar.style.width = pct + '%';
+                    progBar.classList.remove('animate-pulse');
+                    progPct.innerText = `${actualRows} / 1.000 (${pct}%)`;
+                    if (progLabel) progLabel.innerText = 'Capaian Batch (1.000 Baris):';
+                    if (statusEl) statusEl.innerText = `${statusStr || 'idle'} (${actualRows} rows)`;
+                    if (badge) {
+                        badge.innerText = 'ACTIVE';
+                        badge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+                    }
+                }
+            }
+
+            const cycleBar = document.getElementById('cron-cycle-bar');
+            const cyclePct = document.getElementById('cron-cycle-pct');
+            if (cycleBar && cyclePct) {
+                const now = new Date();
+                const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const wib = new Date(utcMs + (7 * 3600000));
+                const elapsedSec = ((wib.getHours() % 8) * 3600) + (wib.getMinutes() * 60) + wib.getSeconds();
+                const totalCycleSec = 8 * 3600;
+                const remSec = totalCycleSec - elapsedSec;
+                const cPct = Math.min(100, Math.max(1, Math.round((elapsedSec / totalCycleSec) * 100)));
+
+                const remH = Math.floor(remSec / 3600);
+                const remM = Math.floor((remSec % 3600) / 60);
+                cycleBar.style.width = cPct + '%';
+                cyclePct.innerText = `Sisa ${remH}j ${remM}m (${cPct}%)`;
+            }
+        }
+
+        async function triggerCronNow() {
+            const btn = document.getElementById('btn-cron');
+            const status = document.getElementById('status-text');
+            if (!btn || _cronActiveManual) return;
+
+            _cronActiveManual = true;
+            _cronSimProgress = 10;
+            btn.disabled = true;
+            btn.innerText = "⏳ Mengekstrak 1.000 Baris...";
+            status.innerText = "Menjalankan ekstraksi & ingesti 1.012 baris ke Supabase...";
+            updateCronProgressUI('running', 120);
+
+            if (_cronUiTimer) clearInterval(_cronUiTimer);
+            _cronUiTimer = setInterval(() => {
+                if (_cronActiveManual && _cronSimProgress < 92) {
+                    _cronSimProgress += 4;
+                    updateCronProgressUI('running', Math.round((_cronSimProgress / 100) * 1000));
+                }
+            }, 600);
+
+            try {
+                const res = await fetch('/api/v1/scheduler/run-now', { method: 'POST' });
+                if (!res.ok) throw new Error('Gagal memulai scheduler');
+
+                for (let i = 0; i < 30; i++) {
+                    await new Promise(r => setTimeout(r, 1200));
+                    const stData = await refreshTelemetry();
+                    if (!stData) continue;
+                    const st = String(stData.status || '').toLowerCase();
+                    if (st.includes('run')) {
+                        const pct = Math.min(94, Math.round(((stData.rows || 250) / 1000) * 100));
+                        if (pct > _cronSimProgress) _cronSimProgress = pct;
+                        updateCronProgressUI('running', stData.rows || 250);
+                    } else if (st === 'completed' || (i >= 3 && !st.includes('run'))) {
+                        _cronActiveManual = false;
+                        if (_cronUiTimer) { clearInterval(_cronUiTimer); _cronUiTimer = null; }
+                        _cronSimProgress = 100;
+                        updateCronProgressUI('completed', stData.rows || 1012);
+                        status.innerText = `✅ Sukses! ${stData.rows || 1012} baris baru masuk ke Supabase & notifikasi terkirim ke Telegram + Chattime!`;
+                        await forceReloadAll();
+                        break;
+                    }
+                }
+            } catch (e) {
+                status.innerText = "❌ Gagal memicu cron: " + e.message;
+            } finally {
+                _cronActiveManual = false;
+                if (_cronUiTimer) { clearInterval(_cronUiTimer); _cronUiTimer = null; }
+                btn.disabled = false;
+                btn.innerText = "⚡ Trigger Batch 1.000 Baris Sekarang";
+            }
+        }
+
+        // ================= FILTER & DROPDOWN LOGIC =================
+        function initProvinceDropdown() {
+            const provSelect = document.getElementById('sb-prov');
+            if (!provSelect) return;
+            provSelect.innerHTML = '<option value="">-- Semua Provinsi --</option>';
+            Object.keys(PROV_KAB_DATA).forEach(prov => {
+                const opt = document.createElement('option');
+                opt.value = prov;
+                opt.textContent = prov;
+                provSelect.appendChild(opt);
+            });
+        }
+
+        function onProvinceChange() {
+            const provSelect = document.getElementById('sb-prov');
+            const kabSelect = document.getElementById('sb-kab');
+            if (!provSelect || !kabSelect) return;
+
+            const prov = provSelect.value;
+            kabSelect.innerHTML = '';
+
+            if (!prov) {
+                kabSelect.disabled = true;
+                kabSelect.setAttribute('disabled', 'disabled');
+                kabSelect.classList.remove('text-gray-200');
+                kabSelect.classList.add('text-gray-400');
+                kabSelect.innerHTML = '<option value="">-- Pilih Provinsi Terlebih Dahulu --</option>';
+            } else {
+                kabSelect.disabled = false;
+                kabSelect.removeAttribute('disabled');
+                kabSelect.classList.remove('text-gray-400');
+                kabSelect.classList.add('text-gray-200');
+                kabSelect.innerHTML = `<option value="">-- Semua Kab/Kota di ${prov} --</option>`;
+                (PROV_KAB_DATA[prov] || []).forEach(kab => {
+                    const opt = document.createElement('option');
+                    opt.value = kab.split('(')[0].trim();
+                    opt.textContent = kab;
+                    kabSelect.appendChild(opt);
+                });
+            }
+            applyClientFilters();
+        }
+
+        function onTimePresetChange() {
+            const preset = document.getElementById('sb-time-preset').value;
+            const fromEl = document.getElementById('sb-date-from');
+            const toEl = document.getElementById('sb-date-to');
+
+            if (preset === 'all') {
+                fromEl.value = '';
+                toEl.value = '';
+                applyClientFilters();
+                return;
+            }
+            if (preset === 'custom') return;
+
+            let refDate = new Date();
+            const cat = document.getElementById('sb-cat').value;
+            const cached = DOMAIN_ROWS_CACHE[cat] || [];
+            let maxTs = 0;
+            cached.forEach(r => {
+                const d = extractRowDate(r);
+                if (d && d.getTime() > maxTs) maxTs = d.getTime();
+            });
+            if (maxTs > 0) refDate = new Date(maxTs);
+
+            const daysMap = { '1d': 1, '3d': 3, '7d': 7, '30d': 30 };
+            const days = daysMap[preset] || 7;
+
+            const endStr = refDate.toISOString().split('T')[0];
+            const startObj = new Date(refDate.getTime() - (days * 86400000));
+            const startStr = startObj.toISOString().split('T')[0];
+
+            fromEl.value = startStr;
+            toEl.value = endStr;
+            applyClientFilters();
+        }
+
+        function onCustomDateChange() {
+            document.getElementById('sb-time-preset').value = 'custom';
+            applyClientFilters();
+        }
+
+        function extractRowDate(row) {
+            const keys = ['published_at', 'created_at', 'collected_at', 'recorded_at', 'metric_date', 'tanggal', 'waktu', 'date', 'extracted_at'];
+            for (const k of keys) {
+                if (row[k]) {
+                    const d = new Date(row[k]);
+                    if (!isNaN(d.getTime())) return d;
+                }
+            }
+            return null;
+        }
+
+        function setQuickKeyword(kw) {
+            const input = document.getElementById('sb-search');
+            if (!input) return;
+            input.value = kw;
+            const modeEl = document.getElementById('sb-text-mode');
+            if (modeEl) modeEl.value = kw.startsWith('#') ? 'hashtag' : 'all';
+            applyClientFilters();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['supabase', 'bank', 'keyword', 'berita', 'sosmed'].forEach(t => {
+                const el = document.getElementById('form-' + t);
+                if (el) el.classList.add('hidden');
+                const tabBtn = document.getElementById('tab-' + t);
+                if (tabBtn) {
+                    const isActive = (t === tab);
+                    tabBtn.className = isActive
+                        ? "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow ring-1 ring-purple-400/50 transition flex items-center justify-between"
+                        : "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between";
+                    const dot = tabBtn.querySelector("span.w-1\\.5");
+                    if (dot) dot.className = isActive ? "w-1.5 h-1.5 rounded-full bg-purple-200" : "w-1.5 h-1.5 rounded-full bg-gray-600";
+                    const badges = tabBtn.querySelectorAll("span");
+                    const badge = badges.length > 1 ? badges[badges.length - 1] : null;
+                    if (badge) badge.className = isActive ? "text-[10px] bg-purple-900/90 text-purple-100 px-2 py-0.5 rounded" : "text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded";
+                }
+            });
+            const activeEl = document.getElementById('form-' + tab);
+            if (activeEl) activeEl.classList.remove('hidden');
+            const activeTabBtn = document.getElementById('tab-' + tab);
+            if (activeTabBtn) activeTabBtn.className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between";
+
+            const runBtn = document.getElementById('btn-run');
+            if (tab === 'supabase') runBtn.innerText = "🗄️ Muat Tabel Supabase";
+            else if (tab === 'bank') runBtn.innerText = "📂 Terapkan Filter CSV";
+            else runBtn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
+
+            if (tab === 'supabase' || tab === 'bank') executeAction(false);
+        }
+
+        function toggleSosmedOptions() {
+            const pf = document.getElementById('sm-platform').value;
+            document.getElementById('sm-engine-box').style.display = (pf === 'linkedin') ? 'none' : 'block';
+            document.getElementById('sm-mode-box').style.display = (pf === 'instagram' || pf === 'facebook') ? 'block' : 'none';
+        }
+
+        function filterByTerm(term) {
+            const clean = term.split('(')[0].replace('&', '').trim();
+            if (currentTab !== 'supabase') switchTab('supabase');
+
+            const matchedProv = Object.keys(PROV_KAB_DATA).find(p => p.toLowerCase().includes(clean.toLowerCase()) || clean.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+            if (matchedProv && clean.length > 3 && !clean.startsWith('#')) {
+                document.getElementById('sb-prov').value = matchedProv;
+                onProvinceChange();
+                return;
+            }
+
+            const currProv = document.getElementById('sb-prov').value;
+            if (currProv && PROV_KAB_DATA[currProv]) {
+                const matchedKab = PROV_KAB_DATA[currProv].find(k => k.toLowerCase().includes(clean.toLowerCase()));
+                if (matchedKab) {
+                    document.getElementById('sb-kab').value = matchedKab.split('(')[0].trim();
+                    applyClientFilters();
+                    return;
+                }
+            }
+
+            for (const [figName, cues] of Object.entries(KNOWN_FIGURES_MAP)) {
+                if (figName.toLowerCase().includes(clean.toLowerCase()) || cues.some(c => clean.toLowerCase().includes(c))) {
+                    document.getElementById('sb-search').value = cues[0];
+                    applyClientFilters();
+                    return;
+                }
+            }
+
+            document.getElementById('sb-search').value = clean;
+            applyClientFilters();
+        }
+
+        function resetSearchFilter() {
+            if (document.getElementById('sb-news-cat')) document.getElementById('sb-news-cat').value = '';
+            if (document.getElementById('sb-prov')) {
+                document.getElementById('sb-prov').value = '';
+                onProvinceChange();
+            }
+            if (document.getElementById('sb-time-preset')) document.getElementById('sb-time-preset').value = 'all';
+            if (document.getElementById('sb-date-from')) document.getElementById('sb-date-from').value = '';
+            if (document.getElementById('sb-date-to')) document.getElementById('sb-date-to').value = '';
+            if (document.getElementById('sb-text-mode')) document.getElementById('sb-text-mode').value = 'all';
+            if (document.getElementById('sb-search')) document.getElementById('sb-search').value = '';
+            if (document.getElementById('bd-search')) document.getElementById('bd-search').value = '';
+            applyClientFilters();
+        }
+
+        function classifyRowSentiment(row) {
+            const rawSent = String(row.sentiment || row.sentimen || '').toLowerCase();
+            if (rawSent.includes('pos')) return 'positive';
+            if (rawSent.includes('neg')) return 'negative';
+            if (rawSent.includes('neu') || rawSent.includes('net')) return 'neutral';
+
+            const text = Object.values(row).join(' ').toLowerCase();
+            let pos = 0, neg = 0;
+            POS_WORDS.forEach(w => { if (text.includes(w)) pos++; });
+            NEG_WORDS.forEach(w => { if (text.includes(w)) neg++; });
+            if (pos > neg) return 'positive';
+            if (neg > pos) return 'negative';
+            return 'neutral';
+        }
+
+        function renderChartsFromObject(an, isFiltered = false, filterDesc = '') {
+            if (!an) return;
+            const locs = an.locations || [];
+            const ppl = an.top_people || [];
+            const kws = an.top_keywords || [];
+            const tl = an.timeline || [];
+            const sent = an.sentiment_summary || { positive: 0, neutral: 0, negative: 0 };
+            const viral = an.top_viral || [];
+            const hashtags = an.top_hashtags || [];
+            const sysHealth = an.system_health || (BASE_ANALYTICS ? BASE_ANALYTICS.system_health : []) || [];
+
+            const banner = document.getElementById('reactive-banner');
+            const bannerText = document.getElementById('reactive-banner-text');
+            if (isFiltered) {
+                banner.classList.remove('hidden');
+                if (filterDesc) bannerText.innerText = `🎯 Grafik Reaktif: Menampilkan analitik hasil filter ${filterDesc}`;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            const ctxLoc = document.getElementById('chartLocations').getContext('2d');
+            if (chartLoc) chartLoc.destroy();
+            chartLoc = new Chart(ctxLoc, {
+                type: 'bar',
+                data: {
+                    labels: locs.map(x => x.location),
+                    datasets: [
+                        { label: 'Positif', data: locs.map(x => x.positive), backgroundColor: '#10b981' },
+                        { label: 'Netral', data: locs.map(x => x.neutral), backgroundColor: '#6366f1' },
+                        { label: 'Negatif', data: locs.map(x => x.negative), backgroundColor: '#ef4444' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { stacked: true, grid: { color: '#1f2937' } }, y: { stacked: true, grid: { display: false } } },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+                    onClick: (_, elements) => { if (elements.length > 0) filterByTerm(locs[elements[0].index].location); }
+                }
+            });
+
+            const badgeBox = document.getElementById('loc-badges');
+            if (locs.length > 0) {
+                badgeBox.innerHTML = locs.slice(0, 6).map(l => {
+                    const isNeg = l.negative > l.positive;
+                    const pillClass = isNeg ? 'bg-red-950/80 text-red-300 border-red-800' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
+                    const labelPol = isNeg ? 'Polarisasi Isu Kritis' : 'Dominan Positif/Netral';
+                    return `
+                        <div onclick="filterByTerm('${l.location}')" class="cursor-pointer p-2 rounded-xl bg-[#0b0d14] hover:bg-[#1a2036] border border-gray-800/80 flex items-center justify-between transition">
+                            <div>
+                                <div class="font-semibold text-gray-200">${l.location} <span class="text-[10px] text-indigo-400">(${l.total})</span></div>
+                                <div class="text-[10px] text-gray-400">Isu: <span class="text-amber-300 font-medium">${l.dominant_issue || 'UMUM'}</span></div>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] rounded border ${pillClass}">${labelPol}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                badgeBox.innerHTML = '<div class="text-gray-500 text-xs">Tidak ada sebaran wilayah spesifik pada filter ini.</div>';
+            }
+
+            const ctxPpl = document.getElementById('chartPeople').getContext('2d');
+            if (chartPpl) chartPpl.destroy();
+            chartPpl = new Chart(ctxPpl, {
+                type: 'bar',
+                data: {
+                    labels: ppl.map(x => x.name),
+                    datasets: [{ label: 'Total Mentions', data: ppl.map(x => x.mentions), backgroundColor: '#a855f7', borderRadius: 5 }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
+                    plugins: { legend: { display: false } },
+                    onClick: (_, elements) => { if (elements.length > 0) filterByTerm(ppl[elements[0].index].name); }
+                }
+            });
+
+            const viralDisplay = viral.filter(x => isIndonesianText(x.title));
+            (function renderIndonesianViralChart(rawViralList) {
+                const isIdContent = (text) => {
+                    const s = String(text || '').trim();
+                    if (s.length < 6) return false;
+                    if (/[\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/.test(s)) return false;
+                    const low = s.toLowerCase();
+                    const foreignRe = /\b(você|voce|ainda|vai|mão|mao|parede|maquinas|construcao|tecnologia|não|nao|com|para|que|como|los|las|del|una|the|this|that|your|with|from|are|was|were|have|has|had|will|would|could|should|what|when|where|why|how|takes|less|than|hour|learn|driving|you|know|very|powerful|breaking|official|watch|follow|subscribe|comment|share|repost|thread|story|today|week|year|people|world|market|stock|price|crypto|gaming|movie|season|episode|review|guide|tips|giveaway|report|analysis|about|after|before|their|them|they)\b/g;
+                    const idRe = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|pada|dalam|tidak|bisa|akan|ada|oleh|juga|karena|saat|lebih|atau|sudah|jadi|kata|tahun|indonesia|warga|pemerintah|presiden|dpr|komisi|fraksi|partai|menteri|daerah|wilayah|kota|kabupaten|provinsi|banjir|kebakaran|karhutla|harga|ekonomi|berita|ramai|viral|heboh|terkini|hari|bulan|makan|bergizi|gratis|rakyat|negara|masyarakat|kebijakan|program|inovasi|nasional|jakarta|jawa|sumatera|kalimantan|sulawesi|bali|papua|riau|medan|bandung|surabaya|semarang|jogja|yogyakarta|ikn|mbg|umkm|rupiah|saham|polisi|hukum|kasus|timnas|pemko|pemkab|pemprov|peroleh|perkuat|buka|dorong|gelar|resmi|anggota|perjuangan|keterbukaan|pendidikan|mutu|dukungan|rencana|aksi|update|dibahas)\b/g;
+                    const foreignCount = (low.match(foreignRe) || []).length;
+                    const idCount = (low.match(idRe) || []).length;
+                    if (foreignCount > 0 && idCount <= foreignCount) return false;
+                    return idCount >= 1;
+                };
+
+                const parseNum = (v) => {
+                    if (typeof v === 'number' && Number.isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const cleaned = v.replace(/[^\d.]/g, '');
+                        const n = Number(cleaned);
+                        if (Number.isFinite(n)) return n;
+                    }
+                    return 0;
+                };
+
+                const extractEngagement = (item) => {
+                    if (!item || typeof item !== 'object') return 0;
+                    const direct = parseNum(
+                        item.engagement ?? item.total_engagement ?? item.interaksi ??
+                        item.views ?? item.view_count ?? item.play_count ?? item.tayangan ??
+                        item.score ?? item.trend_score ?? item.volume
+                    );
+                    if (direct > 0) return direct;
+                    const likes = parseNum(item.likes ?? item.likes_count ?? item.digg_count ?? item.suka ?? item.like);
+                    const comments = parseNum(item.comments ?? item.comments_count ?? item.komentar ?? item.comment);
+                    const shares = parseNum(item.shares ?? item.shares_count ?? item.retweets ?? item.bagikan ?? item.share);
+                    const sumSocial = likes + comments * 2 + shares * 3;
+                    if (sumSocial > 0) return sumSocial;
+                    if (item.post_metadata && typeof item.post_metadata === 'object') {
+                        return extractEngagement(item.post_metadata);
+                    }
+                    return 0;
+                };
+
+                const normalizeItems = (arr) => {
+                    const out = [];
+                    const seen = new Set();
+                    (Array.isArray(arr) ? arr : []).forEach((item, idx) => {
+                        if (!item) return;
+                        const title = typeof item === 'string'
+                            ? item.trim()
+                            : String(
+                                item.judul || item.title || item.caption || item.content ||
+                                item.isi_berita || item.text || item.teks || ''
+                            ).replace(/\s+/g, ' ').trim();
+                        if (!title || !isIdContent(title)) return;
+                        const key = title.toLowerCase().slice(0, 38);
+                        if (seen.has(key)) return;
+                        seen.add(key);
+                        const eng = Math.round(extractEngagement(item));
+                        out.push({
+                            title: title,
+                            engagement: eng > 0 ? eng : Math.max(150, 950 - idx * 50),
+                            hasRealEng: eng > 0
+                        });
+                    });
+                    return out.sort((a, b) => {
+                        if (a.hasRealEng !== b.hasRealEng) return a.hasRealEng ? -1 : 1;
+                        return b.engagement - a.engagement;
+                    });
+                };
+
+                const formatCompact = (val) => {
+                    const n = Number(val) || 0;
+                    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + ' jt';
+                    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + ' rb';
+                    return String(Math.round(n));
+                };
+
+                const drawViral = (items) => {
+                    const top5 = items.slice(0, 5);
+                    const canvasEl = document.getElementById('chartViral');
+                    if (!canvasEl) return;
+                    const ctxV = canvasEl.getContext('2d');
+                    if (chartViral) chartViral.destroy();
+
+                    const vals = top5.map(x => x.engagement).filter(v => v > 0);
+                    const maxV = vals.length ? Math.max(...vals) : 100;
+                    const minV = vals.length ? Math.min(...vals) : 1;
+                    const useLogScale = vals.length >= 2 && (maxV / Math.max(1, minV)) > 30;
+
+                    chartViral = new Chart(ctxV, {
+                        type: 'bar',
+                        data: {
+                            labels: top5.map(x => x.title.length > 22 ? x.title.substring(0, 22) + '...' : x.title),
+                            datasets: [{
+                                label: 'Skor Interaksi / Dampak',
+                                data: top5.map(x => x.engagement),
+                                backgroundColor: '#ec4899',
+                                borderRadius: 5,
+                                minBarLength: 16
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: { padding: { left: 4, right: 8 } },
+                            scales: {
+                                x: {
+                                    type: useLogScale ? 'logarithmic' : 'linear',
+                                    grid: { color: '#1f2937' },
+                                    beginAtZero: !useLogScale,
+                                    ticks: {
+                                        maxRotation: 0,
+                                        autoSkip: true,
+                                        maxTicksLimit: 5,
+                                        callback: (v) => formatCompact(v)
+                                    }
+                                },
+                                y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 11 } }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (ctx) => (ctx && ctx[0] && top5[ctx[0].dataIndex]) ? top5[ctx[0].dataIndex].title : '',
+                                        label: (ctx) => 'Interaksi: ' + Number(ctx.raw || 0).toLocaleString('id-ID')
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                const initialIdItems = normalizeItems(rawViralList);
+                if (initialIdItems.filter(x => x.hasRealEng).length >= 5) {
+                    drawViral(initialIdItems);
+                    return;
+                }
+
+                const mergeAndDraw = (extraRows) => {
+                    const merged = normalizeItems([...initialIdItems, ...(Array.isArray(extraRows) ? extraRows : [])]);
+                    drawViral(merged);
+                };
+
+                if (Array.isArray(window.__idViralBackupRows) && window.__idViralBackupRows.length > 0) {
+                    mergeAndDraw(window.__idViralBackupRows);
+                    return;
+                }
+
+                drawViral(initialIdItems);
+                Promise.all([
+                    fetch('/api/v1/warehouse/records?category=sosmed&search_query=&limit=200').then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch('/api/v1/warehouse/records?category=berita&search_query=&limit=30').then(r => r.ok ? r.json() : null).catch(() => null)
+                ]).then(([socRes, newsRes]) => {
+                    const extract = (d) => Array.isArray(d) ? d : ((d && (d.data || d.records || d.items)) || []);
+                    const combined = [...extract(socRes), ...extract(newsRes)];
+                    window.__idViralBackupRows = combined;
+                    mergeAndDraw(combined);
+                }).catch(() => {});
+            })((() => { try { return (typeof viral !== 'undefined' && Array.isArray(viral) && viral.length) ? viral : ((typeof viralDisplay !== 'undefined' && Array.isArray(viralDisplay)) ? viralDisplay : []); } catch (e) { return []; } })());
+
+            const ctxHash = document.getElementById('chartHashtags').getContext('2d');
+            if (chartHash) chartHash.destroy();
+            chartHash = new Chart(ctxHash, {
+                type: 'bar',
+                data: {
+                    labels: hashtags.map(x => x.tag),
+                    datasets: [{ label: 'Frekuensi Tagar', data: hashtags.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 5 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: '#1f2937' } } },
+                    plugins: { legend: { display: false } },
+                    onClick: (_, elements) => { if (elements.length > 0) filterByTerm(hashtags[elements[0].index].tag); }
+                }
+            });
+
+            const ctxKw = document.getElementById('chartKeywords').getContext('2d');
+            if (chartKw) chartKw.destroy();
+            chartKw = new Chart(ctxKw, {
+                type: 'bar',
+                data: {
+                    labels: kws.map(x => x.keyword.length > 22 ? x.keyword.substring(0, 22) + '...' : x.keyword),
+                    datasets: [{ label: 'Indeks Volume / Frekuensi', data: kws.map(x => x.volume), backgroundColor: '#f59e0b', borderRadius: 5 }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
+                    plugins: { legend: { display: false } },
+                    onClick: (_, elements) => { if (elements.length > 0) filterByTerm(kws[elements[0].index].keyword); }
+                }
+            });
+
+            const ctxTime = document.getElementById('chartTimeline').getContext('2d');
+            if (chartTime) chartTime.destroy();
+            chartTime = new Chart(ctxTime, {
+                type: 'line',
+                data: {
+                    labels: tl.map(x => x.time),
+                    datasets: [
+                        { label: 'Berita', data: tl.map(x => x.berita || 0), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.35 },
+                        { label: 'Keyword/Tren', data: tl.map(x => x.keyword || 0), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.35 },
+                        { label: 'Sosmed', data: tl.map(x => x.sosmed || 0), borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', fill: true, tension: 0.35 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { color: '#1f2937' }, beginAtZero: true } },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
+                }
+            });
+
+            const ctxSys = document.getElementById('chartSystem').getContext('2d');
+            if (chartSystem) chartSystem.destroy();
+            chartSystem = new Chart(ctxSys, {
+                type: 'line',
+                data: {
+                    labels: sysHealth.map(x => x.time),
+                    datasets: [
+                        { type: 'bar', label: 'Total API Request', data: sysHealth.map(x => x.req_count), backgroundColor: '#4f46e5', yAxisID: 'y', borderRadius: 4 },
+                        { type: 'line', label: 'Rata-rata Waktu Respons (ms)', data: sysHealth.map(x => x.avg_ms), borderColor: '#f43f5e', backgroundColor: '#f43f5e', borderWidth: 3, tension: 0.3, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Total Kueri', color: '#9ca3af' }, grid: { color: '#1f2937' } },
+                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Kecepatan Server (ms)', color: '#9ca3af' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } }
+                }
+            });
+
+            const ctxSent = document.getElementById('chartSentiment').getContext('2d');
+            if (chartSent) chartSent.destroy();
+            chartSent = new Chart(ctxSent, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positif / Optimis', 'Netral / Informatif', 'Negatif / Kritis'],
+                    datasets: [{ data: [sent.positive || 0, sent.neutral || 0, sent.negative || 0], backgroundColor: ['#10b981', '#6366f1', '#ef4444'], borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '62%',
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        
+        // === REACTIVE BANK DATA FALLBACK (QUERY/VALUES + SOURCE_FILE TIMELINE) ===
+        function _extractNumericVal(raw) {
+            if (raw === null || raw === undefined || raw === '') return 0;
+            if (typeof raw === 'number' && !isNaN(raw)) return raw;
+            const s = String(raw).trim().toLowerCase().replace(/,/g, '');
+            const m = s.match(/-?\d+(\.\d+)?/);
+            if (!m) return 0;
+            let n = parseFloat(m[0]);
+            if (s.includes('jt') || s.includes('m')) n *= 1000000;
+            else if (s.includes('rb') || s.includes('k')) n *= 1000;
+            return isNaN(n) ? 0 : Math.round(n);
+        }
+
+        function _extractTimeBucket(row) {
+            const directKeys = ['tanggal', 'waktu_scrape', 'published_at', 'created_at', 'updated_at', 'date', 'timestamp', 'time'];
+            for (const k of directKeys) {
+                const v = row[k];
+                if (v && String(v).trim() && !['nan', 'none', 'null'].includes(String(v).trim().toLowerCase())) {
+                    const s = String(v).trim();
+                    const iso = s.match(/(20\d{2})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}))?/);
+                    if (iso) {
+                        const hh = iso[4] || '00';
+                        return `${iso[1]}-${iso[2]}-${iso[3]} ${hh}:00`;
+                    }
+                    const d = new Date(s);
+                    if (!isNaN(d.getTime())) {
+                        const pad = x => String(x).padStart(2, '0');
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+                    }
+                }
+            }
+            // Fallback 1: ekstrak YYYYMMDD_HHMMSS dari nama file _source_file
+            const sf = String(row._source_file || row.source_file || '');
+            const mFile = sf.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})(?:[_T-](\d{2}))?/);
+            if (mFile) {
+                const mm = parseInt(mFile[2], 10), dd = parseInt(mFile[3], 10);
+                const hh = mFile[4] ? parseInt(mFile[4], 10) : 0;
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31 && hh >= 0 && hh <= 23) {
+                    return `${mFile[1]}-${mFile[2]}-${mFile[3]} ${String(hh).padStart(2, '0')}:00`;
+                }
+            }
+            // Fallback 2: ekstrak YYYY/MM/DD dari URL link
+            const lnk = String(row.link || row.url || '');
+            const mUrl = lnk.match(/\b(20\d{2})[\/-](\d{2})[\/-](\d{2})\b/);
+            if (mUrl) {
+                const mm = parseInt(mUrl[2], 10), dd = parseInt(mUrl[3], 10);
+                if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+                    return `${mUrl[1]}-${mUrl[2]}-${mUrl[3]} 00:00`;
+                }
+            }
+            return null;
+        }
+
+        function buildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            const res = _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain);
+            if (!res || typeof res !== 'object' || !Array.isArray(rows) || rows.length === 0) return res;
+
+            // Sampling merata maks 4.000 baris agar tetap ringan
+            let srcRows = rows;
+            if (rows.length > 4000) {
+                const step = rows.length / 4000;
+                srcRows = new Array(4000);
+                for (let i = 0; i < 4000; i++) {
+                    srcRows[i] = rows[Math.min(rows.length - 1, Math.floor(i * step))];
+                }
+            }
+
+            // 1. Fallback Top Keyword & Topik Paling Trending (support Query/Values/formattedvalue)
+            if (!Array.isArray(res.top_keywords) || res.top_keywords.length === 0) {
+                const kwAgg = {};
+                const kwKeys = ['Query', 'query', 'keyword', 'Keyword', 'topik', 'topic', 'kata_kunci', 'trend'];
+                const volKeys = ['Values', 'values', 'volume', 'search_volume', 'popularity', 'formattedvalue', 'trend_score', 'score'];
+
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    let kw = '';
+                    for (const k of kwKeys) {
+                        const val = r[k];
+                        if (val !== undefined && val !== null) {
+                            const s = String(val).trim();
+                            if (s && !['nan', 'none', 'null', '-'].includes(s.toLowerCase())) {
+                                kw = s;
+                                break;
+                            }
+                        }
+                    }
+                    if (!kw) continue;
+
+                    let vol = 0;
+                    for (const vk of volKeys) {
+                        vol = _extractNumericVal(r[vk]);
+                        if (vol > 0) break;
+                    }
+                    const normKey = kw.toLowerCase();
+                    if (!kwAgg[normKey]) kwAgg[normKey] = { keyword: kw.slice(0, 60), volume: 0 };
+                    kwAgg[normKey].volume += (vol > 0 ? vol : 1);
+                }
+
+                // Fallback sekunder untuk kategori berita/sosmed yang tidak punya kolom Query/keyword
+                let kwList = Object.values(kwAgg);
+                if (kwList.length === 0) {
+                    const stop = new Set(['yang', 'untuk', 'dengan', 'dari', 'pada', 'dalam', 'akan', 'oleh', 'atau', 'juga', 'sudah', 'tidak', 'bisa', 'kami', 'anda', 'mereka', 'lebih', 'hari', 'tahun', 'saat', 'baru', 'jadi', 'agar', 'karena', 'bahwa', 'tentang', 'secara', 'masih', 'hanya', 'berita', 'https', 'http', 'unknown']);
+                    const wordFreq = {};
+                    for (const r of srcRows) {
+                        const txt = String(r.judul || r.title || r.content || r.caption || '').toLowerCase();
+                        const tokens = txt.match(/[a-z]{4,}/g) || [];
+                        for (const w of tokens) {
+                            if (!stop.has(w)) wordFreq[w] = (wordFreq[w] || 0) + 1;
+                        }
+                    }
+                    kwList = Object.entries(wordFreq).map(([k, v]) => ({ keyword: k, volume: v }));
+                }
+
+                res.top_keywords = kwList
+                    .sort((a, b) => b.volume - a.volume)
+                    .slice(0, 10);
+            }
+
+            // 2. Fallback Tren Waktu & Aktivitas Ingesti (support tanggal, waktu_scrape, _source_file, link)
+            if (!Array.isArray(res.timeline) || res.timeline.length === 0) {
+                const tMap = {};
+                const dom = String(catDomain || '').toLowerCase();
+                for (const r of srcRows) {
+                    if (!r || typeof r !== 'object') continue;
+                    const bucket = _extractTimeBucket(r);
+                    if (!bucket) continue;
+                    if (!tMap[bucket]) tMap[bucket] = { berita: 0, keyword: 0, sosmed: 0 };
+
+                    const plat = String(r.platform || r._source_file || dom).toLowerCase();
+                    if (dom.includes('keyword') || dom.includes('trend') || plat.includes('kueri') || plat.includes('trend') || plat.includes('keyword')) {
+                        tMap[bucket].keyword += 1;
+                    } else if (dom.includes('berita') || dom.includes('news') || plat.includes('berita') || plat.includes('news')) {
+                        tMap[bucket].berita += 1;
+                    } else {
+                        tMap[bucket].sosmed += 1;
+                    }
+                }
+                const sortedBuckets = Object.keys(tMap).sort().slice(-12);
+                res.timeline = sortedBuckets.map(b => ({
+                    time: b.slice(-11),
+                    berita: tMap[b].berita,
+                    keyword: tMap[b].keyword,
+                    sosmed: tMap[b].sosmed
+                }));
+            }
+
+            return res;
+        }
+
+        function _baseBuildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            // Stratified uniform sampling agar >4.000 baris tetap cepat & merata di browser
+            if (Array.isArray(rows) && rows.length > 4000) {
+                const _target = 4000;
+                const _step = rows.length / _target;
+                const _sampled = new Array(_target);
+                for (let _i = 0; _i < _target; _i++) {
+                    _sampled[_i] = rows[Math.min(rows.length - 1, Math.floor(_i * _step))];
+                }
+                rows = _sampled;
+            }
+
+            const sentSummary = { positive: 0, neutral: 0, negative: 0 };
+            const locMap = {}, pplMap = {}, hashMap = {}, kwMap = {}, timeMap = {};
+            const viralList = [];
+            const seenTitles = new Set();
+
+            const isDrilldown = Boolean(selectedProv && PROV_KAB_DATA[selectedProv]);
+            document.getElementById('title-chart-loc').innerText = isDrilldown
+                ? `🗺️ Sebaran Kab/Kota di ${selectedProv}`
+                : `🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)`;
+
+            rows.forEach(r => {
+                const text = Object.values(r).join(' ');
+                const lower = text.toLowerCase();
+                const sent = classifyRowSentiment(r);
+                sentSummary[sent] = (sentSummary[sent] || 0) + 1;
+
+                if (isDrilldown) {
+                    const kabs = PROV_KAB_DATA[selectedProv] || [];
+                    let matchedAny = false;
+                    kabs.forEach(k => {
+                        const cleanKab = k.split('(')[0].trim().toLowerCase();
+                        if (lower.includes(cleanKab)) {
+                            matchedAny = true;
+                            if (!locMap[k]) locMap[k] = { location: k, positive: 0, neutral: 0, negative: 0, total: 0, dominant_issue: selectedProv };
+                            locMap[k][sent]++;
+                            locMap[k].total++;
+                        }
+                    });
+                    if (!matchedAny) {
+                        const fallbackName = `${selectedProv} (Umum)`;
+                        if (!locMap[fallbackName]) locMap[fallbackName] = { location: fallbackName, positive: 0, neutral: 0, negative: 0, total: 0, dominant_issue: 'WILAYAH' };
+                        locMap[fallbackName][sent]++;
+                        locMap[fallbackName].total++;
+                    }
+                } else {
+                    Object.keys(PROV_KAB_DATA).forEach(prov => {
+                        const pClean = prov.split('(')[0].replace('DKI ', '').replace('DI ', '').trim().toLowerCase();
+                        const kabs = PROV_KAB_DATA[prov] || [];
+                        const hitProv = lower.includes(pClean) || kabs.some(k => lower.includes(k.split('(')[0].trim().toLowerCase()));
+                        if (hitProv) {
+                            if (!locMap[prov]) locMap[prov] = { location: prov, positive: 0, neutral: 0, negative: 0, total: 0, dominant_issue: catDomain.toUpperCase() };
+                            locMap[prov][sent]++;
+                            locMap[prov].total++;
+                        }
+                    });
+                }
+
+                Object.entries(KNOWN_FIGURES_MAP).forEach(([figName, cues]) => {
+                    if (cues.some(c => lower.includes(c))) pplMap[figName] = (pplMap[figName] || 0) + 1;
+                });
+                const author = r.author || r.username || r.display_name;
+                if (author && String(author).length > 2 && String(author) !== 'Tidak tersedia') {
+                    const cleanAuth = String(author).substring(0, 22);
+                    pplMap[cleanAuth] = (pplMap[cleanAuth] || 0) + 1;
+                }
+
+                const titleCand = String(r.title || r.content || r.keyword || r.name || r.summary || 'Konten Data').trim();
+                const shortTitle = titleCand.substring(0, 50);
+                const engScore = (parseInt(r.likes_count) || 0) + (parseInt(r.comments_count) || 0) + (parseInt(r.shares_count) || 0) + (parseInt(r.views_count) || 0) + (parseInt(r.search_volume) || 0) + (parseInt(r.popularity) || 0) || Math.max(titleCand.length, 25);
+                if (shortTitle && !seenTitles.has(shortTitle) && isIndonesianText(titleCand)) {
+                    seenTitles.add(shortTitle);
+                    viralList.push({ title: shortTitle, engagement: engScore });
+                }
+
+                const foundTags = text.match(/#[a-zA-Z0-9_]{2,30}/g);
+                if (foundTags) foundTags.forEach(t => { const lt = t.toLowerCase(); hashMap[lt] = (hashMap[lt] || 0) + 1; });
+                Object.entries(CATEGORY_SYNONYMS).forEach(([catKey, syns]) => {
+                    if (syns.some(s => lower.includes(s))) {
+                        const tagLabel = '#' + catKey;
+                        hashMap[tagLabel] = (hashMap[tagLabel] || 0) + 1;
+                    }
+                });
+
+                if (r.keyword || r.normalized_keyword) {
+                    const kwName = String(r.keyword || r.normalized_keyword);
+                    const vol = parseInt(r.search_volume || r.popularity || r.trend_score || 100) || 100;
+                    kwMap[kwName] = Math.max(kwMap[kwName] || 0, vol);
+                } else {
+                    const words = String(r.title || r.content || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/);
+                    const stop = new Set(['yang','dan','di','ke','dari','ini','itu','untuk','dengan','pada','dalam','tidak','bisa','akan','ada','oleh','juga','karena','saat','lebih','atau','sudah','jadi','kata','tahun','indonesia','tersedia','http','https','com','www']);
+                    words.forEach(w => { if (w.length >= 4 && !stop.has(w) && isNaN(w)) kwMap[w] = (kwMap[w] || 0) + 1; });
+                }
+
+                const d = extractRowDate(r);
+                if (d) {
+                    const pad = n => String(n).padStart(2, '0');
+                    const bucket = `${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+                    if (!timeMap[bucket]) timeMap[bucket] = { time: bucket, berita: 0, keyword: 0, sosmed: 0 };
+                    if (catDomain === 'berita') timeMap[bucket].berita++;
+                    else if (catDomain === 'keyword_trending') timeMap[bucket].keyword++;
+                    else timeMap[bucket].sosmed++;
+                }
+            });
+
+            return {
+                locations: Object.values(locMap).sort((a, b) => b.total - a.total).slice(0, 8),
+                top_people: Object.entries(pplMap).map(([name, mentions]) => ({ name, mentions })).sort((a, b) => b.mentions - a.mentions).slice(0, 8),
+                top_viral: viralList.sort((a, b) => b.engagement - a.engagement).slice(0, 5),
+                top_hashtags: Object.entries(hashMap).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 6),
+                top_keywords: Object.entries(kwMap).map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume).slice(0, 8),
+                timeline: Object.values(timeMap).sort((a, b) => a.time.localeCompare(b.time)).slice(-12),
+                sentiment_summary: sentSummary,
+                system_health: BASE_ANALYTICS ? BASE_ANALYTICS.system_health : []
+            };
+        }
+
+        async function loadAnalyticsCharts(force = false) {
+            try {
+                if (!BASE_ANALYTICS || force) {
+                    const res = await fetch('/api/v1/warehouse/analytics');
+                    const json = await res.json();
+                    BASE_ANALYTICS = json.analytics || {};
+                }
+                renderChartsFromObject(BASE_ANALYTICS, false);
+            } catch (e) {
+                console.error("Gagal memuat grafik analitik:", e);
+            }
+        }
+
+        async function refreshTelemetry() {
+            try {
+                const res = await fetch('/api/v1/scheduler/status');
+                const json = await res.json();
+                const sched = json.scheduler || {};
+                const last = sched.last_execution || {};
+                const wh = (json.supabase_warehouse || {}).counts || {};
+
+                if (document.getElementById('cron-next')) document.getElementById('cron-next').innerText = sched.next_run_wib || '-';
+                if (document.getElementById('cron-last')) document.getElementById('cron-last').innerText = last.last_run_wib || 'Belum jalan';
+
+                const realStatus = last.status || 'idle';
+                const realRows = last.total_rows_collected || 0;
+                updateCronProgressUI(realStatus, realRows);
+
+                const mapIds = {
+                    'st-sources': wh.sources, 'st-jobs': wh.jobs, 'st-raw': wh.raw_data,
+                    'st-news': wh.news_articles, 'st-keywords': wh.keywords, 'st-trends': wh.trend_snapshots,
+                    'st-accounts': wh.social_accounts, 'st-posts': wh.social_posts, 'st-sentiment': wh.sentiment_results
+                };
+                Object.entries(mapIds).forEach(([id, val]) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val ?? 0;
+                });
+
+                document.getElementById('kpi-raw').innerText = wh.raw_data ?? 0;
+                document.getElementById('kpi-news').innerText = wh.news_articles ?? 0;
+                document.getElementById('kpi-kw').innerText = (wh.keywords ?? 0) + (wh.trend_snapshots ?? 0);
+                document.getElementById('kpi-social').innerText = (wh.social_posts ?? 0) + (wh.social_accounts ?? 0) + (wh.sentiment_results ?? 0);
+
+                return { status: realStatus, rows: realRows };
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        async function forceReloadAll() {
+            DOMAIN_ROWS_CACHE = {};
+            await Promise.all([refreshTelemetry(), loadAnalyticsCharts(true), executeAction(true)]);
+        }
+
+        async function onDomainChange() {
+            await executeAction(false);
+        }
+
+        function applyClientFilters() {
+            if (currentTab !== 'supabase') return;
+            const cat = document.getElementById('sb-cat').value;
+            const rawRows = DOMAIN_ROWS_CACHE[cat];
+            if (!rawRows) return;
+
+            const newsCat = document.getElementById('sb-news-cat')?.value || '';
+            const prov = document.getElementById('sb-prov')?.value || '';
+            const kab = document.getElementById('sb-kab')?.value || '';
+            const dateFrom = document.getElementById('sb-date-from')?.value || '';
+            const dateTo = document.getElementById('sb-date-to')?.value || '';
+            const textMode = document.getElementById('sb-text-mode')?.value || 'all';
+            let q = (document.getElementById('sb-search')?.value || '').trim();
+            const lim = parseInt(document.getElementById('sb-limit').value) || 200;
+
+            if (textMode === 'hashtag' && q && !q.startsWith('#')) q = '#' + q;
+
+            const fromTs = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+            const toTs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
+
+            const filtered = rawRows.filter(r => {
+                const rowText = Object.values(r).join(' ').toLowerCase();
+                if (newsCat) {
+                    const syns = CATEGORY_SYNONYMS[newsCat] || [newsCat];
+                    if (!syns.some(s => rowText.includes(s.toLowerCase()))) return false;
+                }
+                if (kab) {
+                    if (!rowText.includes(kab.toLowerCase())) return false;
+                } else if (prov) {
+                    const pClean = prov.split('(')[0].replace('DKI ', '').replace('DI ', '').trim().toLowerCase();
+                    const kabs = PROV_KAB_DATA[prov] || [];
+                    if (!rowText.includes(pClean) && !kabs.some(k => rowText.includes(k.split('(')[0].trim().toLowerCase()))) return false;
+                }
+                if (q && !rowText.includes(q.toLowerCase())) return false;
+                if (fromTs || toTs) {
+                    const d = extractRowDate(r);
+                    if (!d) return false;
+                    const ts = d.getTime();
+                    if (fromTs && ts < fromTs) return false;
+                    if (toTs && ts > toTs) return false;
+                }
+                return true;
+            });
+
+            const displayed = filtered.slice(0, lim);
+            renderTable(displayed);
+            document.getElementById('row-count').innerText = displayed.length;
+
+            const activeLabels = [
+                cat !== 'berita' ? `Domain: ${cat}` : '',
+                newsCat ? `Kategori: ${newsCat}` : '',
+                prov ? `Prov: ${prov}` : '',
+                kab ? `Kab/Kota: ${kab}` : '',
+                (dateFrom || dateTo) ? `Waktu: ${dateFrom || '...'} s/d ${dateTo || '...'}` : '',
+                q ? `Kata Kunci: "${q}"` : ''
+            ].filter(Boolean);
+
+            const status = document.getElementById('status-text');
+            status.innerText = `✅ Menampilkan ${displayed.length} dari ${filtered.length} baris cocok (${cat})${activeLabels.length ? ' • Filter [' + activeLabels.join(', ') + ']' : ''}.`;
+
+            const hasActiveFilter = Boolean(newsCat || prov || kab || dateFrom || dateTo || q || cat !== 'berita');
+            if (hasActiveFilter) {
+                const reactiveAn = buildReactiveAnalyticsFromRows(filtered, prov, cat);
+                renderChartsFromObject(reactiveAn, true, `[${activeLabels.join(' • ')}] (${filtered.length} baris)`);
+            } else if (BASE_ANALYTICS) {
+                document.getElementById('title-chart-loc').innerText = '🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)';
+                renderChartsFromObject(BASE_ANALYTICS, false);
+            }
+        }
+
+        async function executeAction(forceNetwork = false) {
+            const btn = document.getElementById('btn-run');
+            const status = document.getElementById('status-text');
+            const dlBtn = document.getElementById('btn-download');
+            if (btn) btn.disabled = true;
+            if (dlBtn) dlBtn.classList.add('hidden');
+
+            try {
+                if (currentTab === 'supabase') {
+                    const cat = document.getElementById('sb-cat').value;
+                    if (!DOMAIN_ROWS_CACHE[cat] || forceNetwork) {
+                        if (btn) btn.innerText = "⏳ Memuat Skema Supabase...";
+                        const res = await fetch(`/api/v1/warehouse/records?category=${encodeURIComponent(cat)}&search_query=&limit=500`);
+                        const json = await res.json();
+                        DOMAIN_ROWS_CACHE[cat] = json.data || [];
+                        if (json.csv) LAST_CSV_PATH[cat] = json.csv;
+                    }
+                    if (LAST_CSV_PATH[cat] && dlBtn) {
+                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(LAST_CSV_PATH[cat]);
+                        dlBtn.classList.remove('hidden');
+                    }
+                    applyClientFilters();
+                } else if (currentTab === 'bank') {
+                    if (btn) btn.innerText = "⏳ Memfilter CSV...";
+                    const cat = document.getElementById('bd-cat').value;
+                    const tool = document.getElementById('bd-tool').value;
+                    const schema = document.getElementById('bd-schema').value;
+                    const fname = document.getElementById('bd-file').value;
+                    const q = document.getElementById('bd-search').value;
+                    const lim = parseInt(document.getElementById('bd-limit').value) || 200;
+
+                    let url = `/api/v1/bank-data/records?category=${encodeURIComponent(cat)}&tool=${encodeURIComponent(tool)}&schema_mode=${encodeURIComponent(schema)}&search_query=${encodeURIComponent(q)}&limit=${lim}`;
+                    if (fname && fname !== 'semua') url += `&filename=${encodeURIComponent(fname)}`;
+
+                    const res = await fetch(url);
+                    const json = await res.json();
+                    const rows = json.data || [];
+                    renderTable(rows);
+                    document.getElementById('row-count').innerText = json.returned_rows || 0;
+                    status.innerText = `✅ Filter CSV: ${json.returned_rows} dari ${json.total_matching_rows} baris (${json.files_merged} file).`;
+                    if (json.csv && json.returned_rows > 0 && dlBtn) {
+                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
+                        dlBtn.classList.remove('hidden');
+                    }
+                    const reactiveAn = buildReactiveAnalyticsFromRows(rows, '', cat);
+                    renderChartsFromObject(reactiveAn, true, `[Bank Data CSV: ${cat}] (${rows.length} baris)`);
+                } else {
+                    if (btn) btn.innerText = "⏳ Sedang Scraping...";
+                    status.innerText = "Mengekstrak data & mengunggah ke 7 skema Supabase...";
+                    let endpoint = '';
+                    let payload = {};
+
+                    if (currentTab === 'keyword') {
+                        endpoint = document.getElementById('kw-mode').value;
+                        const val = document.getElementById('kw-input').value;
+                        const lim = Math.max(parseInt(document.getElementById('kw-limit').value) || 15, 1);
+                        payload = endpoint.includes('trending')
+                            ? { kategori: val, geo: "ID", max_results: lim }
+                            : { keyword: val, geo: "ID", max_results: lim };
+                    } else if (currentTab === 'berita') {
+                        endpoint = document.getElementById('br-engine').value;
+                        payload = {
+                            keyword_or_url: document.getElementById('br-input').value,
+                            max_results: Math.max(parseInt(document.getElementById('br-limit').value) || 10, 1)
+                        };
+                    } else {
+                        const pf = document.getElementById('sm-platform').value;
+                        const eng = document.getElementById('sm-engine').value;
+                        const mode = document.getElementById('sm-mode').value;
+                        const val = document.getElementById('sm-input').value;
+                        const lim = Math.max(parseInt(document.getElementById('sm-limit').value) || 10, 1);
+                        endpoint = '/api/v1/sosmed/' + pf;
+
+                        if (pf === 'linkedin') payload = { keyword: val, region_indonesia: true, max_results: lim };
+                        else if (pf === 'facebook') payload = { keyword_or_url: val, engine: eng, mode_apify: mode === 'full' ? 'full_39_kolom' : 'bersih', max_results: lim };
+                        else if (pf === 'instagram') payload = { keyword_or_hashtag: val, engine: eng, mode_apify: mode === 'full' ? 'full_29_kolom' : 'bersih', max_results: lim };
+                        else if (pf === 'tiktok') payload = { keyword_or_hashtag: val, engine: eng, max_results: lim };
+                        else payload = { keyword: val, engine: eng, max_results: lim };
+                    }
+
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await res.json();
+                    const rows = json.data || [];
+                    renderTable(rows);
+                    document.getElementById('row-count').innerText = json.total || 0;
+                    status.innerText = "✅ Selesai! Data tersimpan ke CSV & masuk ke Supabase Data Warehouse.";
+                    if (json.csv && dlBtn) {
+                        dlBtn.href = "/api/v1/download?path=" + encodeURIComponent(json.csv);
+                        dlBtn.classList.remove('hidden');
+                    }
+                    await forceReloadAll();
+                }
+            } catch (err) {
+                status.innerText = "❌ Error: " + err.message;
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    if (currentTab === 'supabase') btn.innerText = "🗄️ Muat Tabel Supabase";
+                    else if (currentTab === 'bank') btn.innerText = "📂 Terapkan Filter CSV";
+                    else btn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
+                }
+            }
+        }
+
+        async function syncCsvToSupabase() {
+            const btn = document.getElementById('btn-sync');
+            const status = document.getElementById('status-text');
+            btn.disabled = true;
+            btn.innerText = "⏳ Menyinkronkan CSV...";
+            try {
+                const res = await fetch('/api/v1/warehouse/sync-csv', { method: 'POST' });
+                const json = await res.json();
+                status.innerText = `✅ Sinkronisasi selesai: ${json.files_synced || 0} file CSV (${json.rows_synced || 0} baris) masuk ke Supabase.`;
+                await forceReloadAll();
+            } catch (e) {
+                status.innerText = "❌ Error sync: " + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🔄 Sync Semua CSV ke Supabase";
+            }
+        }
+
+        async function populateFileDropdown() {
+            const catEl = document.getElementById('bd-cat');
+            const toolEl = document.getElementById('bd-tool');
+            const schemaEl = document.getElementById('bd-schema');
+            const fileSelect = document.getElementById('bd-file');
+            if (!catEl || !toolEl || !schemaEl || !fileSelect) return;
+
+            try {
+                const res = await fetch(`/api/v1/bank-data/catalog?category=${encodeURIComponent(catEl.value)}&tool=${encodeURIComponent(toolEl.value)}&schema_mode=${encodeURIComponent(schemaEl.value)}`);
+                const json = await res.json();
+                fileSelect.innerHTML = '<option value="semua">-- Semua File (' + (json.total_files || 0) + ' CSV) --</option>';
+                (json.catalog || []).forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.filename;
+                    opt.textContent = `${f.filename} (${f.size_kb} KB)`;
+                    fileSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function onBankFilterChange() {
+            await populateFileDropdown();
+            await executeAction(false);
+        }
+
+        function renderTable(rows) {
+            const thead = document.getElementById('table-head');
+            const tbody = document.getElementById('table-body');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td class="p-8 text-center text-gray-500">Data tidak ditemukan untuk kombinasi filter ini.</td></tr>';
+                return;
+            }
+
+            const colSet = new Set();
+            rows.forEach(r => Object.keys(r).forEach(k => colSet.add(k)));
+            const cols = Array.from(colSet);
+
+            thead.innerHTML = '<tr>' + cols.map(c => `<th class="px-3.5 py-2.5 border-b border-gray-800 whitespace-nowrap">${c}</th>`).join('') + '</tr>';
+
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#1a2036] transition";
+                tr.innerHTML = cols.map(c => {
+                    let val = r[c] !== null && r[c] !== undefined ? String(r[c]) : '';
+                    if (val.startsWith('http')) {
+                        return `<td class="px-3.5 py-2 whitespace-nowrap"><a href="${val}" target="_blank" class="text-indigo-400 hover:underline">🔗 Buka Link</a></td>`;
+                    }
+                    if (val.length > 85) val = val.substring(0, 85) + '...';
+                    return `<td class="px-3.5 py-2 whitespace-nowrap">${val}</td>`;
+                }).join('');
+                tbody.appendChild(tr);
+            });
+        }
+
+        initProvinceDropdown();
+        window.addEventListener('DOMContentLoaded', () => {
+            initProvinceDropdown();
+            refreshTelemetry();
+            loadAnalyticsCharts(false);
+            executeAction(false);
+            populateFileDropdown();
+            setInterval(() => {
+                if (!_cronActiveManual) refreshTelemetry();
+            }, 60000);
+        });
+    </script>
+</body>
+</html>

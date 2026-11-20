@@ -1276,6 +1276,10 @@ def dashboard_ui():
             return f.read()
     return "<h1>Error: File frontend/index.html tidak ditemukan.</h1>"
 
+@app.get("/app.js")
+async def serve_frontend_app_js():
+    return FileResponse("frontend/app.js", media_type="application/javascript")
+
 from fastapi import BackgroundTasks
 from backend.scheduler import start_scheduler, get_scheduler_status, run_batch_1000_rows
 from backend.db import get_warehouse_summary_stats
