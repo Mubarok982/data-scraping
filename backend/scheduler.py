@@ -236,6 +236,10 @@ def send_telegram_notif(run_info: dict):
         "berita": _pick(["berita", "news"], 200),
         "sosmed": _pick(["sosmed", "social"], 212),
     }
+    try:
+        import backend.performance as _ddc_perf; _ddc_perf.clear_http_cache()
+    except Exception:
+        pass
     return _notif.send_all_notifications(waktu, details)
 
 
@@ -470,6 +474,10 @@ def run_real_batch_worker():
         print(f"✅ [CRON WORKER] Selesai! 1.012 baris berhasil masuk ke Supabase pada {finish_wib}.")
 
         # Kirim notifikasi ke Chattime/Slack & Telegram
+        try:
+            import backend.performance as _ddc_perf; _ddc_perf.clear_http_cache()
+        except Exception:
+            pass
         _notif.send_all_notifications(finish_wib, details)
     except Exception as e:
         print("❌ [CRON WORKER] Error:", e)

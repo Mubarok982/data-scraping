@@ -29,11 +29,123 @@ def get_db_url() -> str:
     return val.strip().strip('"').strip("'")
 
 
-def get_conn():
+import threading as _db_threading
+from psycopg2.pool import ThreadedConnectionPool as _ThreadedConnectionPool
+
+import time as _pool_time
+import psycopg2.extensions as _pg_ext
+
+_DB_POOL = None
+_DB_POOL_LOCK = _db_threading.Lock()
+_CONN_LAST_USED = {}
+
+
+class _PooledConn:
+    """Proxy koneksi pool: kompatibel penuh dengan `with conn:`, `.autocommit`, dan `.close()`."""
+    def __init__(self, pool, raw_conn):
+        self._pool = pool
+        self._conn = raw_conn
+        self._released = False
+
+    def __enter__(self):
+        self._conn.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self._conn.__exit__(exc_type, exc_val, exc_tb)
+
+    @property
+    def autocommit(self):
+        return self._conn.autocommit
+
+    @autocommit.setter
+    def autocommit(self, val):
+        self._conn.autocommit = val
+
+    def close(self):
+        if self._released:
+            return
+        self._released = True
+        try:
+            if self._conn.closed == 0:
+                if not self._conn.autocommit:
+                    if self._conn.info.transaction_status != _pg_ext.TRANSACTION_STATUS_IDLE:
+                        try:
+                            self._conn.rollback()
+                        except Exception:
+                            pass
+                else:
+                    try:
+                        self._conn.autocommit = False
+                    except Exception:
+                        pass
+                _CONN_LAST_USED[id(self._conn)] = _pool_time.time()
+                self._pool.putconn(self._conn)
+            else:
+                self._pool.putconn(self._conn, close=True)
+        except Exception:
+            try:
+                self._pool.putconn(self._conn, close=True)
+            except Exception:
+                pass
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def _get_pool():
+    global _DB_POOL
+    if _DB_POOL is not None:
+        return _DB_POOL
     db_url = get_db_url()
     if not db_url:
         return None
-    return psycopg2.connect(db_url, cursor_factory=RealDictCursor, connect_timeout=15)
+    with _DB_POOL_LOCK:
+        if _DB_POOL is None:
+            _DB_POOL = _ThreadedConnectionPool(
+                minconn=1,
+                maxconn=8,
+                dsn=db_url,
+                cursor_factory=RealDictCursor,
+                connect_timeout=15,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=3,
+            )
+    return _DB_POOL
+
+
+def get_conn():
+    pool = _get_pool()
+    if pool is None:
+        return None
+    raw = pool.getconn()
+    # Pastikan koneksi dari pool masih hidup (antisipasi idle timeout Supabase)
+    if raw.closed != 0:
+        try:
+            pool.putconn(raw, close=True)
+        except Exception:
+            pass
+        raw = pool.getconn()
+    else:
+        last_ts = _CONN_LAST_USED.get(id(raw), 0)
+        if (_pool_time.time() - last_ts) > 45:
+            try:
+                if not raw.autocommit and raw.info.transaction_status != _pg_ext.TRANSACTION_STATUS_IDLE:
+                    raw.rollback()
+                with raw.cursor() as _c:
+                    _c.execute("SELECT 1")
+                if not raw.autocommit and raw.info.transaction_status != _pg_ext.TRANSACTION_STATUS_IDLE:
+                    raw.rollback()
+            except Exception:
+                try:
+                    pool.putconn(raw, close=True)
+                except Exception:
+                    pass
+                raw = pool.getconn()
+        _CONN_LAST_USED[id(raw)] = _pool_time.time()
+    return _PooledConn(pool, raw)
 
 
 def parse_safe_timestamp(val) -> datetime:
@@ -936,8 +1048,10 @@ def query_warehouse_records(category: str = "berita", search_query: str = "", li
     return rows
 
 
-def get_dashboard_analytics() -> dict:
-    conn = get_conn()
+def get_dashboard_analytics(conn=None) -> dict:
+    _own_conn = conn is None
+    if _own_conn:
+        conn = get_conn()
     texts_with_meta = []
     top_keywords = []
     platform_counts = {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0}
@@ -949,10 +1063,10 @@ def get_dashboard_analytics() -> dict:
             with conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT a.title, COALESCE(c.content, a.summary, '') AS body,
+                        SELECT LEFT(COALESCE(a.title, ''), 200) AS title,
+                               LEFT(COALESCE(a.summary, ''), 350) AS body,
                                TO_CHAR(COALESCE(a.published_at, a.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
                         FROM news.articles a
-                        LEFT JOIN news.article_contents c ON c.article_id = a.id
                         ORDER BY a.created_at DESC LIMIT 1500
                     """)
                     for r in cur.fetchall():
@@ -982,7 +1096,9 @@ def get_dashboard_analytics() -> dict:
                             top_keywords.append({"keyword": kw_str, "volume": vol})
 
                     cur.execute("""
-                        SELECT p.content, p.post_type, p.post_metadata::text AS meta_txt,
+                        SELECT LEFT(COALESCE(p.content, ''), 350) AS content,
+                               p.post_type,
+                               '' AS meta_txt,
                                TO_CHAR(COALESCE(p.published_at, p.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
                         FROM social.posts p
                         ORDER BY p.created_at DESC LIMIT 1500
@@ -993,12 +1109,14 @@ def get_dashboard_analytics() -> dict:
                         texts_with_meta.append({"text": full_t, "source": "sosmed", "time": tb})
                         timeline_buckets[tb]["sosmed"] += 1
                         platform_counts["Social Media"] += 1
-            conn.close()
-        except Exception:
-            try:
+            if _own_conn:
                 conn.close()
-            except Exception:
-                pass
+        except Exception:
+            if _own_conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     loc_stats = {loc: {"name": loc, "total": 0, "positive": 0, "neutral": 0, "negative": 0, "top_issue": Counter()} for loc in ID_LOCATIONS}
     person_stats = {p: {"name": p, "mentions": 0, "positive": 0, "negative": 0, "neutral": 0} for p in KNOWN_FIGURES}
@@ -1060,7 +1178,7 @@ import time as _time
 
 _orig_get_dashboard_analytics = get_dashboard_analytics
 _ANALYTICS_CACHE = {"data": None, "ts": 0}
-_CACHE_TTL = 60  # Cache 60 detik agar response time < 5ms
+_CACHE_TTL = 180  # Cache 180 detik + invalidasi otomatis usai cron
 
 if "get_warehouse_overview" in globals():
     _orig_get_warehouse_overview = get_warehouse_overview
@@ -1086,7 +1204,7 @@ def get_dashboard_analytics(*args, **kwargs):
         conn = get_conn()
         own_conn = True
 
-    res = _orig_get_dashboard_analytics(*args, **kwargs)
+    res = _orig_get_dashboard_analytics(conn=conn)
     if not isinstance(res, dict):
         return res
 
@@ -1095,23 +1213,65 @@ def get_dashboard_analytics(*args, **kwargs):
     if conn:
         try:
             with conn.cursor() as cur:
-                # 1. Top Viral
+                # 1+2+3. Gabungkan Top Viral, Top Hashtags & System Health dalam 1 round-trip SQL
                 cur.execute('''
-                    SELECT 
-                        LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
-                        (
-                            COALESCE(pm.likes_count, 0) + 
-                            COALESCE(pm.comments_count, 0) + 
-                            COALESCE(pm.shares_count, 0) + 
-                            COALESCE(pm.views_count, 0) +
-                            COALESCE((pm.engagement_rate * 100)::bigint, 0)
-                        )::bigint AS engagement
-                    FROM social.post_metrics pm
-                    JOIN social.posts p ON p.id = pm.post_id
-                    ORDER BY engagement DESC
-                    LIMIT 30
+                    SELECT
+                        COALESCE((
+                            SELECT json_agg(v) FROM (
+                                SELECT
+                                    LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
+                                    top_pm.engagement
+                                FROM (
+                                    SELECT
+                                        pm.post_id,
+                                        (
+                                            COALESCE(pm.likes_count, 0) +
+                                            COALESCE(pm.comments_count, 0) +
+                                            COALESCE(pm.shares_count, 0) +
+                                            COALESCE(pm.views_count, 0) +
+                                            COALESCE((pm.engagement_rate * 100)::bigint, 0)
+                                        )::bigint AS engagement
+                                    FROM social.post_metrics pm
+                                    ORDER BY engagement DESC
+                                    LIMIT 80
+                                ) top_pm
+                                JOIN social.posts p ON p.id = top_pm.post_id
+                                ORDER BY top_pm.engagement DESC
+                                LIMIT 30
+                            ) v
+                        ), '[]'::json) AS raw_viral,
+                        COALESCE((
+                            SELECT json_agg(h_row) FROM (
+                                SELECT h.name AS tag, COUNT(ph.post_id)::int AS count
+                                FROM social.post_hashtags ph
+                                JOIN social.hashtags h ON h.id = ph.hashtag_id
+                                GROUP BY h.name
+                                ORDER BY count DESC
+                                LIMIT 6
+                            ) h_row
+                        ), '[]'::json) AS top_hashtags,
+                        COALESCE((
+                            SELECT json_agg(l_row) FROM (
+                                SELECT TO_CHAR(created_at, 'HH24:00') AS time,
+                                       GREATEST(COALESCE(ROUND(AVG(response_time_ms)), 0)::int, 1) AS avg_ms,
+                                       COUNT(id)::int AS req_count
+                                FROM (
+                                    SELECT id, created_at, response_time_ms
+                                    FROM core.api_request_logs
+                                    ORDER BY created_at DESC
+                                    LIMIT 500
+                                ) recent_logs
+                                GROUP BY time
+                                ORDER BY time DESC
+                                LIMIT 8
+                            ) l_row
+                        ), '[]'::json) AS system_health
                 ''')
-                raw_viral = [dict(r) for r in cur.fetchall()]
+                bundle = cur.fetchone() or {}
+                raw_viral = bundle.get("raw_viral") or []
+                if isinstance(raw_viral, str):
+                    raw_viral = json.loads(raw_viral)
+
                 seen = set()
                 viral_rows = []
                 for r in raw_viral:
@@ -1124,7 +1284,7 @@ def get_dashboard_analytics(*args, **kwargs):
 
                 if not viral_rows or all(r["engagement"] == 0 for r in viral_rows):
                     cur.execute('''
-                        SELECT 
+                        SELECT
                             LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
                             GREATEST(LENGTH(COALESCE(p.content, '')), 30)::bigint AS engagement
                         FROM social.posts p
@@ -1142,34 +1302,15 @@ def get_dashboard_analytics(*args, **kwargs):
                             break
                 target['top_viral'] = viral_rows
 
-                # 2. Top Hashtags
-                cur.execute('''
-                    SELECT h.name AS tag, COUNT(ph.post_id)::int AS count
-                    FROM social.post_hashtags ph
-                    JOIN social.hashtags h ON h.id = ph.hashtag_id
-                    GROUP BY h.name
-                    ORDER BY count DESC
-                    LIMIT 6
-                ''')
-                target['top_hashtags'] = [dict(r) for r in cur.fetchall()]
+                top_tags = bundle.get("top_hashtags") or []
+                if isinstance(top_tags, str):
+                    top_tags = json.loads(top_tags)
+                target['top_hashtags'] = [dict(r) for r in top_tags]
 
-                # 3. System Health
-                cur.execute('''
-                    SELECT TO_CHAR(created_at, 'HH24:00') AS time,
-                           GREATEST(COALESCE(ROUND(AVG(response_time_ms)), 0)::int, 1) AS avg_ms,
-                           COUNT(id)::int AS req_count
-                    FROM (
-                        SELECT id, created_at, response_time_ms
-                        FROM core.api_request_logs
-                        ORDER BY created_at DESC
-                        LIMIT 500
-                    ) recent_logs
-                    GROUP BY time
-                    ORDER BY time DESC
-                    LIMIT 8
-                ''')
-                logs = [dict(r) for r in cur.fetchall()]
-                target['system_health'] = sorted(logs, key=lambda x: x['time'])
+                logs = bundle.get("system_health") or []
+                if isinstance(logs, str):
+                    logs = json.loads(logs)
+                target['system_health'] = sorted([dict(r) for r in logs], key=lambda x: x['time'])
         except Exception as e:
             print("❌ Error patch analytics:", e)
         finally:

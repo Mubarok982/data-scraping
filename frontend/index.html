@@ -51,28 +51,63 @@
 
         <!-- KOLOM KIRI: MODE & PARAMETER FILTER -->
         <aside class="lg:col-span-3 space-y-4">
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                    🧭 Pilih Mode Sumber & Scraper
+                        <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        🧭 Pilih Mode Sumber & Scraper
+                    </div>
+                    <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        5 Mode
+                    </span>
                 </div>
-                <div class="space-y-1.5">
-                    <button onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
-                        <span>🗄️ Database Supabase (ELT)</span>
+
+                <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
+                    Data & Arsip
+                </div>
+                <div class="space-y-1.5 mb-3">
+                    <button type="button" onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-200"></span>
+                            <span>🗄️ Database Supabase (ELT)</span>
+                        </span>
                         <span class="text-[10px] bg-purple-900/90 px-2 py-0.5 rounded">Live DB</span>
                     </button>
-                    <button onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between">
-                        <span>🏦 Bank Data (Arsip CSV)</span>
+                    <button type="button" onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                            <span>🏦 Bank Data (Arsip CSV)</span>
+                        </span>
                         <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">CSV</span>
                     </button>
-                    <button onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        🔍 1. Scraper — Keyword & Trend
-                    </button>
-                    <button onclick="switchTab('berita')" id="tab-berita" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        📰 2. Scraper — Portal Berita
-                    </button>
-                    <button onclick="switchTab('sosmed')" id="tab-sosmed" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition">
-                        📱 3. Scraper — Social Media
-                    </button>
+                </div>
+
+                <div class="border-t border-gray-800/80 pt-2.5">
+                    <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
+                        Scraper Manual
+                    </div>
+                    <div class="space-y-1.5">
+                        <button type="button" onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>🔍 1. Keyword & Trend</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">KW/Trend</span>
+                        </button>
+                        <button type="button" onclick="switchTab('berita')" id="tab-berita" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>📰 2. Portal Berita</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">News</span>
+                        </button>
+                        <button type="button" onclick="switchTab('sosmed')" id="tab-sosmed" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                <span>📱 3. Social Media</span>
+                            </span>
+                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Social</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -404,7 +439,7 @@
                 <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
                     <div class="flex justify-between items-center mb-2">
                         <div>
-                            <h3 class="text-xs font-bold text-white">📈 Konten & Postingan Paling Menonjol (Viral)</h3>
+                            <h3 class="text-xs font-bold text-white"> Konten & Postingan Paling Menonjol (Viral)</h3>
                             <p class="text-[10px] text-gray-400">Peringkat engagement / dampak tertinggi pada data terpilih</p>
                         </div>
                     </div>
@@ -981,7 +1016,17 @@
                 const el = document.getElementById('form-' + t);
                 if (el) el.classList.add('hidden');
                 const tabBtn = document.getElementById('tab-' + t);
-                if (tabBtn) tabBtn.className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white border border-gray-800 transition flex items-center justify-between";
+                if (tabBtn) {
+                    const isActive = (t === tab);
+                    tabBtn.className = isActive
+                        ? "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow ring-1 ring-purple-400/50 transition flex items-center justify-between"
+                        : "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between";
+                    const dot = tabBtn.querySelector("span.w-1\\.5");
+                    if (dot) dot.className = isActive ? "w-1.5 h-1.5 rounded-full bg-purple-200" : "w-1.5 h-1.5 rounded-full bg-gray-600";
+                    const badges = tabBtn.querySelectorAll("span");
+                    const badge = badges.length > 1 ? badges[badges.length - 1] : null;
+                    if (badge) badge.className = isActive ? "text-[10px] bg-purple-900/90 text-purple-100 px-2 py-0.5 rounded" : "text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded";
+                }
             });
             const activeEl = document.getElementById('form-' + tab);
             if (activeEl) activeEl.classList.remove('hidden');
@@ -1396,6 +1441,17 @@
         }
 
         function buildReactiveAnalyticsFromRows(rows, selectedProv, catDomain) {
+            // Stratified uniform sampling agar >4.000 baris tetap cepat & merata di browser
+            if (Array.isArray(rows) && rows.length > 4000) {
+                const _target = 4000;
+                const _step = rows.length / _target;
+                const _sampled = new Array(_target);
+                for (let _i = 0; _i < _target; _i++) {
+                    _sampled[_i] = rows[Math.min(rows.length - 1, Math.floor(_i * _step))];
+                }
+                rows = _sampled;
+            }
+
             const sentSummary = { positive: 0, neutral: 0, negative: 0 };
             const locMap = {}, pplMap = {}, hashMap = {}, kwMap = {}, timeMap = {};
             const viralList = [];

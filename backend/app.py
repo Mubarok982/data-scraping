@@ -1471,3 +1471,103 @@ async def auto_ingest_scraper_middleware(request, call_next):
         except Exception:
             return response
     return response
+
+
+# === DDC 10M+ PERFORMANCE LAYER (GZIP + TTL CACHE + DIAGNOSTICS) ===
+try:
+    from fastapi import Request as _PerfRequest, Response as _PerfResponse
+    from fastapi.middleware.gzip import GZipMiddleware as _GZipMiddleware
+    import backend.performance as _ddc_perf
+
+    @app.middleware("http")
+    async def _ddc_ttl_cache_middleware(request: _PerfRequest, call_next):
+        if request.method == "GET":
+            ttl = _ddc_perf.get_ttl_for_path(request.url.path)
+            bypass = request.query_params.get("nocache") in ("1", "true")
+            if ttl > 0 and not bypass:
+                cache_key = f"{request.url.path}?{request.url.query}"
+                cached = _ddc_perf.HTTP_CACHE.get(cache_key)
+                if cached is not None:
+                    body_bytes, media_type = cached
+                    return _PerfResponse(
+                        content=body_bytes,
+                        status_code=200,
+                        media_type=media_type,
+                        headers={"X-Cache": "HIT", "Cache-Control": f"public, max-age={ttl}"}
+                    )
+
+                response = await call_next(request)
+                if response.status_code == 200:
+                    chunks = []
+                    async for chunk in response.body_iterator:
+                        chunks.append(chunk)
+                    body_bytes = b"".join(chunks)
+                    media_type = response.media_type or response.headers.get("content-type", "application/json")
+                    _ddc_perf.HTTP_CACHE.set(cache_key, body_bytes, media_type, ttl)
+                    new_headers = {
+                        k: v for k, v in response.headers.items()
+                        if k.lower() not in ("content-length", "content-encoding")
+                    }
+                    new_headers["X-Cache"] = "MISS"
+                    new_headers["Cache-Control"] = f"public, max-age={ttl}"
+                    return _PerfResponse(
+                        content=body_bytes,
+                        status_code=response.status_code,
+                        headers=new_headers,
+                        media_type=media_type,
+                    )
+                return response
+        return await call_next(request)
+
+    # Bungkus di lapisan luar agar respons HIT maupun MISS otomatis terkompresi GZip
+    app.add_middleware(_GZipMiddleware, minimum_size=1024)
+
+    @app.get("/api/v1/system/performance", tags=["4. Cron Scheduler & Supabase"])
+    def api_system_performance():
+        from backend.db import get_conn
+        tables = []
+        db_error = None
+        try:
+            conn = get_conn()
+            try:
+                tables = _ddc_perf.get_fast_table_estimates(conn)
+            finally:
+                conn.close()
+        except Exception as e:
+            db_error = str(e)
+        return {
+            "status": "ok",
+            "http_cache": _ddc_perf.HTTP_CACHE.stats(),
+            "estimated_total_rows": sum(t["estimated_rows"] for t in tables),
+            "tables": tables,
+            "db_error": db_error,
+        }
+
+    @app.post("/api/v1/system/clear-cache", tags=["4. Cron Scheduler & Supabase"])
+    def api_system_clear_cache():
+        cleared = _ddc_perf.clear_http_cache()
+        try:
+            from backend.db import invalidate_all_caches
+            invalidate_all_caches()
+        except Exception:
+            pass
+        return {"status": "cleared", "http_cache_entries_removed": cleared}
+except Exception as _perf_init_err:
+    print(f"[Performance Layer] Peringatan inisialisasi: {_perf_init_err}")
+
+
+# === DDC BACKGROUND CACHE PRE-WARMER ===
+try:
+    import threading as _pw_threading
+
+    def _prewarm_analytics_bg():
+        try:
+            from backend.db import get_dashboard_analytics
+            get_dashboard_analytics()
+            print("[Pre-Warm] Cache analitik dashboard siap di memori.")
+        except Exception as _pw_e:
+            print(f"[Pre-Warm] Dilewati: {_pw_e}")
+
+    _pw_threading.Thread(target=_prewarm_analytics_bg, daemon=True).start()
+except Exception:
+    pass
