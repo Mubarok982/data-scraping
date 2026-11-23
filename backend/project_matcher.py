@@ -128,7 +128,7 @@ def evaluate_geekgarden_confidence(title: str, description: str = "", extra_tags
 
     score = max(0, min(100, int(score)))
 
-    if score >= 70 and not oos_hits:
+    if score >= 80 and not oos_hits:
         status = "Fix Bisa Masuk"
         reason = f"Cocok kuat dengan layanan {', '.join(matched_services[:2])}."
     elif score >= 40 and not oos_hits:

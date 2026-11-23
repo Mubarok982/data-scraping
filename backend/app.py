@@ -1712,7 +1712,16 @@ def _normalize_project_row(raw: dict) -> dict | None:
     if not out["published_at"]:
         fallback_dt = raw.get("collected_at") or raw.get("processed_at") or raw.get("created_at") or ""
         out["published_at"] = str(fallback_dt)[:19] if fallback_dt else ""
-    if not out["confidence_status"]:
+    raw_score = src.get("confidence_score", "")
+    if str(raw_score).strip() not in ("", "nan", "None"):
+        sc_val = int(out.get("confidence_score") or 0)
+        if sc_val >= 80:
+            out["confidence_status"] = "Fix Bisa Masuk"
+        elif sc_val >= 40:
+            out["confidence_status"] = "Fifty-Fifty"
+        else:
+            out["confidence_status"] = "Tidak Bisa"
+    elif not out["confidence_status"]:
         out["confidence_status"] = "Fifty-Fifty"
     if not out["source_platform"]:
         out["source_platform"] = out["platform"] or "Project Hunter"
