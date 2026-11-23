@@ -13,28 +13,120 @@
     </style>
 </head>
 <body class="bg-[#0b0d14] text-gray-200 h-screen overflow-hidden font-sans flex">
-<!-- DDC_MULTI_PAGE_NAVBAR_START -->
-<nav id="ddc-top-navbar" class="sticky top-0 z-50 w-full backdrop-blur-md bg-[#0b0f1e]/90 border-b border-gray-800/90 shadow-lg">
-  <div class="max-w-[1600px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
-    <a href="/dashboard/supabase" class="flex items-center gap-2.5 no-underline">
-      <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-      <span class="font-bold tracking-tight text-sm text-white">DDC Scraper Portal</span>
-    </a>
-    <div class="flex flex-wrap items-center gap-1.5 text-xs">
-      <a href="/dashboard/supabase" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">🗄️ Database ELT</a>
-      <a href="/dashboard/bank" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">🏛️ Bank Data</a>
-      <a href="/dashboard/keyword" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">🔍 Keyword &amp; Trend</a>
-      <a href="/dashboard/berita" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">📰 Portal Berita</a>
-      <a href="/dashboard/sosmed" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">📱 Social Media</a>
-      <a href="/dashboard/project" class="px-3 py-1.5 rounded-lg font-medium bg-[#1a1f33] hover:bg-gray-800 text-gray-300 transition">💼 Pencarian Project</a>
-      <a href="/analytics" class="px-3 py-1.5 rounded-lg font-medium bg-emerald-600 text-white shadow transition">📊 Analytics</a>
+<!-- DDC_MULTI_PAGE_SIDEBAR_START -->
+<style id="ddc-sidebar-layout-style">
+  @media (min-width: 1024px) {
+    body {
+      padding-left: 17rem !important;
+      transition: padding-left 0.2s ease;
+    }
+    body.ddc-sb-collapsed {
+      padding-left: 0 !important;
+    }
+    body.ddc-sb-collapsed #ddc-sidebar {
+      transform: translateX(-100%);
+    }
+  }
+</style>
+
+<!-- Desktop Reopen Button (ketika sidebar di-collapse) -->
+<button type="button" id="ddc-sidebar-reopen" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(true) : ddcToggleDesktopSidebar()" title="Buka Sidebar"
+  class="lg:hidden fixed top-3 left-3 z-50 px-2.5 py-1.5 rounded-lg bg-[#14192b] hover:bg-purple-600 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold shadow-lg transition">
+  ☰ Menu
+</button>
+
+<!-- Mobile Overlay -->
+<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"></div>
+
+<!-- Fixed Left Sidebar -->
+<aside id="ddc-sidebar" class="fixed inset-y-0 left-0 z-50 w-[17rem] bg-[#0b0f1e] border-r border-gray-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 shadow-2xl">
+  <div class="p-4 overflow-y-auto space-y-5">
+    <!-- Brand -->
+    <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
+      <a href="/dashboard/supabase" data-ddc-tab="supabase" class="flex items-center gap-2.5 no-underline">
+        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+        <div>
+          <div class="font-bold text-sm text-white leading-tight">DDC Scraper Portal</div>
+          <div class="text-[10px] text-gray-400">Multi-Page Dashboard</div>
+        </div>
+      </a>
+      <button type="button" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()" title="Tutup / Lipat Sidebar"
+        class="p-1.5 rounded-lg bg-[#14192b] hover:bg-gray-800 text-gray-400 hover:text-white text-xs border border-gray-800">✕</button>
+    </div>
+
+    <!-- DATA & ARSIP -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Data &amp; Arsip</div>
+      <a href="/dashboard/supabase" data-ddc-tab="supabase" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🗄️ Database Supabase</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Live DB</span>
+      </a>
+      <a href="/dashboard/bank" data-ddc-tab="bank" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🏛️ Bank Data (CSV)</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">CSV</span>
+      </a>
+    </div>
+
+    <!-- SCRAPER MANUAL -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Scraper Manual</div>
+      <a href="/dashboard/keyword" data-ddc-tab="keyword" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🔍 1. Keyword &amp; Trend</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">KW</span>
+      </a>
+      <a href="/dashboard/berita" data-ddc-tab="berita" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📰 2. Portal Berita</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">News</span>
+      </a>
+      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📱 3. Social Media</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Social</span>
+      </a>
+    </div>
+
+    <!-- ANALITIK -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Analitik Terpisah</div>
+      <a href="/analytics" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition no-underline bg-emerald-600 text-white shadow-md shadow-emerald-900/40">
+        <span class="flex items-center gap-2 truncate">📊 Analytics Dashboard</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/25 border border-white/10 shrink-0">Page</span>
+      </a>
     </div>
   </div>
-</nav>
-<!-- DDC_MULTI_PAGE_NAVBAR_END -->
+
+  <!-- Footer info -->
+  <div class="p-3 border-t border-gray-800/80 text-[10px] text-gray-500 flex items-center justify-between">
+    <span>Cron 8 Jam (WIB)</span>
+    <span class="text-emerald-400">● Online</span>
+  </div>
+</aside>
 
 
-    <!-- LEFT SIDEBAR NAVBAR -->
+<script>
+(function() {
+  const sidebar = document.getElementById("ddc-sidebar");
+  const overlay = document.getElementById("ddc-sidebar-overlay");
+  const reopenBtn = document.getElementById("ddc-sidebar-reopen");
+
+  window.ddcToggleMobileSidebar = function(forceOpen) {
+    if (!sidebar) return;
+    const isClosed = sidebar.classList.contains("-translate-x-full");
+    const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
+    sidebar.classList.toggle("-translate-x-full", !open);
+    if (overlay) overlay.classList.toggle("hidden", !open);
+  };
+
+  window.ddcToggleDesktopSidebar = function() {
+    document.body.classList.toggle("ddc-sb-collapsed");
+    const collapsed = document.body.classList.contains("ddc-sb-collapsed");
+    if (reopenBtn) reopenBtn.classList.toggle("lg:hidden", !collapsed);
+  };
+
+})();
+</script>
+<!-- DDC_MULTI_PAGE_SIDEBAR_END -->
+
+<!-- LEFT SIDEBAR NAVBAR -->
     <aside class="w-64 bg-[#111420] border-r border-gray-800 flex flex-col h-full flex-shrink-0 z-20">
         <div class="h-16 flex items-center px-5 border-b border-gray-800 gap-3">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -74,15 +166,7 @@
 
     <!-- MAIN CONTENT AREA -->
     <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header class="h-16 bg-[#0b0d14]/90 backdrop-blur border-b border-gray-800 flex items-center justify-between px-6 flex-shrink-0">
-            <div>
-                <h2 class="text-lg font-bold text-white">Trend Intelligence Dashboard</h2>
-                <p class="text-[10px] text-gray-400">Pemantauan Geo-Polarisasi, Tokoh, & Keyword Real-time</p>
-            </div>
-            <button onclick="loadCharts()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-medium rounded-lg border border-indigo-700/60 transition">
-                ↻ Refresh Visualisasi
-            </button>
-        </header>
+        
 
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
             <!-- 4 KPI Cards -->

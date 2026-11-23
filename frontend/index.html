@@ -15,64 +15,153 @@
     </style>
 </head>
 <body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
-<!-- DDC_MULTI_PAGE_NAVBAR_START -->
-<nav id="ddc-top-navbar" class="sticky top-0 z-50 w-full backdrop-blur-md bg-[#0b0f1e]/90 border-b border-gray-800/90 shadow-lg">
-  <div class="max-w-[1600px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
-    <a href="/dashboard/supabase" onclick="return ddcGoPage('supabase', event)" class="flex items-center gap-2.5 no-underline">
-      <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-      <span class="font-bold tracking-tight text-sm text-white">DDC Scraper Portal</span>
-      <span class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40">Multi-Page</span>
-    </a>
-    <div id="ddc-navbar-menu" class="flex flex-wrap items-center gap-1.5 text-xs">
-      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🗄️ Database ELT</a>
-      <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🏛️ Bank Data</a>
-      <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🔍 Keyword &amp; Trend</a>
-      <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">📰 Portal Berita</a>
-      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">📱 Social Media</a>
-      <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">💼 Pencarian Project</a>
-      <a href="/analytics" class="px-3 py-1.5 rounded-lg font-medium bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/40 transition">📊 Analytics</a>
-    </div>
-  </div>
-</nav>
-<div id="ddc-page-banner" class="max-w-[1600px] mx-auto px-4 pt-3 pb-1">
-  <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-[#13182b]/90 border border-gray-800/80">
-    <div>
-      <div id="ddc-page-title" class="text-sm font-bold text-white">🗄️ Database Supabase (ELT)</div>
-      <div id="ddc-page-desc" class="text-[11px] text-gray-400">Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam.</div>
-    </div>
-    <span id="ddc-page-path" class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#0b0f1e] text-indigo-300 border border-indigo-500/30">/dashboard/supabase</span>
-  </div>
+<!-- DDC_MULTI_PAGE_SIDEBAR_START -->
+<style id="ddc-sidebar-layout-style">
+  @media (min-width: 1024px) {
+    body {
+      padding-left: 17rem !important;
+      transition: padding-left 0.2s ease;
+    }
+    body.ddc-sb-collapsed {
+      padding-left: 0 !important;
+    }
+    body.ddc-sb-collapsed #ddc-sidebar {
+      transform: translateX(-100%);
+    }
+  }
+</style>
+
+<!-- Mobile Header Trigger -->
+<div id="ddc-mobile-bar" class="lg:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 bg-[#0b0f1e]/95 backdrop-blur border-b border-gray-800">
+  <button type="button" onclick="ddcToggleMobileSidebar(true)" class="px-2.5 py-1.5 rounded-lg bg-[#161c33] text-gray-200 border border-gray-700 text-xs font-semibold">☰ Menu</button>
+  <span class="text-xs font-bold text-white tracking-tight">DDC Scraper Portal</span>
+  <a href="/analytics" class="text-[11px] text-emerald-300 font-semibold no-underline">📊 Analytics</a>
 </div>
+
+<!-- Desktop Reopen Button (ketika sidebar di-collapse) -->
+<button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Buka Sidebar"
+  class="hidden fixed top-3 left-3 z-50 px-2.5 py-1.5 rounded-lg bg-[#14192b] hover:bg-purple-600 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold shadow-lg transition">
+  ☰ Menu
+</button>
+
+<!-- Mobile Overlay -->
+<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"></div>
+
+<!-- Fixed Left Sidebar -->
+<aside id="ddc-sidebar" class="fixed inset-y-0 left-0 z-50 w-[17rem] bg-[#0b0f1e] border-r border-gray-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 shadow-2xl">
+  <div class="p-4 overflow-y-auto space-y-5">
+    <!-- Brand -->
+    <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
+      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="flex items-center gap-2.5 no-underline">
+        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+        <div>
+          <div class="font-bold text-sm text-white leading-tight">DDC Scraper Portal</div>
+          <div class="text-[10px] text-gray-400">Multi-Page Dashboard</div>
+        </div>
+      </a>
+      <button type="button" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()" title="Tutup / Lipat Sidebar"
+        class="p-1.5 rounded-lg bg-[#14192b] hover:bg-gray-800 text-gray-400 hover:text-white text-xs border border-gray-800">✕</button>
+    </div>
+
+    <!-- DATA & ARSIP -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Data &amp; Arsip</div>
+      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🗄️ Database Supabase</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Live DB</span>
+      </a>
+      <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🏛️ Bank Data (CSV)</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">CSV</span>
+      </a>
+    </div>
+
+    <!-- SCRAPER MANUAL -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Scraper Manual</div>
+      <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🔍 1. Keyword &amp; Trend</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">KW</span>
+      </a>
+      <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📰 2. Portal Berita</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">News</span>
+      </a>
+      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📱 3. Social Media</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Social</span>
+      </a>
+    </div>
+
+    <!-- PROJECT & LEAD HUNTER -->
+    <div class="space-y-1.5">
+      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">Project &amp; Lead Hunter</div>
+      <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
+        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>💼 4. Pencarian Project</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Project</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer info -->
+  <div class="p-3 border-t border-gray-800/80 text-[10px] text-gray-500 flex items-center justify-between">
+    <span>Cron 8 Jam (WIB)</span>
+    <span class="text-emerald-400">● Online</span>
+  </div>
+</aside>
+
 <script>
 (function() {
+  const sidebar = document.getElementById("ddc-sidebar");
+  const overlay = document.getElementById("ddc-sidebar-overlay");
+  const reopenBtn = document.getElementById("ddc-sidebar-reopen");
+
+  window.ddcToggleMobileSidebar = function(forceOpen) {
+    if (!sidebar) return;
+    const isClosed = sidebar.classList.contains("-translate-x-full");
+    const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
+    sidebar.classList.toggle("-translate-x-full", !open);
+    if (overlay) overlay.classList.toggle("hidden", !open);
+  };
+
+  window.ddcToggleDesktopSidebar = function() {
+    document.body.classList.toggle("ddc-sb-collapsed");
+    const collapsed = document.body.classList.contains("ddc-sb-collapsed");
+    if (reopenBtn) reopenBtn.classList.toggle("hidden", !collapsed);
+  };
+
   const PAGE_META = {
     supabase: { title: "🗄️ Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
     bank:     { title: "🏛️ Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
-    keyword:  { title: "🔍 Scraper — Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
-    berita:   { title: "📰 Scraper — Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
-    sosmed:   { title: "📱 Scraper — Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
-    project:  { title: "💼 Project & Lead Hunter", desc: "Pencarian peluang project freelance & klasifikasi kecocokan." }
+    keyword:  { title: "🔍 1. Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
+    berita:   { title: "📰 2. Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
+    sosmed:   { title: "📱 3. Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
+    project:  { title: "💼 4. Pencarian Project", desc: "Pencarian peluang project freelance & klasifikasi kecocokan." }
   };
 
   function getTabFromUrl() {
-    const p = (window.location.pathname || "").toLowerCase();
-    const m = p.match(/^\/dashboard\/(supabase|bank|keyword|berita|sosmed|project)\/?$/);
-    if (m) return m[1];
+    const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
+    if (parts[0] === "dashboard" && PAGE_META[parts[1]]) return parts[1];
     const q = new URLSearchParams(window.location.search).get("page");
     if (q && PAGE_META[q.toLowerCase()]) return q.toLowerCase();
     return "supabase";
   }
 
-  function updateNavUI(tab) {
+  function updateSidebarUI(tab) {
     const activeTab = PAGE_META[tab] ? tab : "supabase";
-    document.querySelectorAll(".ddc-nav-item").forEach(el => {
+    document.querySelectorAll(".ddc-sb-item").forEach(el => {
       const isAct = el.getAttribute("data-ddc-tab") === activeTab;
       el.classList.toggle("bg-purple-600", isAct);
       el.classList.toggle("text-white", isAct);
-      el.classList.toggle("shadow", isAct);
-      el.classList.toggle("bg-[#1a1f33]", !isAct);
+      el.classList.toggle("shadow-md", isAct);
+      el.classList.toggle("bg-[#14192b]", !isAct);
       el.classList.toggle("text-gray-300", !isAct);
-      el.classList.toggle("hover:bg-gray-800", !isAct);
+      el.classList.toggle("hover:bg-[#1e2540]", !isAct);
+      const dot = el.querySelector(".ddc-sb-dot");
+      if (dot) {
+        dot.classList.toggle("bg-white", isAct);
+        dot.classList.toggle("bg-gray-600", !isAct);
+      }
     });
     const meta = PAGE_META[activeTab];
     const tEl = document.getElementById("ddc-page-title");
@@ -84,7 +173,7 @@
     document.title = meta.title + " — DDC Scraper Portal";
   }
 
-  function hideSidebarModeSwitcher() {
+  function hideOldInlineModeBox() {
     const firstBtn = document.getElementById("tab-supabase");
     const lastBtn = document.getElementById("tab-project");
     const formEl = document.getElementById("form-supabase");
@@ -115,22 +204,25 @@
     if (window.location.pathname !== targetPath) {
       try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
     }
-    updateNavUI(target);
+    updateSidebarUI(target);
     if (typeof window.switchTab === "function") {
       _syncingUrl = true;
       try { window.switchTab(target); } finally { _syncingUrl = false; }
+    }
+    if (window.innerWidth < 1024) {
+      window.ddcToggleMobileSidebar(false);
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
     return false;
   };
 
-  function initMultiPage() {
-    hideSidebarModeSwitcher();
+  function initMultiPageSidebar() {
+    hideOldInlineModeBox();
     if (typeof window.switchTab === "function" && !window.switchTab.__ddcWrapped) {
       const origSwitchTab = window.switchTab;
       const wrapped = function(tab) {
         const res = origSwitchTab.apply(this, arguments);
-        updateNavUI(tab);
+        updateSidebarUI(tab);
         if (!_syncingUrl && PAGE_META[tab]) {
           const targetPath = "/dashboard/" + tab;
           if (window.location.pathname !== targetPath) {
@@ -144,7 +236,7 @@
     }
 
     const initialTab = getTabFromUrl();
-    updateNavUI(initialTab);
+    updateSidebarUI(initialTab);
     if (typeof window.switchTab === "function") {
       _syncingUrl = true;
       try { window.switchTab(initialTab); } finally { _syncingUrl = false; }
@@ -153,7 +245,7 @@
 
   window.addEventListener("popstate", function() {
     const tab = getTabFromUrl();
-    updateNavUI(tab);
+    updateSidebarUI(tab);
     if (typeof window.switchTab === "function") {
       _syncingUrl = true;
       try { window.switchTab(tab); } finally { _syncingUrl = false; }
@@ -161,15 +253,16 @@
   });
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function() { setTimeout(initMultiPage, 0); });
+    document.addEventListener("DOMContentLoaded", function() { setTimeout(initMultiPageSidebar, 0); });
   } else {
-    setTimeout(initMultiPage, 0);
+    setTimeout(initMultiPageSidebar, 0);
   }
+
 })();
 </script>
-<!-- DDC_MULTI_PAGE_NAVBAR_END -->
+<!-- DDC_MULTI_PAGE_SIDEBAR_END -->
 
-    <!-- TOP NAVBAR -->
+<!-- TOP NAVBAR -->
     <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
         <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-3">
@@ -1043,6 +1136,6 @@
         </aside>
     </main>
 
-    <script src="/app.js?v=project4"></script>
+    <script src="/app.js?v=20261123_hist"></script>
 </body>
 </html>

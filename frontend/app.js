@@ -1325,7 +1325,8 @@ let currentTab = 'supabase';
                     const json = await res.json();
                     const rows = json.data || [];
                     if (currentTab === 'project') {
-                        window.__LAST_PROJECT_ROWS = rows;
+                        window.__LAST_PROJECT_ROWS = (typeof mergeProjectRows === 'function') ? mergeProjectRows(rows, window.__LAST_PROJECT_ROWS || []) : rows;
+                        if (!window.__PROJECT_HISTORY_LOADED && typeof loadProjectHistory === 'function') { loadProjectHistory(true); }
                         const s = json.confidence_summary || {};
                         applyProjectFilters();
                         status.innerText = `✅ Ditemukan ${rows.length} project • Fix Bisa Masuk: ${s.fix_bisa_masuk || 0} • Fifty-Fifty: ${s.fifty_fifty || 0} • Tidak Bisa: ${s.tidak_bisa || 0}`;
@@ -1877,8 +1878,68 @@ window.addEventListener('DOMContentLoaded', () => {
         applyProjectFilters();
     }
 
+    // === DDC PROJECT HUNTER HISTORY MERGE ===
+    function mergeProjectRows(primaryRows, secondaryRows) {
+        const merged = [];
+        const seen = new Set();
+        for (const list of [primaryRows || [], secondaryRows || []]) {
+            for (const r of list) {
+                if (!r || typeof r !== 'object') continue;
+                const url = String(r.url || '').trim().toLowerCase();
+                const title = String(r.title || '').trim().toLowerCase();
+                const plat = String(r.source_platform || r.platform || '').trim().toLowerCase();
+                if (!title && !url) continue;
+                const key = title + '|' + (url.startsWith('http') ? url : plat);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                merged.push(r);
+            }
+        }
+        return merged;
+    }
+    window.mergeProjectRows = mergeProjectRows;
+
+    let __projectHistoryPromise = null;
+    async function loadProjectHistory(force = false) {
+        if (!force && window.__PROJECT_HISTORY_LOADED && Array.isArray(window.__LAST_PROJECT_ROWS) && window.__LAST_PROJECT_ROWS.length > 0) {
+            applyProjectFilters();
+            return window.__LAST_PROJECT_ROWS;
+        }
+        if (__projectHistoryPromise && !force) return __projectHistoryPromise;
+
+        __projectHistoryPromise = (async () => {
+            try {
+                const resp = await fetch('/api/v1/project/records?limit=5000' + (force ? '&refresh=true' : ''));
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const payload = await resp.json();
+                const histRows = Array.isArray(payload.data) ? payload.data : [];
+                window.__LAST_PROJECT_ROWS = mergeProjectRows(window.__LAST_PROJECT_ROWS || [], histRows);
+                window.__PROJECT_HISTORY_LOADED = true;
+                if (typeof currentTab === 'undefined' || currentTab === 'project') {
+                    applyProjectFilters();
+                }
+                return window.__LAST_PROJECT_ROWS;
+            } catch (err) {
+                console.warn('[Project Hunter] Gagal memuat arsip historis:', err);
+                return window.__LAST_PROJECT_ROWS || [];
+            } finally {
+                __projectHistoryPromise = null;
+            }
+        })();
+        return __projectHistoryPromise;
+    }
+    window.loadProjectHistory = loadProjectHistory;
+    // === DDC AUTO-LOAD PROJECT HISTORY ON DIRECT URL ===
+    if (window.location.pathname.toLowerCase().includes('/dashboard/project') ||
+        new URLSearchParams(window.location.search).get('page') === 'project') {
+        setTimeout(() => { loadProjectHistory(false); }, 50);
+    }
+
     async function showProjectResults() {
         toggleCenterChartsByTab('project');
+        if (!window.__PROJECT_HISTORY_LOADED) {
+            await loadProjectHistory(false);
+        }
         const rows = window.__LAST_PROJECT_ROWS || [];
         if (rows.length === 0) {
             await executeAction(true);
@@ -1896,6 +1957,9 @@ window.addEventListener('DOMContentLoaded', () => {
         toggleCenterChartsByTab(tab);
         if (tab === 'project') {
             applyProjectFilters();
+            if (!window.__PROJECT_HISTORY_LOADED) {
+                loadProjectHistory(false);
+            }
         } else {
             const banner = document.getElementById('reactive-banner');
             if (banner && (tab === 'keyword' || tab === 'berita' || tab === 'sosmed')) {

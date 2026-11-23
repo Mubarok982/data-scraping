@@ -1354,7 +1354,7 @@ def dashboard_ui():
 
 @app.get("/app.js")
 async def serve_frontend_app_js():
-    return FileResponse("frontend/app.js", media_type="application/javascript")
+    return FileResponse("frontend/app.js", media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 from fastapi import BackgroundTasks
 from backend.scheduler import start_scheduler, get_scheduler_status, run_batch_1000_rows
@@ -1657,3 +1657,163 @@ def serve_dashboard_subpage(page_name: str):
         with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as _f:
             return _f.read()
     return "<h1>Error: File frontend/index.html tidak ditemukan.</h1>"
+
+
+# === DDC PROJECT HUNTER HISTORICAL RECORDS (CSV + SUPABASE) ===
+import glob
+import hashlib as _proj_hashlib
+import json
+
+_PROJECT_RECORDS_CACHE = {"ts": 0.0, "payload": None}
+_PROJECT_STD_COLS = [
+    "platform", "source_platform", "title", "budget", "skills",
+    "confidence_status", "confidence_score", "project_service_type",
+    "matched_services", "fit_reason", "content", "published_at", "url"
+]
+
+def _invalidate_project_records_cache():
+    _PROJECT_RECORDS_CACHE["ts"] = 0.0
+    _PROJECT_RECORDS_CACHE["payload"] = None
+
+def _normalize_project_row(raw: dict) -> dict | None:
+    if not isinstance(raw, dict):
+        return None
+    src = raw
+    for k in ("payload", "raw_payload", "data"):
+        inner = raw.get(k)
+        if isinstance(inner, str) and inner.strip().startswith("{"):
+            try:
+                inner = json.loads(inner)
+            except Exception:
+                inner = None
+        if isinstance(inner, dict) and (inner.get("title") or inner.get("confidence_status")):
+            src = inner
+            break
+
+    title = str(src.get("title") or "").strip()
+    if not title or title.lower() in ("nan", "none"):
+        return None
+
+    out = {}
+    for col in _PROJECT_STD_COLS:
+        val = src.get(col, "")
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            val = ""
+        if col == "confidence_score":
+            try:
+                val = int(float(val))
+            except Exception:
+                val = 0
+        else:
+            s_val = str(val).strip()
+            val = "" if s_val.lower() in ("nan", "none") else s_val
+        out[col] = val
+
+    if not out["published_at"]:
+        fallback_dt = raw.get("collected_at") or raw.get("processed_at") or raw.get("created_at") or ""
+        out["published_at"] = str(fallback_dt)[:19] if fallback_dt else ""
+    if not out["confidence_status"]:
+        out["confidence_status"] = "Fifty-Fifty"
+    if not out["source_platform"]:
+        out["source_platform"] = out["platform"] or "Project Hunter"
+    return out
+
+def load_all_project_records(limit: int = 5000, force: bool = False) -> dict:
+    import time as _pt
+    now = _pt.time()
+    if not force and _PROJECT_RECORDS_CACHE["payload"] is not None and (now - _PROJECT_RECORDS_CACHE["ts"]) < 20:
+        cached = _PROJECT_RECORDS_CACHE["payload"]
+        if cached.get("limit_used", 0) >= limit:
+            return cached
+
+    merged = []
+    seen_keys = set()
+    csv_files_read = 0
+    db_rows_read = 0
+
+    def _add_row(raw_dict):
+        row = _normalize_project_row(raw_dict)
+        if not row:
+            return False
+        title_key = row["title"].strip().lower()
+        url_key = row["url"].strip().lower()
+        plat_key = row["source_platform"].strip().lower()
+        key = f"{title_key}|{url_key if url_key.startswith('http') else plat_key}"
+        if key in seen_keys:
+            return False
+        seen_keys.add(key)
+        merged.append(row)
+        return True
+
+    # A. Tarik data historis dari Supabase scraper.raw_data (terbaru dulu via collected_at)
+    try:
+        from backend.db import get_conn
+        conn = get_conn()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT payload, collected_at, data_type
+                        FROM scraper.raw_data
+                        WHERE data_type IN ('job_search', 'project_hunter', '/api/v1/project/search')
+                           OR payload ? 'confidence_status'
+                        ORDER BY collected_at DESC NULLS LAST
+                        LIMIT %s
+                        """,
+                        (limit,)
+                    )
+                    for r in cur.fetchall():
+                        row_dict = dict(r) if isinstance(r, dict) else {"payload": r[0], "collected_at": r[1]}
+                        if _add_row(row_dict):
+                            db_rows_read += 1
+            finally:
+                conn.close()
+    except Exception as _db_err:
+        print("⚠️ [Project Records] Gagal baca Supabase:", _db_err)
+
+    # B. Gabungkan seluruh arsip CSV lokal (project_hunter_*.csv & cron_job_search_*.csv)
+    patterns = [
+        os.path.join(BASE_OUTPUT_DIR, "project_hunter_*.csv"),
+        os.path.join(BASE_OUTPUT_DIR, "cron_job_search_*.csv"),
+        os.path.join(BASE_OUTPUT_DIR, "**", "project_hunter_*.csv"),
+        os.path.join(BASE_OUTPUT_DIR, "**", "cron_job_search_*.csv"),
+    ]
+    csv_paths = []
+    for pat in patterns:
+        csv_paths.extend(glob.glob(pat, recursive=True))
+    csv_paths = sorted(set(csv_paths), key=lambda p: os.path.getmtime(p), reverse=True)
+
+    for fp in csv_paths:
+        try:
+            df = pd.read_csv(fp).fillna("")
+            csv_files_read += 1
+            for rec in df.to_dict(orient="records"):
+                _add_row(rec)
+        except Exception:
+            continue
+
+    merged.sort(key=lambda x: (str(x.get("published_at") or ""), int(x.get("confidence_score") or 0)), reverse=True)
+    final_rows = merged[:limit]
+    summary = {
+        "fix_bisa_masuk": sum(1 for r in final_rows if r.get("confidence_status") == "Fix Bisa Masuk"),
+        "fifty_fifty": sum(1 for r in final_rows if r.get("confidence_status") == "Fifty-Fifty"),
+        "tidak_bisa": sum(1 for r in final_rows if r.get("confidence_status") == "Tidak Bisa"),
+    }
+    payload = {
+        "status": "success",
+        "platform": "project_hunter",
+        "total": len(final_rows),
+        "limit_used": limit,
+        "sources_meta": {"csv_files": csv_files_read, "db_rows_added": db_rows_read},
+        "confidence_summary": summary,
+        "data": final_rows,
+    }
+    _PROJECT_RECORDS_CACHE["ts"] = now
+    _PROJECT_RECORDS_CACHE["payload"] = payload
+    return payload
+
+@app.get("/api/v1/project/records", tags=["4. Project Hunter (Geekgarden Fit)"])
+def get_project_hunter_records(limit: int = Query(5000, ge=1, le=10000), refresh: bool = False):
+    """Mengambil seluruh gabungan data historis Project Hunter (Supabase + CSV lokal)."""
+    return load_all_project_records(limit=limit, force=refresh)
