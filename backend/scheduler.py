@@ -185,42 +185,17 @@ def _run_cron_job_search_200(batch_tag: str = "", target_rows: int = 200) -> dic
     dedup = []
     seen = set()
     for row in collected:
-        key = (row.get("url") or row.get("title") or "").strip().lower()
+        url_val = str(row.get("url") or "").strip()
+        if not url_val.startswith(("http://", "https://")) or "leads.ddc.id" in url_val.lower():
+            continue
+        key = url_val.lower()
         if not key or key in seen:
             continue
         seen.add(key)
         row["platform"] = "job_search"
         dedup.append(row)
 
-    # Jika hasil live < target_rows (misal limit jaringan), lengkapi hingga tepat target_rows
-    fallback_templates = [
-        ("Pembuatan Website Company Profile & CMS Enterprise", "LinkedIn Project Lead", "web, laravel, cms, software house, project", "Rp 25.000.000 - Rp 60.000.000"),
-        ("Pengembangan Aplikasi Mobile Flutter Android & iOS", "Projects.co.id", "flutter, mobile, rest api, freelance, project", "Rp 35.000.000 - Rp 85.000.000"),
-        ("Integrasi ERP Inventory & Dashboard Analytics", "LinkedIn Project Lead", "erp, custom software, dashboard, vendor, rfp", "Rp 75.000.000 - Rp 150.000.000"),
-        ("Redesign UI/UX Aplikasi Fintech di Figma", "Sribu", "ui/ux, figma, wireframe, prototype, project", "Rp 12.000.000 - Rp 25.000.000"),
-        ("Automation QA Testing Playwright & API Monitoring", "Upwork", "qa, automation test, playwright, contract", "USD 1500-3500"),
-        ("Dedicated Team Backend Python FastAPI & PostgreSQL", "LinkedIn Project Lead", "staff augmentation, python, fastapi, dedicated team", "Negosiasi / Kontrak"),
-        ("Integrasi Hardware Sensor IoT & Dashboard Web", "Projects.co.id", "iot sensor, hardware, web, dashboard, project", "Rp 20.000.000 - Rp 40.000.000"),
-        ("Jasa Desain Interior & Renovasi Kantor", "Web Freelance Lain", "interior, bangunan, konstruksi, project", "Rp 50.000.000"),
-    ]
-    idx = 0
-    while len(dedup) < target_rows:
-        t_title, t_src, t_skills, t_budget = fallback_templates[idx % len(fallback_templates)]
-        uid = f"{batch_tag[-6:]}-{idx + 1}"
-        title_u = f"{t_title} [Lead #{uid}]"
-        fit = evaluate_geekgarden_confidence(title_u, f"Kebutuhan {t_skills} untuk batch {batch_tag}", t_skills)
-        dedup.append({
-            "platform": "job_search",
-            "source_platform": t_src,
-            "title": title_u,
-            "budget": t_budget,
-            "skills": t_skills,
-            **fit,
-            "content": f"Ringkasan kebutuhan project ({t_src}): {t_title}.",
-            "published_at": datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S"),
-            "url": f"https://leads.ddc.id/project/{uid}",
-        })
-        idx += 1
+    # Hanya simpan hasil live dengan URL asli (tanpa padding dummy)
 
     dedup.sort(key=lambda x: x.get("confidence_score", 0), reverse=True)
     final_rows = dedup[:target_rows]
@@ -248,7 +223,8 @@ def _run_cron_job_search_200(batch_tag: str = "", target_rows: int = 200) -> dic
             "processing_status": "processed",
         })
     try:
-        auto_ingest_to_supabase("scraper", "raw_data", raw_job_list)
+        if raw_job_list:
+            auto_ingest_to_supabase("scraper", "raw_data", raw_job_list)
     except Exception as e:
         print("⚠️ Gagal ingest job_search ke Supabase:", e)
 

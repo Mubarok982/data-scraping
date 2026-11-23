@@ -1680,6 +1680,22 @@ def _invalidate_project_records_cache():
 def _normalize_project_row(raw: dict) -> dict | None:
     if not isinstance(raw, dict):
         return None
+    _p_chk = raw.get('payload') if isinstance(raw.get('payload'), dict) else {}
+    _u_chk = str(raw.get('url') or _p_chk.get('url') or raw.get('link') or _p_chk.get('link') or '').strip().lower()
+    _t_chk = str(raw.get('title') or _p_chk.get('title') or '').strip().lower()
+    _junk_hosts = (
+        'leads.ddc.id', 'whatsapp.com', 'wa.me', 'wikipedia.org',
+        'google.com', 'chromewebstore.google.com', 'telegram.org', 't.me',
+        'play.google.com', 'apps.apple.com', 'youtube.com', 'youtu.be'
+    )
+    if not _u_chk.startswith(('http://', 'https://')):
+        return None
+    if '[lead #' in _t_chk or any(_jh in _u_chk for _jh in _junk_hosts):
+        return None
+    if 'linkedin.com/' in _u_chk and any(_lp in _u_chk for _lp in ('/in/', '/company/')):
+        return None
+    if not isinstance(raw, dict):
+        return None
     src = raw
     for k in ("payload", "raw_payload", "data"):
         inner = raw.get(k)
