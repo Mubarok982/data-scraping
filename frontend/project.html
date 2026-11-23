@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4. Pencarian Project — DDC Portal</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('ddc_theme');
+                if (saved === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="/styles.css?v=20261123_proj_split">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232b2926%22/><text y=%22.9em%22 x=%2214%22 font-size=%2272%22 fill=%22white%22>D</text></svg>">
+</head>
+
+<body data-page="project" class="ddc-page-project bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
+<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
+     class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"></div>
+
+<aside id="ddc-sidebar"
+       class="fixed inset-y-0 left-0 z-50 w-[16.5rem] bg-white dark:bg-[#14171F] border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+
+    <div class="p-4 overflow-y-auto space-y-6">
+        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
+               class="flex items-center gap-2.5 no-underline group">
+                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                </span>
+                <div>
+                    <div class="font-semibold text-sm text-slate-900 dark:text-white leading-tight tracking-tight">DDC Portal</div>
+                    <div class="text-[11px] text-slate-500 dark:text-zinc-400">Data Warehouse</div>
+                </div>
+            </a>
+            <button type="button"
+                    onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()"
+                    title="Lipat Sidebar"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                Data &amp; Arsip
+            </div>
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="database" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">Database Supabase</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Live</span>
+            </a>
+            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="archive" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">Bank Data (CSV)</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">CSV</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                Scraper Manual
+            </div>
+            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="trending-up" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">1. Keyword &amp; Trend</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">KW</span>
+            </a>
+            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="newspaper" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">2. Portal Berita</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">News</span>
+            </a>
+            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="share-2" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">3. Social Media</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">Social</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Project &amp; Lead Hunter
+            </div>
+            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-zinc-800 dark:text-white shadow-2xs transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="briefcase" class="w-4 h-4 shrink-0 opacity-90"></i>
+                    <span class="truncate">4. Pencarian Project</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Fit</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="p-3.5 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
+        <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Project Fit ≥ 80%</span>
+            </span>
+            <a href="/docs" target="_blank" class="text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium inline-flex items-center gap-1 no-underline">
+                <span>API</span>
+                <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+            </a>
+        </div>
+    </div>
+</aside>
+
+<div class="hidden" aria-hidden="true">
+    <button type="button" id="tab-project"></button>
+</div>
+
+<div class="max-w-[1680px] mx-auto px-4 sm:px-6 pt-4 pb-1">
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
+        <div class="flex items-center gap-3 min-w-0">
+            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Menu"
+                    class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="menu" class="w-4 h-4"></i>
+            </button>
+            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
+                    class="hidden items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="panel-left-open" class="w-4 h-4"></i>
+            </button>
+
+            <div class="min-w-0">
+                <h1 id="ddc-page-title" class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight truncate">
+                    4. Pencarian Project
+                </h1>
+                <p id="ddc-page-desc" class="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                    Pencarian peluang project freelance &amp; klasifikasi kecocokan Geekgarden.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Project Hunter Live
+            </span>
+
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terang / Gelap"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
+                <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
+                <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
+                <span class="hidden sm:inline dark:hidden">Mode Gelap</span>
+                <span class="hidden dark:sm:inline">Mode Terang</span>
+            </button>
+
+            <button type="button" onclick="ddcReloadProjectPage()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh</span>
+            </button>
+
+            <a href="/docs" target="_blank"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 shadow-2xs transition no-underline">
+                <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Swagger API</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<main class="max-w-[1680px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+
+    <aside class="xl:col-span-3 min-w-0 space-y-5">
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-slate-500 dark:text-zinc-400 shrink-0"></i>
+                    <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight truncate">
+                        Parameter &amp; Filter Project
+                    </span>
+                </div>
+                <button type="button" onclick="ddcResetProjectFilters()"
+                        class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition shrink-0">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+
+            <div id="form-project" class="space-y-3.5">
+                <div>
+                    <label for="proj-sources" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Sumber Platform Project</label>
+                    <select id="proj-sources" class="ddc-field">
+                        <option value="all">Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
+                        <option value="linkedin">LinkedIn Project Leads</option>
+                        <option value="projects_coid">Projects.co.id (Lokal Indonesia)</option>
+                        <option value="freelancer">Freelancer.com (Public API)</option>
+                        <option value="web_leads">Sribu / Upwork / Fastwork / Portal Lain</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="proj-input" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Keyword / Tech Stack / Jenis Project</label>
+                    <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="ddc-field">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label for="proj-region" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Wilayah</label>
+                        <select id="proj-region" class="ddc-field">
+                            <option value="id">Indonesia</option>
+                            <option value="global">Global</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proj-limit" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Jumlah Target</label>
+                        <input id="proj-limit" type="number" value="20" min="1" max="50" class="ddc-field tabular-nums">
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2.5">
+                    <div class="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                            <span>Filter Hasil &amp; Confidence</span>
+                        </span>
+                        <span class="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Realtime</span>
+                    </div>
+                    <div>
+                        <label for="proj-filter-conf" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
+                        <select id="proj-filter-conf" onchange="ddcApplyProjectAll()" class="ddc-field">
+                            <option value="">-- Semua Status --</option>
+                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
+                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
+                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proj-filter-source" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Filter Sumber Hasil</label>
+                        <select id="proj-filter-source" onchange="ddcApplyProjectAll()" class="ddc-field">
+                            <option value="">-- Semua Sumber --</option>
+                            <option value="linkedin">LinkedIn Project Lead</option>
+                            <option value="projects.co.id">Projects.co.id</option>
+                            <option value="freelancer">Freelancer.com</option>
+                            <option value="sribu">Sribu</option>
+                            <option value="upwork">Upwork</option>
+                            <option value="fastwork">Fastwork</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proj-filter-service" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
+                        <select id="proj-filter-service" onchange="ddcApplyProjectAll()" class="ddc-field">
+                            <option value="">-- Semua Tipe Layanan --</option>
+                            <option value="web & mobile">Web & Mobile Development</option>
+                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                            <option value="ui/ux">UI/UX Design & Product</option>
+                            <option value="qa">QA & Software Testing</option>
+                            <option value="staff augmentation">IT Staff Augmentation</option>
+                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="ddcReloadProjectPage()" id="btn-proj-show"
+                            class="mt-1 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg shadow-2xs transition inline-flex items-center justify-center gap-1.5">
+                        <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
+                        <span>Muat Ulang Hasil &amp; Grafik</span>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" onclick="executeAction(true)" id="btn-run"
+                    class="mt-4 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition">
+                Cari Project &amp; Cek Confidence
+            </button>
+
+            <div id="scraper-progress-box" class="hidden mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0F1117] border border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span id="scraper-progress-label" class="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                        Scraper Project Berjalan...
+                    </span>
+                    <span id="scraper-elapsed-timer" class="font-mono tabular-nums text-xs font-semibold text-amber-700 dark:text-amber-300 shrink-0 ml-2">
+                        00:00
+                    </span>
+                </div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div id="scraper-progress-bar"
+                         class="h-full w-0 bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-300">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400">
+                    <span id="scraper-progress-sub" class="truncate">Menghubungkan ke endpoint scraper...</span>
+                    <span id="scraper-progress-pct" class="font-mono tabular-nums text-slate-700 dark:text-zinc-200 ml-2">0%</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <section class="xl:col-span-6 min-w-0 space-y-5">
+        <div id="project-charts-panel" class="space-y-5">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div onclick="ddcQuickProjectConf('fix bisa masuk')"
+                     class="cursor-pointer bg-emerald-50/80 hover:bg-emerald-50 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">Fix Bisa Masuk</span>
+                    </div>
+                    <div id="pkpi-fix" class="text-2xl font-bold tabular-nums text-emerald-800 dark:text-emerald-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-emerald-700/80 dark:text-zinc-400 mt-0.5">Skor ≥ 80% (Klik filter)</div>
+                </div>
+
+                <div onclick="ddcQuickProjectConf('fifty-fifty')"
+                     class="cursor-pointer bg-amber-50/80 hover:bg-amber-50 dark:bg-amber-950/25 dark:hover:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        <i data-lucide="scale" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">Fifty-Fifty</span>
+                    </div>
+                    <div id="pkpi-fifty" class="text-2xl font-bold tabular-nums text-amber-800 dark:text-amber-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-amber-700/80 dark:text-zinc-400 mt-0.5">Skor 40–79% (Klik filter)</div>
+                </div>
+
+                <div onclick="ddcQuickProjectConf('tidak bisa')"
+                     class="cursor-pointer bg-rose-50/80 hover:bg-rose-50 dark:bg-rose-950/25 dark:hover:bg-rose-950/40 border border-rose-200/90 dark:border-rose-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-300">
+                        <i data-lucide="x-circle" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">Tidak Bisa</span>
+                    </div>
+                    <div id="pkpi-no" class="text-2xl font-bold tabular-nums text-rose-800 dark:text-rose-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-rose-700/80 dark:text-zinc-400 mt-0.5">Skor &lt; 40% (Klik filter)</div>
+                </div>
+
+                <div onclick="ddcQuickProjectConf('')"
+                     class="cursor-pointer bg-white hover:bg-slate-50 dark:bg-[#14171F] dark:hover:bg-zinc-800/70 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">Rata-rata Fit</span>
+                    </div>
+                    <div id="pkpi-avg" class="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-1.5">0%</div>
+                    <div id="pkpi-total" class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 tabular-nums">Memuat project...</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Distribusi Confidence Geekgarden</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Proporsi kelayakan project (klik slice untuk filter)</p>
+                    </div>
+                    <div class="h-56 relative"><canvas id="chartProjConfidence"></canvas></div>
+                </div>
+
+                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Sebaran Sumber Platform Project</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Jumlah lead dari LinkedIn, Projects.co.id, Freelancer, dll.</p>
+                    </div>
+                    <div class="h-56 relative"><canvas id="chartProjSources"></canvas></div>
+                </div>
+
+                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Kecocokan Tipe Layanan Geekgarden</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Klasifikasi kebutuhan project berdasarkan layanan</p>
+                    </div>
+                    <div class="h-56 relative"><canvas id="chartProjServices"></canvas></div>
+                </div>
+
+                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Project Paling Potensial</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Skor confidence tertinggi (klik bar untuk buka link)</p>
+                    </div>
+                    <div class="h-56 relative"><canvas id="chartProjTopScores"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex flex-wrap justify-between items-center gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-zinc-800">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="table-2" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                        <span>Daftar Peluang Project</span>
+                        <span class="text-[11px] font-medium tabular-nums px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 rounded-full">
+                            <span id="row-count">0</span> baris
+                        </span>
+                    </h2>
+                    <p id="status-text" class="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Memuat data peluang project...
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="ddcResetProjectFilters()"
+                            class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[11px] font-medium rounded-lg transition">
+                        Reset Filter
+                    </button>
+                    <a id="btn-download" href="#"
+                       class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition no-underline">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Download CSV</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto max-h-[480px] border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#0F1117]">
+                <table class="w-full text-left text-xs text-slate-700 dark:text-zinc-300 tabular-nums">
+                    <thead id="table-head" class="bg-slate-50 dark:bg-[#161a24] text-slate-500 dark:text-zinc-400 uppercase text-[11px] font-semibold sticky top-0 z-10"></thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-zinc-800/70">
+                        <tr><td class="p-8 text-center text-slate-400 dark:text-zinc-500">Memuat data project...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <aside class="xl:col-span-3 min-w-0">
+        <div id="project-right-charts" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-1 gap-5">
+            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="min-w-0">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Top Skill &amp; Tech Stack</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Teknologi paling sering dicari klien</p>
+                    </div>
+                    <i data-lucide="cpu" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+                </div>
+                <div class="h-52 relative"><canvas id="chartProjSkills"></canvas></div>
+            </div>
+
+            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="min-w-0">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Sebaran Skor Confidence</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Distribusi skor fit (klik bar untuk filter)</p>
+                    </div>
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+                </div>
+                <div class="h-48 relative"><canvas id="chartProjScoreDist"></canvas></div>
+            </div>
+
+            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="min-w-0">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Tren Peluang Project Masuk</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Total lead vs peluang ≥ 80% per tanggal</p>
+                    </div>
+                    <i data-lucide="activity" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+                </div>
+                <div class="h-48 relative"><canvas id="chartProjTimeline"></canvas></div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
+<script src="/app.js?v=20261123_proj_split"></script>
+</body>
+</html>

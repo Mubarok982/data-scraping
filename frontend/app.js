@@ -1,3 +1,37 @@
+/* DDC_PROJECT_FETCH_GUARD_START */
+(function () {
+    const isStandaloneProject = () =>
+        (document.body && document.body.dataset && document.body.dataset.page === "project") ||
+        /^\/dashboard\/project\/?$/i.test(window.location.pathname || "");
+
+    if (window.fetch && !window.fetch.__ddcStandaloneGuard) {
+        const _nativeFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            let url = typeof input === "string" ? input : (input && input.url) || "";
+            if (isStandaloneProject()) {
+                if (/\/api\/v1\/(warehouse\/analytics|warehouse\/records|bank-data\/|scheduler\/status)/i.test(url)) {
+                    const emptyBody = url.includes("analytics")
+                        ? { status: "ok", analytics: {}, stats: {} }
+                        : url.includes("scheduler")
+                        ? { status: "idle" }
+                        : { status: "ok", data: [], records: [], files: [] };
+                    return new Response(JSON.stringify(emptyBody), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
+                if (/\/api\/v1\/project\/records\b/i.test(url) && /limit=5000\b/i.test(url)) {
+                    url = url.replace(/limit=5000\b/i, "limit=500");
+                    input = typeof input === "string" ? url : new Request(url, input);
+                }
+            }
+            return _nativeFetch(input, init);
+        };
+        window.fetch.__ddcStandaloneGuard = true;
+    }
+})();
+/* DDC_PROJECT_FETCH_GUARD_END */
+
 let currentTab = 'supabase';
         let chartLoc = null, chartPpl = null, chartKw = null, chartTime = null, chartSent = null, chartViral = null, chartHash = null, chartSystem = null;
 
@@ -1909,7 +1943,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         __projectHistoryPromise = (async () => {
             try {
-                const resp = await fetch('/api/v1/project/records?limit=5000' + (force ? '&refresh=true' : ''));
+                const resp = await fetch('/api/v1/project/records?limit=500' + (force ? '&refresh=true' : ''));
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 const payload = await resp.json();
                 const histRows = Array.isArray(payload.data) ? payload.data : [];
@@ -1975,3 +2009,979 @@ window.addEventListener('DOMContentLoaded', () => {
     window.quickFilterProjectConf = quickFilterProjectConf;
 })();
 
+
+
+/* DDC_UNIFIED_SHELL_AND_PROJECT_START */
+(function () {
+    const isProjectStandalone = () =>
+        (document.body && document.body.dataset && document.body.dataset.page === "project") ||
+        /^\/dashboard\/project\/?$/i.test(window.location.pathname || "");
+
+    const PAGE_META = {
+        supabase: { title: "Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
+        bank:     { title: "Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
+        keyword:  { title: "1. Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
+        berita:   { title: "2. Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
+        sosmed:   { title: "3. Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
+        project:  { title: "4. Pencarian Project", desc: "Pencarian peluang project freelance & klasifikasi kecocokan Geekgarden." }
+    };
+
+    const ALL_DEFAULT_CHARTS = [
+        "chartLocations",
+        "chartPeople",
+        "chartViral",
+        "chartHashtags",
+        "chartKeywords",
+        "chartTimeline",
+        "chartSystem"
+    ];
+
+    const TAB_CHART_CONFIG = {
+        supabase: { charts: ALL_DEFAULT_CHARTS, showSentiment: true },
+        bank:     { charts: ["chartLocations", "chartKeywords", "chartViral", "chartTimeline"], showSentiment: true },
+        keyword:  { charts: ["chartKeywords", "chartTimeline", "chartLocations", "chartHashtags"], showSentiment: false },
+        berita:   { charts: ["chartLocations", "chartPeople", "chartKeywords", "chartTimeline"], showSentiment: true },
+        sosmed:   { charts: ["chartViral", "chartHashtags", "chartKeywords", "chartPeople", "chartTimeline"], showSentiment: true }
+    };
+
+    const ACTIVE_SB = ["bg-slate-900", "text-white", "dark:bg-zinc-800", "dark:text-white", "font-semibold", "shadow-2xs"];
+    const INACTIVE_SB = ["text-slate-600", "dark:text-zinc-400", "hover:bg-slate-100", "dark:hover:bg-zinc-800/70", "font-medium"];
+
+    function getThemeColors() {
+        const isDark = document.documentElement.classList.contains("dark");
+        return {
+            text: isDark ? "#a8acb8" : "#5c5852",
+            grid: isDark ? "rgba(75, 82, 99, 0.32)" : "rgba(214, 208, 198, 0.72)"
+        };
+    }
+
+    function applyChartTheme() {
+        if (typeof Chart === "undefined") return;
+        const colors = getThemeColors();
+        Chart.defaults.color = colors.text;
+        Chart.defaults.borderColor = colors.grid;
+        Chart.defaults.font.family = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
+
+        const instances = Chart.instances ? Object.values(Chart.instances) : [];
+        instances.forEach((chart) => {
+            if (!chart || !chart.options) return;
+            if (chart.options.plugins?.legend?.labels) {
+                chart.options.plugins.legend.labels.color = colors.text;
+            }
+            if (chart.options.scales) {
+                Object.values(chart.options.scales).forEach((scale) => {
+                    if (!scale) return;
+                    if (scale.ticks) scale.ticks.color = colors.text;
+                    if (scale.grid) scale.grid.color = colors.grid;
+                });
+            }
+            try { chart.update("none"); } catch (e) {}
+        });
+    }
+    window.ddcApplyChartTheme = applyChartTheme;
+
+    let _themeTimer = null;
+    window.ddcToggleTheme = function (ev) {
+        const htmlEl = document.documentElement;
+        const nowDark = !htmlEl.classList.contains("dark");
+        const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        const commitTheme = () => {
+            htmlEl.classList.toggle("dark", nowDark);
+            try { localStorage.setItem("ddc_theme", nowDark ? "dark" : "light"); } catch (e) {}
+            applyChartTheme();
+        };
+
+        if (!reduceMotion && typeof document.startViewTransition === "function") {
+            const btn = document.getElementById("ddc-theme-toggle");
+            let x = window.innerWidth - 60;
+            let y = 28;
+            if (ev && typeof ev.clientX === "number" && (ev.clientX !== 0 || ev.clientY !== 0)) {
+                x = ev.clientX;
+                y = ev.clientY;
+            } else if (btn) {
+                const rect = btn.getBoundingClientRect();
+                x = rect.left + rect.width / 2;
+                y = rect.top + rect.height / 2;
+            }
+            const endRadius = Math.hypot(
+                Math.max(x, window.innerWidth - x),
+                Math.max(y, window.innerHeight - y)
+            );
+            const transition = document.startViewTransition(() => commitTheme());
+            transition.ready.then(() => {
+                document.documentElement.animate(
+                    {
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${endRadius}px at ${x}px ${y}px)`
+                        ]
+                    },
+                    {
+                        duration: 550,
+                        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                        pseudoElement: "::view-transition-new(root)"
+                    }
+                );
+            }).catch(() => {});
+            return;
+        }
+
+        if (!reduceMotion) {
+            htmlEl.classList.add("ddc-theme-transitioning");
+            clearTimeout(_themeTimer);
+            _themeTimer = setTimeout(() => htmlEl.classList.remove("ddc-theme-transitioning"), 460);
+        }
+        commitTheme();
+    };
+
+    window.ddcToggleMobileSidebar = function (forceOpen) {
+        const sidebar = document.getElementById("ddc-sidebar");
+        const overlay = document.getElementById("ddc-sidebar-overlay");
+        if (!sidebar) return;
+        const isClosed = sidebar.classList.contains("-translate-x-full");
+        const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
+        sidebar.classList.toggle("-translate-x-full", !open);
+        if (overlay) overlay.classList.toggle("hidden", !open);
+    };
+
+    window.ddcToggleDesktopSidebar = function () {
+        const reopenBtn = document.getElementById("ddc-sidebar-reopen");
+        document.body.classList.toggle("ddc-sb-collapsed");
+        const collapsed = document.body.classList.contains("ddc-sb-collapsed");
+        if (reopenBtn) {
+            reopenBtn.classList.toggle("hidden", !collapsed);
+            reopenBtn.classList.toggle("lg:inline-flex", collapsed);
+        }
+        setTimeout(() => {
+            if (typeof Chart !== "undefined" && Chart.instances) {
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
+                });
+            }
+        }, 220);
+    };
+
+    function getTabFromUrl() {
+        if (isProjectStandalone()) return "project";
+        const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
+        if (parts[0] === "dashboard" && PAGE_META[parts[1]]) return parts[1];
+        const q = (new URLSearchParams(window.location.search).get("page") || "").toLowerCase();
+        if (q && PAGE_META[q]) return q;
+        return "supabase";
+    }
+
+    function updateSidebarUI(tab) {
+        const activeTab = PAGE_META[tab] ? tab : "supabase";
+        document.querySelectorAll(".ddc-sb-item").forEach((el) => {
+            const isAct = el.getAttribute("data-ddc-tab") === activeTab;
+            ACTIVE_SB.forEach((c) => el.classList.toggle(c, isAct));
+            INACTIVE_SB.forEach((c) => el.classList.toggle(c, !isAct));
+        });
+        const meta = PAGE_META[activeTab];
+        const tEl = document.getElementById("ddc-page-title");
+        const dEl = document.getElementById("ddc-page-desc");
+        if (tEl) tEl.textContent = meta.title;
+        if (dEl) dEl.textContent = meta.desc;
+        document.title = meta.title + " — DDC Portal";
+    }
+
+    function applyChartsForTab(tab) {
+        if (isProjectStandalone()) return;
+        const activeTab = TAB_CHART_CONFIG[tab] ? tab : "supabase";
+        const cfg = TAB_CHART_CONFIG[activeTab];
+
+        const banner = document.getElementById("reactive-banner");
+        if (banner) banner.classList.add("hidden");
+
+        const visibleCards = [];
+        ALL_DEFAULT_CHARTS.forEach((canvasId) => {
+            const canvas = document.getElementById(canvasId);
+            const card = canvas ? canvas.closest("#default-charts-grid > div") : null;
+            if (!card) return;
+            const isVisible = cfg.charts.includes(canvasId);
+            card.classList.toggle("hidden", !isVisible);
+            card.classList.remove("md:col-span-2");
+            if (isVisible) visibleCards.push(card);
+        });
+        if (visibleCards.length % 2 === 1) {
+            visibleCards[visibleCards.length - 1].classList.add("md:col-span-2");
+        }
+
+        const sentCanvas = document.getElementById("chartSentiment");
+        const sentCard = sentCanvas ? sentCanvas.closest("aside > div") : null;
+        if (sentCard) sentCard.classList.toggle("hidden", !cfg.showSentiment);
+
+        requestAnimationFrame(() => {
+            if (typeof Chart !== "undefined" && Chart.instances) {
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
+                });
+            }
+        });
+    }
+    window.ddcApplyChartsForTab = applyChartsForTab;
+
+    let _syncingUrl = false;
+    window.ddcGoPage = function (tab, ev) {
+        if (ev && (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) return true;
+        const target = PAGE_META[tab] ? tab : "supabase";
+        const targetPath = "/dashboard/" + target;
+
+        // Perpindahan masuk/keluar halaman terpisah frontend/project.html memakai navigasi penuh
+        const currentlyProject = isProjectStandalone();
+        if ((currentlyProject && target !== "project") || (!currentlyProject && target === "project")) {
+            if (ev) ev.preventDefault();
+            window.location.href = targetPath;
+            return false;
+        }
+        if (currentlyProject && target === "project") {
+            if (ev) ev.preventDefault();
+            if (window.innerWidth < 1024) window.ddcToggleMobileSidebar(false);
+            window.scrollTo({ top: 0, behavior: "instant" });
+            return false;
+        }
+
+        if (ev) ev.preventDefault();
+        if (window.location.pathname !== targetPath) {
+            try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
+        }
+        updateSidebarUI(target);
+        if (typeof window.switchTab === "function") {
+            _syncingUrl = true;
+            try { window.switchTab(target); } finally { _syncingUrl = false; }
+        }
+        applyChartsForTab(target);
+        if (window.innerWidth < 1024) window.ddcToggleMobileSidebar(false);
+        window.scrollTo({ top: 0, behavior: "instant" });
+        setTimeout(applyChartTheme, 200);
+        return false;
+    };
+
+    /* =========================================================================
+       SOCIAL KEYWORD CHART FALLBACK (KHUSUS HALAMAN INDEX.HTML)
+       ========================================================================= */
+    const STOPWORDS = new Set([
+        "yang","dan","di","ke","dari","ini","itu","untuk","dengan","pada","adalah","tidak","tak","ada","bisa",
+        "akan","juga","atau","dalam","oleh","sudah","telah","secara","sebagai","agar","karena","saat","bagi",
+        "para","kami","kita","saya","aku","anda","kamu","mereka","dia","beliau","lebih","sangat","masih","hanya",
+        "dapat","harus","jadi","tapi","tetapi","namun","seperti","bahwa","jika","kalau","bila","ketika","hingga",
+        "sampai","antara","atas","bawah","depan","belakang","tentang","terhadap","melalui","semua","seluruh",
+        "setiap","banyak","sedikit","baru","lama","besar","kecil","hari","bulan","tahun","waktu","orang","pihak",
+        "hal","cara","buat","bikin","mau","ingin","belum","lagi","saja","aja","kok","sih","nih","dong","deh",
+        "kan","yah","yaa","yuk","apa","siapa","mana","kenapa","mengapa","bagaimana","berapa","pun","nya",
+        "tersebut","berikut","lain","lainnya","serta","maupun","sama","terus","lalu","kemudian","sehingga",
+        "selama","sebelum","sesudah","setelah","tanpa","punya","memiliki","menjadi","melakukan","memberikan",
+        "mengatakan","menurut","sementara","sekitar","hampir","cukup","terlalu","paling","bukan","jangan","pernah",
+        "selalu","sering","kadang","mungkin","pasti","tentu","memang","cuma","banget","bgt","yg","dgn","utk",
+        "dr","pd","tdk","gk","ga","gak","nggak","tp","krn","sdh","blm","dlm","org","jd","bs","lg","sm",
+        "the","and","for","with","this","that","from","have","has","had","your","you","are","was","were","been",
+        "will","would","can","could","should","about","into","over","after","before","more","most","some","such",
+        "only","than","then","just","also","very","here","there","when","where","what","which","who","how","why",
+        "not","but","out","all","any","our","their","they","them","she","her","his","him","its","one","two",
+        "http","https","www","com","net","org","co","id","php","html","amp","via","fyp","viral","video","foto",
+        "photo","post","reel","reels","story","feed","instagram","tiktok","facebook","twitter","thread","threads",
+        "linkedin","youtube","shorts","link","bio","klik","follow","like","comment","share","subscribe","dm",
+        "cek","simak","baca","selengkapnya","lengkapnya","berita","update","info","terbaru","hariini","indonesia"
+    ]);
+    const IGNORE_HEADER_RE = /^(no|#|id|url|link|tautan|date|tanggal|tgl|waktu|time|created|published|collected|scraped|likes?|comments?|shares?|views?|retweets?|replies|engagement|score|skor|sentiment|sentimen|platform|source|sumber|tool|engine|author|username|user|akun|account|status|budget|kategori|category|tipe|type)$/i;
+    const TEXT_HEADER_RE = /(keyword|kueri|query|topik|topic|title|judul|caption|content|konten|text|teks|deskripsi|description|hashtag|tagar|tag|snippet|ringkasan|summary|message|pesan|body)/i;
+
+    let kwDebounce = null;
+    function tokenizeText(raw) {
+        if (!raw) return [];
+        const cleaned = String(raw)
+            .toLowerCase()
+            .replace(/https?:\/\/\S+/g, " ")
+            .replace(/www\.\S+/g, " ")
+            .replace(/@[a-z0-9._-]+/g, " ")
+            .replace(/&[a-z]+;/g, " ")
+            .replace(/[^a-z0-9#\s]/g, " ");
+        const uniq = new Set();
+        for (let tok of cleaned.split(/\s+/)) {
+            if (!tok) continue;
+            if (tok.startsWith("#")) tok = tok.slice(1);
+            if (tok.length < 3 || tok.length > 28 || /^\d+$/.test(tok) || STOPWORDS.has(tok)) continue;
+            uniq.add(tok);
+        }
+        return Array.from(uniq);
+    }
+
+    function ensureSocialKeywordChart() {
+        if (isProjectStandalone() || typeof Chart === "undefined") return;
+        const canvas = document.getElementById("chartKeywords");
+        if (!canvas) return;
+        const card = canvas.closest("#default-charts-grid > div");
+        if (card && card.classList.contains("hidden")) return;
+
+        let chart = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+        if (chart && chart.data) {
+            const labels = chart.data.labels || [];
+            const datasets = chart.data.datasets || [];
+            const keyNow = JSON.stringify(labels);
+            if (chart.__ddcIsFallback && chart.__ddcFallbackKey !== keyNow) chart.__ddcIsFallback = false;
+            const total = datasets.reduce((acc, ds) => acc + (ds.data || []).reduce((a, v) => a + Math.abs(Number(v) || 0), 0), 0);
+            const placeholderOnly = !labels.length || labels.every((l) => /^(belum ada|tidak ada|kosong|no data|none|n\/a|-|\s*)$/i.test(String(l || "").trim()));
+            if (total > 0 && !placeholderOnly && !chart.__ddcIsFallback) return;
+        }
+
+        const tbody = document.getElementById("table-body");
+        if (!tbody) return;
+        const trs = Array.from(tbody.querySelectorAll("tr"));
+        const headers = Array.from(document.querySelectorAll("#table-head th")).map((th) => (th.textContent || "").trim());
+        const pref = [], fb = [];
+        headers.forEach((h, i) => {
+            if (TEXT_HEADER_RE.test(h)) pref.push(i);
+            else if (h && !IGNORE_HEADER_RE.test(h)) fb.push(i);
+        });
+        const cols = pref.length ? pref : fb;
+        const counts = new Map();
+        for (const tr of trs) {
+            const tds = Array.from(tr.querySelectorAll("td"));
+            if (tds.length <= 1) continue;
+            const txt = cols.length
+                ? cols.map((i) => (tds[i] ? tds[i].textContent : "")).join(" ")
+                : tds.map((td) => td.textContent || "").join(" ");
+            for (const tok of tokenizeText(txt)) counts.set(tok, (counts.get(tok) || 0) + 1);
+        }
+        const topPairs = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        if (!topPairs.length) return;
+
+        const labels = topPairs.map(([k]) => k);
+        const values = topPairs.map(([, v]) => v);
+        const colors = getThemeColors();
+        if (chart) {
+            chart.data.labels = labels;
+            if (!chart.data.datasets?.length) {
+                chart.data.datasets = [{ label: "Frekuensi Kata Kunci", data: values, backgroundColor: "rgba(99, 102, 241, 0.78)", borderRadius: 6 }];
+            } else {
+                chart.data.datasets[0].label = "Frekuensi Kata Kunci";
+                chart.data.datasets[0].data = values;
+            }
+            chart.__ddcIsFallback = true;
+            chart.__ddcFallbackKey = JSON.stringify(labels);
+            try { chart.update(); } catch (e) {}
+        } else {
+            const c = new Chart(canvas.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [{ label: "Frekuensi Kata Kunci", data: values, backgroundColor: "rgba(99, 102, 241, 0.78)", borderRadius: 6 }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: colors.text, precision: 0 }, grid: { color: colors.grid } },
+                        y: { ticks: { color: colors.text, font: { size: 11 } }, grid: { display: false } }
+                    }
+                }
+            });
+            c.__ddcIsFallback = true;
+            c.__ddcFallbackKey = JSON.stringify(labels);
+        }
+    }
+
+    /* =========================================================================
+       PROJECT HUNTER STANDALONE CONTROLLER (KHUSUS frontend/project.html)
+       ========================================================================= */
+    const TECH_PATTERNS = [
+        ["Web / Website", /\b(web|website|webapp|landing page|company profile|frontend|backend|fullstack)\b/i],
+        ["Mobile / Android / iOS", /\b(mobile|android|ios|aplikasi|app)\b/i],
+        ["Flutter", /\bflutter\b/i],
+        ["React / Next.js", /\b(react|nextjs|next\.js|reactjs)\b/i],
+        ["Laravel / PHP", /\b(laravel|php|codeigniter)\b/i],
+        ["Python / FastAPI", /\b(python|fastapi|django|flask)\b/i],
+        ["Node.js / JS / TS", /\b(node\.?js|javascript|typescript|express|nestjs)\b/i],
+        ["UI / UX Design", /\b(ui\/?ux|figma|ui design|ux design|wireframe|prototype)\b/i],
+        ["ERP / CRM / Custom", /\b(erp|crm|odoo|pos|inventory|hris|simrs|siakad)\b/i],
+        ["AI / Data / ML", /\b(ai|machine learning|data|nlp|llm|chatbot|scraping|analytics)\b/i],
+        ["WordPress / CMS", /\b(wordpress|woocommerce|shopify|cms)\b/i],
+        ["QA / Testing", /\b(qa|testing|automation test|selenium|cypress)\b/i],
+        ["Cloud / DevOps", /\b(devops|docker|kubernetes|aws|gcp|cloud|ci\/cd)\b/i],
+        ["API / Integrasi", /\b(api|rest|graphql|webhook|integrasi|n8n)\b/i]
+    ];
+
+    let projectRowsCache = [];
+    let projectFetching = false;
+    const projCharts = {};
+
+    function escHtml(str) {
+        return String(str ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function normalizeScore(row) {
+        const raw = row?.confidence_score ?? row?.score ?? row?.fit_score ?? 0;
+        const num = Number(String(raw).replace(/[^\d.-]/g, ""));
+        return Number.isFinite(num) ? Math.max(0, Math.min(100, num)) : 0;
+    }
+
+    function normalizeStatusKey(row) {
+        const sc = normalizeScore(row);
+        if (sc >= 80) return "fix bisa masuk";
+        if (sc >= 40) return "fifty-fifty";
+        return "tidak bisa";
+    }
+
+    function statusLabelFromKey(key) {
+        if (key === "fix bisa masuk") return "Fix Bisa Masuk";
+        if (key === "fifty-fifty") return "Fifty-Fifty";
+        return "Tidak Bisa";
+    }
+
+    function filterProjectRows(rows) {
+        const confF = (document.getElementById("proj-filter-conf")?.value || "").trim().toLowerCase();
+        const srcF = (document.getElementById("proj-filter-source")?.value || "").trim().toLowerCase();
+        const svcF = (document.getElementById("proj-filter-service")?.value || "").trim().toLowerCase();
+
+        return (rows || []).filter((r) => {
+            if (!r || typeof r !== "object") return false;
+            if (confF) {
+                const st = String(r.confidence_status || "").toLowerCase();
+                const norm = normalizeStatusKey(r);
+                if (!st.includes(confF) && norm !== confF) return false;
+            }
+            if (srcF) {
+                const src = String(r.source_platform || r.platform || r.source || "").toLowerCase();
+                if (!src.includes(srcF)) return false;
+            }
+            if (svcF) {
+                const svc = String(r.project_service_type || r.matched_services || r.service_type || "").toLowerCase();
+                if (!svc.includes(svcF)) return false;
+            }
+            return true;
+        });
+    }
+
+    function mountProjChart(canvasId, config) {
+        if (typeof Chart === "undefined") return;
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const existing = (typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null) || projCharts[canvasId];
+        if (existing) {
+            try { existing.destroy(); } catch (e) {}
+        }
+        projCharts[canvasId] = new Chart(canvas.getContext("2d"), config);
+    }
+
+    function renderProjectTable(filtered) {
+        const thead = document.getElementById("table-head");
+        const tbody = document.getElementById("table-body");
+        const rowCount = document.getElementById("row-count");
+        const statusEl = document.getElementById("status-text");
+        if (!thead || !tbody) return;
+
+        if (rowCount) rowCount.textContent = String(filtered.length);
+        if (statusEl) {
+            statusEl.textContent = filtered.length
+                ? `Menampilkan ${filtered.length} dari ${projectRowsCache.length} peluang project (threshold Fix ≥ 80%).`
+                : "Tidak ada project yang cocok dengan filter saat ini.";
+        }
+
+        thead.innerHTML = `
+            <tr>
+                <th class="px-3.5 py-2.5">Project</th>
+                <th class="px-3.5 py-2.5">Sumber</th>
+                <th class="px-3.5 py-2.5">Layanan</th>
+                <th class="px-3.5 py-2.5">Confidence</th>
+                <th class="px-3.5 py-2.5">Budget</th>
+                <th class="px-3.5 py-2.5">Tanggal</th>
+            </tr>
+        `;
+
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-zinc-500">Tidak ada data project untuk filter ini.</td></tr>';
+            return;
+        }
+
+        const slice = filtered.slice(0, 200);
+        tbody.innerHTML = slice.map((r) => {
+            const sc = normalizeScore(r);
+            const stKey = normalizeStatusKey(r);
+            const stLabel = statusLabelFromKey(stKey);
+            const badgeCls = stKey === "fix bisa masuk"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                : stKey === "fifty-fifty"
+                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800";
+
+            const title = escHtml(r.title || "(Tanpa Judul)");
+            const url = r.url && /^https?:\/\//i.test(String(r.url)) ? String(r.url) : "";
+            const titleHtml = url
+                ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">${title}</a>`
+                : `<span class="font-semibold text-slate-900 dark:text-white">${title}</span>`;
+
+            const reason = r.fit_reason ? `<div class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 line-clamp-1">${escHtml(r.fit_reason)}</div>` : "";
+            const src = escHtml(r.source_platform || r.platform || "-");
+            const svc = escHtml(r.project_service_type || r.matched_services || "-");
+            const budget = escHtml(r.budget || "-");
+            const dtMatch = String(r.published_at || r.created_at || "").match(/\d{4}-\d{2}-\d{2}/);
+            const dt = dtMatch ? dtMatch[0] : "-";
+
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-zinc-900/40 transition">
+                    <td class="px-3.5 py-2.5 max-w-[280px]">${titleHtml}${reason}</td>
+                    <td class="px-3.5 py-2.5 whitespace-nowrap">${src}</td>
+                    <td class="px-3.5 py-2.5 max-w-[180px] truncate" title="${svc}">${svc}</td>
+                    <td class="px-3.5 py-2.5 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeCls}">
+                            ${stLabel} · ${sc}%
+                        </span>
+                    </td>
+                    <td class="px-3.5 py-2.5 whitespace-nowrap">${budget}</td>
+                    <td class="px-3.5 py-2.5 whitespace-nowrap font-mono text-[11px]">${dt}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function renderAllProjectVisuals() {
+        if (!isProjectStandalone()) return;
+        const filtered = filterProjectRows(projectRowsCache);
+        const colors = getThemeColors();
+
+        // 1. Update 4 KPI
+        let fix = 0, fifty = 0, no = 0, sumScore = 0;
+        for (const r of filtered) {
+            const sc = normalizeScore(r);
+            sumScore += sc;
+            if (sc >= 80) fix++;
+            else if (sc >= 40) fifty++;
+            else no++;
+        }
+        const avg = filtered.length ? Math.round(sumScore / filtered.length) : 0;
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+        setTxt("pkpi-fix", fix);
+        setTxt("pkpi-fifty", fifty);
+        setTxt("pkpi-no", no);
+        setTxt("pkpi-avg", avg + "%");
+        setTxt("pkpi-total", filtered.length + " project tampil");
+
+        if (typeof Chart !== "undefined") {
+            // 2. Grafik Tengah #1: Distribusi Confidence
+            mountProjChart("chartProjConfidence", {
+                type: "doughnut",
+                data: {
+                    labels: ["Fix Bisa Masuk (≥80%)", "Fifty-Fifty (40-79%)", "Tidak Bisa (<40%)"],
+                    datasets: [{
+                        data: [fix, fifty, no],
+                        backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(245, 158, 11, 0.85)", "rgba(244, 63, 94, 0.82)"],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: "62%",
+                    onClick: (_e, els) => {
+                        if (!els?.length) return;
+                        const map = ["fix bisa masuk", "fifty-fifty", "tidak bisa"];
+                        window.ddcQuickProjectConf(map[els[0].index] || "");
+                    },
+                    plugins: {
+                        legend: { position: "bottom", labels: { color: colors.text, boxWidth: 10, font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // 3. Grafik Tengah #2: Sebaran Sumber Platform
+            const srcMap = new Map();
+            for (const r of filtered) {
+                const k = String(r.source_platform || r.platform || "Lainnya").trim() || "Lainnya";
+                srcMap.set(k, (srcMap.get(k) || 0) + 1);
+            }
+            const topSrc = Array.from(srcMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 7);
+            mountProjChart("chartProjSources", {
+                type: "bar",
+                data: {
+                    labels: topSrc.length ? topSrc.map((x) => x[0]) : ["Belum ada data"],
+                    datasets: [{
+                        label: "Jumlah Lead",
+                        data: topSrc.length ? topSrc.map((x) => x[1]) : [0],
+                        backgroundColor: "rgba(99, 102, 241, 0.82)",
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: colors.text, precision: 0, font: { size: 10 } }, grid: { color: colors.grid } }
+                    }
+                }
+            });
+
+            // 4. Grafik Tengah #3: Kecocokan Tipe Layanan Geekgarden
+            const svcMap = new Map();
+            for (const r of filtered) {
+                const k = String(r.project_service_type || r.matched_services || "Lainnya").trim() || "Lainnya";
+                svcMap.set(k, (svcMap.get(k) || 0) + 1);
+            }
+            const topSvc = Array.from(svcMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+            mountProjChart("chartProjServices", {
+                type: "bar",
+                data: {
+                    labels: topSvc.length ? topSvc.map((x) => x[0].length > 26 ? x[0].slice(0, 24) + "…" : x[0]) : ["Belum ada data"],
+                    datasets: [{
+                        label: "Jumlah Project",
+                        data: topSvc.length ? topSvc.map((x) => x[1]) : [0],
+                        backgroundColor: "rgba(16, 185, 129, 0.80)",
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: colors.text, precision: 0, font: { size: 10 } }, grid: { color: colors.grid } },
+                        y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 5. Grafik Tengah #4: Top Project Paling Potensial
+            const topProj = [...filtered].sort((a, b) => normalizeScore(b) - normalizeScore(a)).slice(0, 6);
+            mountProjChart("chartProjTopScores", {
+                type: "bar",
+                data: {
+                    labels: topProj.length
+                        ? topProj.map((r) => {
+                            const t = String(r.title || "Project").trim();
+                            return t.length > 26 ? t.slice(0, 24) + "…" : t;
+                        })
+                        : ["Belum ada data"],
+                    datasets: [{
+                        label: "Skor Confidence (%)",
+                        data: topProj.length ? topProj.map((r) => normalizeScore(r)) : [0],
+                        backgroundColor: topProj.length
+                            ? topProj.map((r) => normalizeScore(r) >= 80 ? "rgba(16, 185, 129, 0.88)" : normalizeScore(r) >= 40 ? "rgba(245, 158, 11, 0.85)" : "rgba(244, 63, 94, 0.80)")
+                            : ["rgba(148, 163, 184, 0.5)"],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (_e, els) => {
+                        if (!els?.length) return;
+                        const item = topProj[els[0].index];
+                        if (item?.url && /^https?:\/\//i.test(item.url)) window.open(item.url, "_blank", "noopener");
+                    },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid } },
+                        y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 6. Grafik Kanan #1: Top Skill & Tech Stack
+            const skillMap = new Map();
+            for (const r of filtered) {
+                const seen = new Set();
+                if (r.skills && String(r.skills).trim() && String(r.skills).trim() !== "-") {
+                    const arr = Array.isArray(r.skills) ? r.skills : String(r.skills).split(/[,;|/]+/);
+                    for (let s of arr) {
+                        s = String(s || "").trim();
+                        if (s.length >= 2 && s.length <= 26 && !/^[-n\/a]+$/i.test(s)) seen.add(s);
+                    }
+                }
+                if (!seen.size) {
+                    const blob = [r.title, r.project_service_type, r.matched_services, r.content].filter(Boolean).join(" ");
+                    for (const [label, rgx] of TECH_PATTERNS) {
+                        if (rgx.test(blob)) seen.add(label);
+                    }
+                }
+                seen.forEach((k) => skillMap.set(k, (skillMap.get(k) || 0) + 1));
+            }
+            const topSkills = Array.from(skillMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 7);
+            mountProjChart("chartProjSkills", {
+                type: "bar",
+                data: {
+                    labels: topSkills.length ? topSkills.map((x) => x[0]) : ["Belum ada data"],
+                    datasets: [{
+                        label: "Jumlah Project",
+                        data: topSkills.length ? topSkills.map((x) => x[1]) : [0],
+                        backgroundColor: "rgba(99, 102, 241, 0.80)",
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: colors.text, precision: 0, font: { size: 10 } }, grid: { color: colors.grid } },
+                        y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 7. Grafik Kanan #2: Sebaran Skor Confidence (5 Bucket)
+            const buckets = [0, 0, 0, 0, 0];
+            for (const r of filtered) {
+                const sc = normalizeScore(r);
+                if (sc < 20) buckets[0]++;
+                else if (sc < 40) buckets[1]++;
+                else if (sc < 60) buckets[2]++;
+                else if (sc < 80) buckets[3]++;
+                else buckets[4]++;
+            }
+            mountProjChart("chartProjScoreDist", {
+                type: "bar",
+                data: {
+                    labels: ["0–19%", "20–39%", "40–59%", "60–79%", "80–100%"],
+                    datasets: [{
+                        label: "Jumlah Project",
+                        data: buckets,
+                        backgroundColor: [
+                            "rgba(244, 63, 94, 0.72)",
+                            "rgba(244, 63, 94, 0.85)",
+                            "rgba(245, 158, 11, 0.76)",
+                            "rgba(245, 158, 11, 0.90)",
+                            "rgba(16, 185, 129, 0.88)"
+                        ],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (_e, els) => {
+                        if (!els?.length) return;
+                        const idx = els[0].index;
+                        window.ddcQuickProjectConf(idx <= 1 ? "tidak bisa" : idx <= 3 ? "fifty-fifty" : "fix bisa masuk");
+                    },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: colors.text, precision: 0, font: { size: 10 } }, grid: { color: colors.grid } }
+                    }
+                }
+            });
+
+            // 8. Grafik Kanan #3: Tren Peluang Project Masuk per Tanggal
+            const byDate = new Map();
+            for (const r of filtered) {
+                const rawDt = r.published_at || r.created_at || r.scraped_at || r.tanggal || r.date || "";
+                const m = String(rawDt).match(/(\d{4}-\d{2}-\d{2})/);
+                const k = m ? m[1] : "Lainnya";
+                if (!byDate.has(k)) byDate.set(k, { total: 0, fit: 0 });
+                const entry = byDate.get(k);
+                entry.total++;
+                if (normalizeScore(r) >= 80) entry.fit++;
+            }
+            const sortedDates = Array.from(byDate.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-12);
+            mountProjChart("chartProjTimeline", {
+                type: "line",
+                data: {
+                    labels: sortedDates.length ? sortedDates.map(([d]) => d.length === 10 ? d.slice(5) : d) : ["-"],
+                    datasets: [
+                        {
+                            label: "Total Lead",
+                            data: sortedDates.length ? sortedDates.map(([, v]) => v.total) : [0],
+                            borderColor: "rgba(99, 102, 241, 0.9)",
+                            backgroundColor: "rgba(99, 102, 241, 0.14)",
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 3
+                        },
+                        {
+                            label: "Fix ≥ 80%",
+                            data: sortedDates.length ? sortedDates.map(([, v]) => v.fit) : [0],
+                            borderColor: "rgba(16, 185, 129, 0.95)",
+                            backgroundColor: "rgba(16, 185, 129, 0.12)",
+                            fill: false,
+                            tension: 0.35,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: "bottom", labels: { color: colors.text, boxWidth: 10, font: { size: 10 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: colors.text, precision: 0, font: { size: 10 } }, grid: { color: colors.grid } }
+                    }
+                }
+            });
+        }
+
+        // 9. Render Data Explorer Table
+        renderProjectTable(filtered);
+    }
+
+    async function loadProjectStandaloneData() {
+        if (!isProjectStandalone() || projectFetching) return;
+        projectFetching = true;
+        const statusEl = document.getElementById("status-text");
+        if (statusEl) statusEl.textContent = "Memuat data peluang project dari server...";
+        try {
+            const resp = await fetch("/api/v1/project/records?limit=500");
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const json = await resp.json();
+            const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json?.records) ? json.records : []);
+            projectRowsCache = rows;
+            renderAllProjectVisuals();
+        } catch (err) {
+            if (statusEl) statusEl.textContent = "Gagal memuat data project: " + (err?.message || err);
+        } finally {
+            projectFetching = false;
+        }
+    }
+
+    window.ddcReloadProjectPage = loadProjectStandaloneData;
+    window.ddcApplyProjectAll = renderAllProjectVisuals;
+    window.ddcQuickProjectConf = function (val) {
+        const el = document.getElementById("proj-filter-conf");
+        if (el) el.value = val || "";
+        renderAllProjectVisuals();
+    };
+    window.ddcResetProjectFilters = function () {
+        ["proj-filter-conf", "proj-filter-source", "proj-filter-service"].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+        renderAllProjectVisuals();
+    };
+
+    // Sinkronkan setelah manual scrape selesai di halaman project.html
+    if (window.fetch && !window.fetch.__ddcProjResultSniffer) {
+        const prevFetch = window.fetch.bind(window);
+        window.fetch = async function (...args) {
+            const resp = await prevFetch(...args);
+            try {
+                const url = typeof args[0] === "string" ? args[0] : (args[0] && args[0].url) || "";
+                if (isProjectStandalone() && /\/api\/v1\/project\/(search|scrape|hunt|leads)/i.test(url)) {
+                    resp.clone().json().then((json) => {
+                        const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json?.records) ? json.records : null);
+                        if (rows && rows.length) {
+                            projectRowsCache = rows;
+                            setTimeout(renderAllProjectVisuals, 120);
+                        } else {
+                            setTimeout(loadProjectStandaloneData, 400);
+                        }
+                    }).catch(() => {});
+                }
+            } catch (e) {}
+            return resp;
+        };
+        window.fetch.__ddcProjResultSniffer = true;
+    }
+
+    let resizeTimer = null;
+    function bootUnifiedShell() {
+        if (window.lucide && typeof window.lucide.createIcons === "function") {
+            try { window.lucide.createIcons(); } catch (e) {}
+        }
+        applyChartTheme();
+
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (typeof Chart === "undefined" || !Chart.instances) return;
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
+                });
+            }, 140);
+        });
+
+        if (isProjectStandalone()) {
+            updateSidebarUI("project");
+            // Pastikan state tab internal app.js berada di 'project' agar tombol executeAction(true) bekerja
+            if (typeof window.switchTab === "function") {
+                try { window.switchTab("project"); } catch (e) {}
+            }
+            window.showProjectResults = loadProjectStandaloneData;
+            window.applyProjectFilters = renderAllProjectVisuals;
+            window.quickFilterProjectConf = window.ddcQuickProjectConf;
+            window.resetSearchFilter = window.ddcResetProjectFilters;
+            window.forceReloadAll = loadProjectStandaloneData;
+            loadProjectStandaloneData();
+            return;
+        }
+
+        // Halaman dashboard utama (frontend/index.html)
+        if (typeof window.switchTab === "function" && !window.switchTab.__ddcUnifiedWrapped) {
+            const origSwitch = window.switchTab;
+            const wrapped = function (tab) {
+                if (tab === "project") {
+                    window.location.href = "/dashboard/project";
+                    return;
+                }
+                const res = origSwitch.apply(this, arguments);
+                updateSidebarUI(tab);
+                applyChartsForTab(tab);
+                if (!_syncingUrl && PAGE_META[tab]) {
+                    const targetPath = "/dashboard/" + tab;
+                    if (window.location.pathname !== targetPath) {
+                        try { window.history.replaceState({ tab }, "", targetPath); } catch (e) {}
+                    }
+                }
+                clearTimeout(kwDebounce);
+                kwDebounce = setTimeout(ensureSocialKeywordChart, 350);
+                setTimeout(applyChartTheme, 220);
+                return res;
+            };
+            wrapped.__ddcUnifiedWrapped = true;
+            window.switchTab = wrapped;
+        }
+
+        const initialTab = getTabFromUrl();
+        updateSidebarUI(initialTab);
+        if (typeof window.switchTab === "function") {
+            _syncingUrl = true;
+            try { window.switchTab(initialTab); } finally { _syncingUrl = false; }
+        }
+        applyChartsForTab(initialTab);
+
+        const tbody = document.getElementById("table-body");
+        if (tbody && typeof MutationObserver !== "undefined") {
+            const obs = new MutationObserver(() => {
+                clearTimeout(kwDebounce);
+                kwDebounce = setTimeout(ensureSocialKeywordChart, 280);
+            });
+            obs.observe(tbody, { childList: true, subtree: true });
+        }
+
+        window.addEventListener("popstate", () => {
+            const tab = getTabFromUrl();
+            if (tab === "project") {
+                window.location.href = "/dashboard/project";
+                return;
+            }
+            updateSidebarUI(tab);
+            if (typeof window.switchTab === "function") {
+                _syncingUrl = true;
+                try { window.switchTab(tab); } finally { _syncingUrl = false; }
+            }
+            applyChartsForTab(tab);
+        });
+
+        setTimeout(() => { applyChartTheme(); ensureSocialKeywordChart(); }, 900);
+        setTimeout(() => { applyChartTheme(); ensureSocialKeywordChart(); }, 2200);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => setTimeout(bootUnifiedShell, 40));
+    } else {
+        setTimeout(bootUnifiedShell, 40);
+    }
+})();
+/* DDC_UNIFIED_SHELL_AND_PROJECT_END */

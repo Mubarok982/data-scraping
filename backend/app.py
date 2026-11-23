@@ -1649,6 +1649,12 @@ except Exception:
 # === DDC MULTI-PAGE DASHBOARD ROUTES ===
 @app.get("/dashboard/{page_name}", response_class=HTMLResponse, include_in_schema=False)
 def serve_dashboard_subpage(page_name: str):
+    safe_name = os.path.basename((page_name or "").strip().lower())
+    if safe_name == "project":
+        project_html_path = os.path.join(os.path.dirname(FRONTEND_HTML_PATH) or "frontend", "project.html")
+        if os.path.exists(project_html_path):
+            with open(project_html_path, "r", encoding="utf-8") as _f:
+                return _f.read()
     if os.path.exists(FRONTEND_HTML_PATH):
         with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as _f:
             return _f.read()
@@ -1832,6 +1838,13 @@ def serve_styles_css():
         media_type="text/css",
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
+
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon_no_content():
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 
 if __name__ == "__main__":

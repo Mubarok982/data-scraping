@@ -1,3 +1,12 @@
+/* === FAST TAB TRANSITION (NO SMOOTH SCROLL LAG & INSTANT PANEL TOGGLE) === */
+html {
+    scroll-behavior: auto !important;
+}
+body.ddc-page-project #default-charts-grid,
+body:not(.ddc-page-project) #project-charts-panel {
+    display: none !important;
+}
+
 html {
             font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
             scroll-behavior: smooth;
@@ -317,12 +326,20 @@ html {
         display: none !important;
     }
 
-/* DDC_PROJECT_PAGE_CLEANUP_START */
-body.ddc-page-project #default-charts-grid,
-body.ddc-page-project #chartSentiment,
-body.ddc-page-project #cron-badge,
-body.ddc-page-project #st-sources,
-body.ddc-page-project #st-raw {
-    display: none !important;
+/* DDC_PROJECT_RESPONSIVE_AND_RIGHT_START */
+html, body {
+    overflow-x: clip;
 }
-/* DDC_PROJECT_PAGE_CLEANUP_END */
+main > aside,
+main > section,
+#project-charts-panel > div > div,
+#project-right-charts > div,
+#default-charts-grid > div {
+    min-width: 0;
+}
+#form-project select,
+#form-project input {
+    max-width: 100%;
+    text-overflow: ellipsis;
+}
+/* DDC_PROJECT_RESPONSIVE_AND_RIGHT_END */
