@@ -1648,3 +1648,12 @@ try:
     _pw_threading.Thread(target=_prewarm_analytics_bg, daemon=True).start()
 except Exception:
     pass
+
+
+# === DDC MULTI-PAGE DASHBOARD ROUTES ===
+@app.get("/dashboard/{page_name}", response_class=HTMLResponse, include_in_schema=False)
+def serve_dashboard_subpage(page_name: str):
+    if os.path.exists(FRONTEND_HTML_PATH):
+        with open(FRONTEND_HTML_PATH, "r", encoding="utf-8") as _f:
+            return _f.read()
+    return "<h1>Error: File frontend/index.html tidak ditemukan.</h1>"

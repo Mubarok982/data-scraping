@@ -42,7 +42,7 @@ def _post_json(url: str, payload: dict):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
-        "User-Agent": "DDC-Warehouse-Notifier/2.4"
+        "User-Agent": "DDC-Warehouse-Notifier/2.5"
     }
     req = urllib.request.Request(
         url,
@@ -56,11 +56,11 @@ def _post_json(url: str, payload: dict):
 
 def build_cron_json_payload(waktu_wib: str, details: dict) -> dict:
     details = details if isinstance(details, dict) else {}
-    kw = int(details.get("keyword", 300))
-    tr = int(details.get("trending", 300))
-    br = int(details.get("berita", 200))
-    sm = int(details.get("sosmed", 212))
-    js = int(details.get("job_search", 200))
+    kw = int(details.get("keyword", 300) or 0)
+    tr = int(details.get("trending", 300) or 0)
+    br = int(details.get("berita", 200) or 0)
+    sm = int(details.get("sosmed", 212) or 0)
+    js = int(details.get("job_search", 0) or 0)
     js_meta = details.get("job_search_summary") if isinstance(details.get("job_search_summary"), dict) else {}
 
     total_batch = kw + tr + br + sm + js
@@ -79,25 +79,47 @@ def build_cron_json_payload(waktu_wib: str, details: dict) -> dict:
         "keterangan_job_search": {
             "target_per_sesi": "200 baris",
             "terkumpul": f"{js} baris",
-            "fix_bisa_masuk": int(js_meta.get("fix_bisa_masuk", 0)),
-            "fifty_fifty": int(js_meta.get("fifty_fifty", 0)),
-            "tidak_bisa": int(js_meta.get("tidak_bisa", 0)),
+            "fix_bisa_masuk": int(js_meta.get("fix_bisa_masuk", 0) or 0),
+            "fifty_fifty": int(js_meta.get("fifty_fifty", 0) or 0),
+            "tidak_bisa": int(js_meta.get("tidak_bisa", 0) or 0),
             "sumber": "LinkedIn, Projects.co.id, Freelancer.com, Web Freelance"
         },
         "dashboard_url": DASHBOARD_URL
     }
 
 
+def format_cron_notification_text(waktu_wib: str, details: dict) -> str:
+    payload = build_cron_json_payload(waktu_wib, details)
+    r = payload["rincian_ekstraksi"]
+    js_info = payload["keterangan_job_search"]
+
+    lines = [
+        f"- status: ✅ {payload['status']}",
+        f"- waktu: {payload['waktu']}",
+        f"- total_data: {payload['total_data']}",
+        "- rincian_ekstraksi:",
+        f"- keyword: {r['keyword']}",
+        f"- trending: {r['trending']}",
+        f"- berita: {r['berita']}",
+        f"- sosmed: {r['sosmed']}",
+    ]
+    if int(r.get("job_search", 0)) > 0:
+        fix = js_info.get("fix_bisa_masuk", 0)
+        ff = js_info.get("fifty_fifty", 0)
+        tb = js_info.get("tidak_bisa", 0)
+        if (fix + ff + tb) > 0:
+            lines.append(f"- job_search: {r['job_search']} (fix: {fix}, fifty-fifty: {ff}, tidak bisa: {tb})")
+        else:
+            lines.append(f"- job_search: {r['job_search']}")
+    lines.append(f"- dashboard_url: {payload['dashboard_url']}")
+    return "\n".join(lines)
+
+
 def send_all_notifications(waktu_wib: str, details: dict) -> dict:
     cfg = _get_config()
-    json_payload = build_cron_json_payload(waktu_wib, details)
+    formatted_text = format_cron_notification_text(waktu_wib, details)
 
-    pretty_json = json.dumps(json_payload, indent=2, ensure_ascii=False)
-    chattime_payload = {
-        "text": f"CRON SCRAPER SELESAI ({waktu_wib})\n```json\n{pretty_json}\n```",
-        **json_payload
-    }
-
+    chattime_payload = {"text": formatted_text}
     results = {"chattime": False, "telegram": False}
 
     # 1. Chattime Webhook
@@ -117,7 +139,7 @@ def send_all_notifications(waktu_wib: str, details: dict) -> dict:
             tg_url = f"https://api.telegram.org/bot{cfg['tg_token']}/sendMessage"
             tg_body = {
                 "chat_id": cfg["tg_chat_id"],
-                "text": pretty_json,
+                "text": formatted_text,
                 "disable_web_page_preview": False
             }
             st_tg, _ = _post_json(tg_url, tg_body)

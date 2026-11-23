@@ -15,6 +15,160 @@
     </style>
 </head>
 <body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
+<!-- DDC_MULTI_PAGE_NAVBAR_START -->
+<nav id="ddc-top-navbar" class="sticky top-0 z-50 w-full backdrop-blur-md bg-[#0b0f1e]/90 border-b border-gray-800/90 shadow-lg">
+  <div class="max-w-[1600px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+    <a href="/dashboard/supabase" onclick="return ddcGoPage('supabase', event)" class="flex items-center gap-2.5 no-underline">
+      <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+      <span class="font-bold tracking-tight text-sm text-white">DDC Scraper Portal</span>
+      <span class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40">Multi-Page</span>
+    </a>
+    <div id="ddc-navbar-menu" class="flex flex-wrap items-center gap-1.5 text-xs">
+      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🗄️ Database ELT</a>
+      <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🏛️ Bank Data</a>
+      <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">🔍 Keyword &amp; Trend</a>
+      <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">📰 Portal Berita</a>
+      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">📱 Social Media</a>
+      <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-nav-item px-3 py-1.5 rounded-lg font-medium transition">💼 Pencarian Project</a>
+      <a href="/analytics" class="px-3 py-1.5 rounded-lg font-medium bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/40 transition">📊 Analytics</a>
+    </div>
+  </div>
+</nav>
+<div id="ddc-page-banner" class="max-w-[1600px] mx-auto px-4 pt-3 pb-1">
+  <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-[#13182b]/90 border border-gray-800/80">
+    <div>
+      <div id="ddc-page-title" class="text-sm font-bold text-white">🗄️ Database Supabase (ELT)</div>
+      <div id="ddc-page-desc" class="text-[11px] text-gray-400">Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam.</div>
+    </div>
+    <span id="ddc-page-path" class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#0b0f1e] text-indigo-300 border border-indigo-500/30">/dashboard/supabase</span>
+  </div>
+</div>
+<script>
+(function() {
+  const PAGE_META = {
+    supabase: { title: "🗄️ Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
+    bank:     { title: "🏛️ Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
+    keyword:  { title: "🔍 Scraper — Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
+    berita:   { title: "📰 Scraper — Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
+    sosmed:   { title: "📱 Scraper — Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
+    project:  { title: "💼 Project & Lead Hunter", desc: "Pencarian peluang project freelance & klasifikasi kecocokan." }
+  };
+
+  function getTabFromUrl() {
+    const p = (window.location.pathname || "").toLowerCase();
+    const m = p.match(/^\/dashboard\/(supabase|bank|keyword|berita|sosmed|project)\/?$/);
+    if (m) return m[1];
+    const q = new URLSearchParams(window.location.search).get("page");
+    if (q && PAGE_META[q.toLowerCase()]) return q.toLowerCase();
+    return "supabase";
+  }
+
+  function updateNavUI(tab) {
+    const activeTab = PAGE_META[tab] ? tab : "supabase";
+    document.querySelectorAll(".ddc-nav-item").forEach(el => {
+      const isAct = el.getAttribute("data-ddc-tab") === activeTab;
+      el.classList.toggle("bg-purple-600", isAct);
+      el.classList.toggle("text-white", isAct);
+      el.classList.toggle("shadow", isAct);
+      el.classList.toggle("bg-[#1a1f33]", !isAct);
+      el.classList.toggle("text-gray-300", !isAct);
+      el.classList.toggle("hover:bg-gray-800", !isAct);
+    });
+    const meta = PAGE_META[activeTab];
+    const tEl = document.getElementById("ddc-page-title");
+    const dEl = document.getElementById("ddc-page-desc");
+    const pEl = document.getElementById("ddc-page-path");
+    if (tEl) tEl.textContent = meta.title;
+    if (dEl) dEl.textContent = meta.desc;
+    if (pEl) pEl.textContent = "/dashboard/" + activeTab;
+    document.title = meta.title + " — DDC Scraper Portal";
+  }
+
+  function hideSidebarModeSwitcher() {
+    const firstBtn = document.getElementById("tab-supabase");
+    const lastBtn = document.getElementById("tab-project");
+    const formEl = document.getElementById("form-supabase");
+    if (!firstBtn || !lastBtn) return;
+    let node = firstBtn.parentElement;
+    let candidate = null;
+    while (node && node !== document.body) {
+      if (node.contains(lastBtn)) {
+        if (!formEl || !node.contains(formEl)) {
+          candidate = node;
+        } else {
+          break;
+        }
+      }
+      node = node.parentElement;
+    }
+    if (candidate) {
+      candidate.style.display = "none";
+    }
+  }
+
+  let _syncingUrl = false;
+  window.ddcGoPage = function(tab, ev) {
+    if (ev && (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) return true;
+    if (ev) ev.preventDefault();
+    const target = PAGE_META[tab] ? tab : "supabase";
+    const targetPath = "/dashboard/" + target;
+    if (window.location.pathname !== targetPath) {
+      try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
+    }
+    updateNavUI(target);
+    if (typeof window.switchTab === "function") {
+      _syncingUrl = true;
+      try { window.switchTab(target); } finally { _syncingUrl = false; }
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return false;
+  };
+
+  function initMultiPage() {
+    hideSidebarModeSwitcher();
+    if (typeof window.switchTab === "function" && !window.switchTab.__ddcWrapped) {
+      const origSwitchTab = window.switchTab;
+      const wrapped = function(tab) {
+        const res = origSwitchTab.apply(this, arguments);
+        updateNavUI(tab);
+        if (!_syncingUrl && PAGE_META[tab]) {
+          const targetPath = "/dashboard/" + tab;
+          if (window.location.pathname !== targetPath) {
+            try { window.history.replaceState({ tab: tab }, "", targetPath); } catch (e) {}
+          }
+        }
+        return res;
+      };
+      wrapped.__ddcWrapped = true;
+      window.switchTab = wrapped;
+    }
+
+    const initialTab = getTabFromUrl();
+    updateNavUI(initialTab);
+    if (typeof window.switchTab === "function") {
+      _syncingUrl = true;
+      try { window.switchTab(initialTab); } finally { _syncingUrl = false; }
+    }
+  }
+
+  window.addEventListener("popstate", function() {
+    const tab = getTabFromUrl();
+    updateNavUI(tab);
+    if (typeof window.switchTab === "function") {
+      _syncingUrl = true;
+      try { window.switchTab(tab); } finally { _syncingUrl = false; }
+    }
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() { setTimeout(initMultiPage, 0); });
+  } else {
+    setTimeout(initMultiPage, 0);
+  }
+})();
+</script>
+<!-- DDC_MULTI_PAGE_NAVBAR_END -->
+
     <!-- TOP NAVBAR -->
     <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
         <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
