@@ -1,1141 +1,1596 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Data Warehouse — Analytics & Scraper Portal</title>
+    <title>DDC Scraper Portal — Data Warehouse & Intelligence</title>
+
+    <!-- Typography: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Anti-flicker Theme Init (Default: Warm Light Mode) -->
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('ddc_theme');
+                if (saved === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <!-- Tailwind CSS + Preline Config -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Chart.js & Lucide Stroke Icons -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
+        html {
+            font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar halus (Light & Dark) */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0d14; }
-        ::-webkit-scrollbar-thumb { background: #2d334d; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        html.dark ::-webkit-scrollbar-thumb { background: #2e3446; }
+        html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        html.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+
+        /* Sidebar Layout Desktop */
+        @media (min-width: 1024px) {
+            body {
+                padding-left: 16.5rem;
+                transition: padding-left 0.2s ease;
+            }
+            body.ddc-sb-collapsed {
+                padding-left: 0;
+            }
+            body.ddc-sb-collapsed #ddc-sidebar {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Preline Input & Card Refinement */
+        .ddc-card {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .ddc-field {
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
+            color: #1e293b;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            line-height: 1.25rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .ddc-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+        .ddc-field:disabled {
+            background-color: #f8fafc;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        html.dark .ddc-field {
+            border-color: #272b36;
+            background-color: #0f1117;
+            color: #e4e4e7;
+        }
+        html.dark .ddc-field:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+        html.dark .ddc-field:disabled {
+            background-color: #161922;
+            color: #52525b;
+        }
+
+        /* =====================================================================
+           LIGHT MODE BRIDGE UNTUK ELEMEN DINAMIS YANG DIRENDER OLEH frontend/app.js
+           (Agar tabel, badge status, dan ringkasan wilayah tetap kontras & pastel)
+           ===================================================================== */
+        html:not(.dark) #table-head {
+            background-color: #f8fafc !important;
+            color: #475569 !important;
+        }
+        html:not(.dark) #table-head th {
+            color: #475569 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        html:not(.dark) #table-body {
+            color: #334155 !important;
+        }
+        html:not(.dark) #table-body tr {
+            border-color: #f1f5f9 !important;
+        }
+        html:not(.dark) #table-body tr:hover {
+            background-color: #f8fafc !important;
+        }
+        html:not(.dark) #table-body .text-white,
+        html:not(.dark) #table-body .text-gray-100,
+        html:not(.dark) #table-body .text-gray-200,
+        html:not(.dark) #loc-badges .text-white,
+        html:not(.dark) #loc-badges .text-gray-100,
+        html:not(.dark) #loc-badges .text-gray-200 {
+            color: #0f172a !important;
+        }
+        html:not(.dark) #table-body .text-gray-300,
+        html:not(.dark) #table-body .text-gray-400,
+        html:not(.dark) #loc-badges .text-gray-300,
+        html:not(.dark) #loc-badges .text-gray-400 {
+            color: #475569 !important;
+        }
+        html:not(.dark) #table-body a {
+            color: #4f46e5 !important;
+        }
+        html:not(.dark) #loc-badges > div {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+        /* Konversi badge gelap dinamis menjadi pastel lembut di Light Mode */
+        html:not(.dark) #table-body [class*="bg-emerald-9"],
+        html:not(.dark) #loc-badges [class*="bg-emerald-9"],
+        html:not(.dark) #cron-badge[class*="bg-emerald-9"] {
+            background-color: #ecfdf5 !important;
+            color: #047857 !important;
+            border-color: #a7f3d0 !important;
+        }
+        html:not(.dark) #table-body [class*="bg-amber-9"],
+        html:not(.dark) #loc-badges [class*="bg-amber-9"] {
+            background-color: #fffbeb !important;
+            color: #b45309 !important;
+            border-color: #fde68a !important;
+        }
+        html:not(.dark) #table-body [class*="bg-rose-9"],
+        html:not(.dark) #table-body [class*="bg-red-9"],
+        html:not(.dark) #loc-badges [class*="bg-rose-9"] {
+            background-color: #fff1f2 !important;
+            color: #be123c !important;
+            border-color: #fecdd3 !important;
+        }
+        html:not(.dark) #table-body [class*="bg-indigo-9"],
+        html:not(.dark) #table-body [class*="bg-blue-9"],
+        html:not(.dark) #table-body [class*="bg-purple-9"] {
+            background-color: #eef2ff !important;
+            color: #4338ca !important;
+            border-color: #c7d2fe !important;
+        }
+        html:not(.dark) #table-body [class*="bg-gray-8"],
+        html:not(.dark) #table-body [class*="bg-gray-9"],
+        html:not(.dark) #table-body [class*="bg-[#"] {
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+            border-color: #e2e8f0 !important;
+        }
+        html:not(.dark) #table-body .text-emerald-300,
+        html:not(.dark) #table-body .text-emerald-400 { color: #047857 !important; }
+        html:not(.dark) #table-body .text-amber-300,
+        html:not(.dark) #table-body .text-amber-400 { color: #b45309 !important; }
+        html:not(.dark) #table-body .text-rose-300,
+        html:not(.dark) #table-body .text-rose-400 { color: #be123c !important; }
+        html:not(.dark) #table-body .text-indigo-300,
+        html:not(.dark) #table-body .text-indigo-400 { color: #4338ca !important; }
     </style>
 </head>
-<body class="bg-[#0b0d14] text-gray-200 min-h-screen font-sans">
-<!-- DDC_MULTI_PAGE_SIDEBAR_START -->
-<style id="ddc-sidebar-layout-style">
-  @media (min-width: 1024px) {
-    body {
-      padding-left: 17rem !important;
-      transition: padding-left 0.2s ease;
-    }
-    body.ddc-sb-collapsed {
-      padding-left: 0 !important;
-    }
-    body.ddc-sb-collapsed #ddc-sidebar {
-      transform: translateX(-100%);
-    }
-  }
-</style>
 
-<!-- Mobile Header Trigger -->
-<div id="ddc-mobile-bar" class="lg:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 bg-[#0b0f1e]/95 backdrop-blur border-b border-gray-800">
-  <button type="button" onclick="ddcToggleMobileSidebar(true)" class="px-2.5 py-1.5 rounded-lg bg-[#161c33] text-gray-200 border border-gray-700 text-xs font-semibold">☰ Menu</button>
-  <span class="text-xs font-bold text-white tracking-tight">DDC Scraper Portal</span>
-  <a href="/analytics" class="text-[11px] text-emerald-300 font-semibold no-underline">📊 Analytics</a>
-</div>
+<body class="bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
 
-<!-- Desktop Reopen Button (ketika sidebar di-collapse) -->
-<button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Buka Sidebar"
-  class="hidden fixed top-3 left-3 z-50 px-2.5 py-1.5 rounded-lg bg-[#14192b] hover:bg-purple-600 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold shadow-lg transition">
-  ☰ Menu
-</button>
+<!-- ======================================================================= -->
+<!-- PRELINE APPLICATION SHELL: COLLAPSIBLE LEFT SIDEBAR                     -->
+<!-- ======================================================================= -->
+<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
+     class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"></div>
 
-<!-- Mobile Overlay -->
-<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"></div>
+<aside id="ddc-sidebar"
+       class="fixed inset-y-0 left-0 z-50 w-[16.5rem] bg-white dark:bg-[#14171F] border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
 
-<!-- Fixed Left Sidebar -->
-<aside id="ddc-sidebar" class="fixed inset-y-0 left-0 z-50 w-[17rem] bg-[#0b0f1e] border-r border-gray-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 shadow-2xl">
-  <div class="p-4 overflow-y-auto space-y-5">
-    <!-- Brand -->
-    <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
-      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="flex items-center gap-2.5 no-underline">
-        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-        <div>
-          <div class="font-bold text-sm text-white leading-tight">DDC Scraper Portal</div>
-          <div class="text-[10px] text-gray-400">Multi-Page Dashboard</div>
+    <div class="p-4 overflow-y-auto space-y-6">
+        <!-- Brand -->
+        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
+               class="flex items-center gap-2.5 no-underline group">
+                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                </span>
+                <div>
+                    <div class="font-semibold text-sm text-slate-900 dark:text-white leading-tight tracking-tight">DDC Portal</div>
+                    <div class="text-[11px] text-slate-500 dark:text-zinc-400">Data Warehouse</div>
+                </div>
+            </a>
+            <button type="button"
+                    onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()"
+                    title="Lipat Sidebar"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+            </button>
         </div>
-      </a>
-      <button type="button" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()" title="Tutup / Lipat Sidebar"
-        class="p-1.5 rounded-lg bg-[#14192b] hover:bg-gray-800 text-gray-400 hover:text-white text-xs border border-gray-800">✕</button>
+
+        <!-- Group 1: Data & Arsip -->
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                Data &amp; Arsip
+            </div>
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="database" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">Database Supabase</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Live</span>
+            </a>
+            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="archive" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">Bank Data (CSV)</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">CSV</span>
+            </a>
+        </div>
+
+        <!-- Group 2: Scraper Manual -->
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                Scraper Manual
+            </div>
+            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="trending-up" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">1. Keyword &amp; Trend</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">KW</span>
+            </a>
+            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="newspaper" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">2. Portal Berita</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">News</span>
+            </a>
+            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="share-2" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">3. Social Media</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">Social</span>
+            </a>
+        </div>
+
+        <!-- Group 3: Project & Lead Hunter -->
+        <div class="space-y-1">
+            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Project &amp; Lead Hunter
+            </div>
+            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)"
+               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
+                <span class="flex items-center gap-2.5 truncate">
+                    <i data-lucide="briefcase" class="w-4 h-4 shrink-0 opacity-80"></i>
+                    <span class="truncate">4. Pencarian Project</span>
+                </span>
+                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Fit</span>
+            </a>
+        </div>
     </div>
 
-    <!-- DATA & ARSIP -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Data &amp; Arsip</div>
-      <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🗄️ Database Supabase</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Live DB</span>
-      </a>
-      <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🏛️ Bank Data (CSV)</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">CSV</span>
-      </a>
+    <!-- Sidebar Footer -->
+    <div class="p-3.5 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
+        <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Cron 8 Jam (WIB)</span>
+            </span>
+            <a href="/docs" target="_blank" class="text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium inline-flex items-center gap-1 no-underline">
+                <span>API</span>
+                <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+            </a>
+        </div>
     </div>
-
-    <!-- SCRAPER MANUAL -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Scraper Manual</div>
-      <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🔍 1. Keyword &amp; Trend</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">KW</span>
-      </a>
-      <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📰 2. Portal Berita</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">News</span>
-      </a>
-      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📱 3. Social Media</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Social</span>
-      </a>
-    </div>
-
-    <!-- PROJECT & LEAD HUNTER -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">Project &amp; Lead Hunter</div>
-      <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>💼 4. Pencarian Project</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Project</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Footer info -->
-  <div class="p-3 border-t border-gray-800/80 text-[10px] text-gray-500 flex items-center justify-between">
-    <span>Cron 8 Jam (WIB)</span>
-    <span class="text-emerald-400">● Online</span>
-  </div>
 </aside>
 
-<script>
-(function() {
-  const sidebar = document.getElementById("ddc-sidebar");
-  const overlay = document.getElementById("ddc-sidebar-overlay");
-  const reopenBtn = document.getElementById("ddc-sidebar-reopen");
+<!-- Hidden Legacy Tab Buttons (dipertahankan agar fungsi switchTab di app.js tetap aman) -->
+<div class="hidden" aria-hidden="true">
+    <button type="button" onclick="switchTab('supabase')" id="tab-supabase"></button>
+    <button type="button" onclick="switchTab('bank')" id="tab-bank"></button>
+    <button type="button" onclick="switchTab('keyword')" id="tab-keyword"></button>
+    <button type="button" onclick="switchTab('berita')" id="tab-berita"></button>
+    <button type="button" onclick="switchTab('sosmed')" id="tab-sosmed"></button>
+    <button type="button" onclick="switchTab('project')" id="tab-project"></button>
+</div>
 
-  window.ddcToggleMobileSidebar = function(forceOpen) {
-    if (!sidebar) return;
-    const isClosed = sidebar.classList.contains("-translate-x-full");
-    const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
-    sidebar.classList.toggle("-translate-x-full", !open);
-    if (overlay) overlay.classList.toggle("hidden", !open);
-  };
+<!-- ======================================================================= -->
+<!-- SLIM WORKSPACE TOP UTILITY BAR (Tanpa Header Banner Berat)              -->
+<!-- ======================================================================= -->
+<div class="max-w-[1680px] mx-auto px-4 sm:px-6 pt-4 pb-1">
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
+        <div class="flex items-center gap-3 min-w-0">
+            <!-- Mobile Menu Button -->
+            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Menu"
+                    class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="menu" class="w-4 h-4"></i>
+            </button>
+            <!-- Desktop Reopen Sidebar Button -->
+            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
+                    class="hidden items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
+                <i data-lucide="panel-left-open" class="w-4 h-4"></i>
+            </button>
 
-  window.ddcToggleDesktopSidebar = function() {
-    document.body.classList.toggle("ddc-sb-collapsed");
-    const collapsed = document.body.classList.contains("ddc-sb-collapsed");
-    if (reopenBtn) reopenBtn.classList.toggle("hidden", !collapsed);
-  };
-
-  const PAGE_META = {
-    supabase: { title: "🗄️ Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
-    bank:     { title: "🏛️ Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
-    keyword:  { title: "🔍 1. Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
-    berita:   { title: "📰 2. Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
-    sosmed:   { title: "📱 3. Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
-    project:  { title: "💼 4. Pencarian Project", desc: "Pencarian peluang project freelance & klasifikasi kecocokan." }
-  };
-
-  function getTabFromUrl() {
-    const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
-    if (parts[0] === "dashboard" && PAGE_META[parts[1]]) return parts[1];
-    const q = new URLSearchParams(window.location.search).get("page");
-    if (q && PAGE_META[q.toLowerCase()]) return q.toLowerCase();
-    return "supabase";
-  }
-
-  function updateSidebarUI(tab) {
-    const activeTab = PAGE_META[tab] ? tab : "supabase";
-    document.querySelectorAll(".ddc-sb-item").forEach(el => {
-      const isAct = el.getAttribute("data-ddc-tab") === activeTab;
-      el.classList.toggle("bg-purple-600", isAct);
-      el.classList.toggle("text-white", isAct);
-      el.classList.toggle("shadow-md", isAct);
-      el.classList.toggle("bg-[#14192b]", !isAct);
-      el.classList.toggle("text-gray-300", !isAct);
-      el.classList.toggle("hover:bg-[#1e2540]", !isAct);
-      const dot = el.querySelector(".ddc-sb-dot");
-      if (dot) {
-        dot.classList.toggle("bg-white", isAct);
-        dot.classList.toggle("bg-gray-600", !isAct);
-      }
-    });
-    const meta = PAGE_META[activeTab];
-    const tEl = document.getElementById("ddc-page-title");
-    const dEl = document.getElementById("ddc-page-desc");
-    const pEl = document.getElementById("ddc-page-path");
-    if (tEl) tEl.textContent = meta.title;
-    if (dEl) dEl.textContent = meta.desc;
-    if (pEl) pEl.textContent = "/dashboard/" + activeTab;
-    document.title = meta.title + " — DDC Scraper Portal";
-  }
-
-  function hideOldInlineModeBox() {
-    const firstBtn = document.getElementById("tab-supabase");
-    const lastBtn = document.getElementById("tab-project");
-    const formEl = document.getElementById("form-supabase");
-    if (!firstBtn || !lastBtn) return;
-    let node = firstBtn.parentElement;
-    let candidate = null;
-    while (node && node !== document.body) {
-      if (node.contains(lastBtn)) {
-        if (!formEl || !node.contains(formEl)) {
-          candidate = node;
-        } else {
-          break;
-        }
-      }
-      node = node.parentElement;
-    }
-    if (candidate) {
-      candidate.style.display = "none";
-    }
-  }
-
-  let _syncingUrl = false;
-  window.ddcGoPage = function(tab, ev) {
-    if (ev && (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) return true;
-    if (ev) ev.preventDefault();
-    const target = PAGE_META[tab] ? tab : "supabase";
-    const targetPath = "/dashboard/" + target;
-    if (window.location.pathname !== targetPath) {
-      try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
-    }
-    updateSidebarUI(target);
-    if (typeof window.switchTab === "function") {
-      _syncingUrl = true;
-      try { window.switchTab(target); } finally { _syncingUrl = false; }
-    }
-    if (window.innerWidth < 1024) {
-      window.ddcToggleMobileSidebar(false);
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return false;
-  };
-
-  function initMultiPageSidebar() {
-    hideOldInlineModeBox();
-    if (typeof window.switchTab === "function" && !window.switchTab.__ddcWrapped) {
-      const origSwitchTab = window.switchTab;
-      const wrapped = function(tab) {
-        const res = origSwitchTab.apply(this, arguments);
-        updateSidebarUI(tab);
-        if (!_syncingUrl && PAGE_META[tab]) {
-          const targetPath = "/dashboard/" + tab;
-          if (window.location.pathname !== targetPath) {
-            try { window.history.replaceState({ tab: tab }, "", targetPath); } catch (e) {}
-          }
-        }
-        return res;
-      };
-      wrapped.__ddcWrapped = true;
-      window.switchTab = wrapped;
-    }
-
-    const initialTab = getTabFromUrl();
-    updateSidebarUI(initialTab);
-    if (typeof window.switchTab === "function") {
-      _syncingUrl = true;
-      try { window.switchTab(initialTab); } finally { _syncingUrl = false; }
-    }
-  }
-
-  window.addEventListener("popstate", function() {
-    const tab = getTabFromUrl();
-    updateSidebarUI(tab);
-    if (typeof window.switchTab === "function") {
-      _syncingUrl = true;
-      try { window.switchTab(tab); } finally { _syncingUrl = false; }
-    }
-  });
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function() { setTimeout(initMultiPageSidebar, 0); });
-  } else {
-    setTimeout(initMultiPageSidebar, 0);
-  }
-
-})();
-</script>
-<!-- DDC_MULTI_PAGE_SIDEBAR_END -->
-
-<!-- TOP NAVBAR -->
-    <header class="border-b border-gray-800/80 bg-[#111420]/95 backdrop-blur sticky top-0 z-30">
-        <div class="max-w-[1650px] mx-auto px-5 py-3 flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                    <span class="text-lg">🧩</span>
-                </div>
-                <div>
-                    <h1 class="text-base md:text-lg font-bold text-white tracking-tight">
-                        DDC Data Warehouse — Geo-Polarization & Trend Intelligence
-                    </h1>
-                    <p class="text-[11px] text-gray-400">
-                        7-Layer ELT Supabase • Grafik Reaktif Dinamis • Filter Wilayah & Rentang Waktu • Cron 8 Jam
-                    </p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2.5">
-                <span class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Supabase Live
-                </span>
-                <button onclick="forceReloadAll()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-medium rounded-lg border border-indigo-700/60 transition">
-                    ↻ Refresh Analitik
-                </button>
-                <a href="/docs" target="_blank" class="px-3 py-1.5 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition">
-                    ⚙️ Swagger API
-                </a>
+            <div class="min-w-0">
+                <h1 id="ddc-page-title" class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight truncate">
+                    Database Supabase (ELT)
+                </h1>
+                <p id="ddc-page-desc" class="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                    Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam.
+                </p>
             </div>
         </div>
-    </header>
 
-    <!-- MAIN 3-COLUMN LAYOUT -->
-    <main class="max-w-[1650px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <div class="flex items-center gap-2">
+            <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Supabase Live
+            </span>
 
-        <!-- KOLOM KIRI: MODE & PARAMETER FILTER -->
-        <aside class="lg:col-span-3 space-y-4">
-                        <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🧭 Pilih Mode Sumber & Scraper
-                    </div>
-                    <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        6 Mode
+            <!-- Light / Dark Theme Toggle -->
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme()" title="Ganti Tema Terang / Gelap"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
+                <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
+                <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
+                <span class="hidden sm:inline dark:hidden">Mode Gelap</span>
+                <span class="hidden dark:sm:inline">Mode Terang</span>
+            </button>
+
+            <button type="button" onclick="forceReloadAll()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh</span>
+            </button>
+
+            <a href="/docs" target="_blank"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 shadow-2xs transition no-underline">
+                <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Swagger API</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MAIN 3-COLUMN WORKSPACE                                                 -->
+<!-- ======================================================================= -->
+<main class="max-w-[1680px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+
+    <!-- KOLOM KIRI: PARAMETER FILTER & POLARISASI WILAYAH -->
+    <aside class="xl:col-span-3 space-y-5">
+
+        <!-- Card Parameter & Filter Data -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                    <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
+                        Parameter &amp; Filter Data
                     </span>
                 </div>
-
-                <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
-                    Data & Arsip
-                </div>
-                <div class="space-y-1.5 mb-3">
-                    <button type="button" onclick="switchTab('supabase')" id="tab-supabase" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between">
-                        <span class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-purple-200"></span>
-                            <span>🗄️ Database Supabase (ELT)</span>
-                        </span>
-                        <span class="text-[10px] bg-purple-900/90 px-2 py-0.5 rounded">Live DB</span>
-                    </button>
-                    <button type="button" onclick="switchTab('bank')" id="tab-bank" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
-                        <span class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                            <span>🏦 Bank Data (Arsip CSV)</span>
-                        </span>
-                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">CSV</span>
-                    </button>
-                </div>
-
-                <div class="border-t border-gray-800/80 pt-2.5">
-                    <div class="text-[10px] font-medium uppercase tracking-wider text-gray-500 px-1 mb-1.5">
-                        Scraper Manual
-                    </div>
-                    <div class="space-y-1.5">
-                        <button type="button" onclick="switchTab('keyword')" id="tab-keyword" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
-                            <span class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                                <span>🔍 1. Keyword & Trend</span>
-                            </span>
-                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">KW/Trend</span>
-                        </button>
-                        <button type="button" onclick="switchTab('berita')" id="tab-berita" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
-                            <span class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                                <span>📰 2. Portal Berita</span>
-                            </span>
-                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">News</span>
-                        </button>
-                        <button type="button" onclick="switchTab('sosmed')" id="tab-sosmed" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
-                            <span class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                                <span>📱 3. Social Media</span>
-                            </span>
-                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Social</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-800/80 pt-2.5 mt-2.5">
-                    <div class="text-[10px] font-medium uppercase tracking-wider text-emerald-400/90 px-1 mb-1.5">
-                        Project & Lead Hunter
-                    </div>
-                    <div class="space-y-1.5">
-                        <button type="button" onclick="switchTab('project')" id="tab-project" class="w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between">
-                            <span class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                                <span>💼 4. Pencarian Project</span>
-                            </span>
-                            <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded">Project</span>
-                        </button>
-                    </div>
-                </div>
+                <button type="button" onclick="resetSearchFilter()"
+                        class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                    <span>Reset</span>
+                </button>
             </div>
 
-            <!-- Parameter Filter & Ekstraksi -->
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🎛️ Parameter & Filter Data
-                    </span>
-                    <button onclick="resetSearchFilter()" class="text-[10px] text-rose-400 hover:text-rose-300 font-medium">
-                        ✕ Reset
-                    </button>
+            <!-- 1. Form Supabase -->
+            <div id="form-supabase" class="space-y-3.5">
+                <div>
+                    <label for="sb-cat" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Tabel Skema Domain</label>
+                    <select id="sb-cat" onchange="onDomainChange()" class="ddc-field">
+                        <option value="berita">news.articles (Berita + Sentimen)</option>
+                        <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
+                        <option value="instagram">social.posts (Instagram)</option>
+                        <option value="facebook">social.posts (Facebook)</option>
+                        <option value="tiktok">social.posts (TikTok)</option>
+                        <option value="twitter">social.posts (Twitter / X)</option>
+                        <option value="linkedin">social.accounts (LinkedIn)</option>
+                    </select>
                 </div>
 
-                <!-- Form Supabase (Tanpa Filter Tokoh) -->
-                <div id="form-supabase" class="space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Tabel Skema Domain</label>
-                        <select id="sb-cat" onchange="onDomainChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="berita">news.articles (Berita + Sentimen)</option>
-                            <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
-                            <option value="instagram">social.posts (Instagram)</option>
-                            <option value="facebook">social.posts (Facebook)</option>
-                            <option value="tiktok">social.posts (TikTok)</option>
-                            <option value="twitter">social.posts (Twitter / X)</option>
-                            <option value="linkedin">social.accounts (LinkedIn)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Klasifikasi Kategori & Tag Isu</label>
-                        <select id="sb-news-cat" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-purple-500 outline-none">
-                            <option value="">-- Semua Kategori & Tag --</option>
-                            <optgroup label="Pemerintahan & Kebijakan">
-                                <option value="politik">Politik & Pemerintahan</option>
-                                <option value="kebijakan">Kebijakan Publik & Regulasi</option>
-                                <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
-                                <option value="ikn">Ibu Kota Nusantara (IKN)</option>
-                                <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
-                                <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
-                            </optgroup>
-                            <optgroup label="Ekonomi & Infrastruktur">
-                                <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
-                                <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
-                                <option value="energi">Energi Hijau & Transisi Energi</option>
-                                <option value="infrastruktur">Infrastruktur & Transportasi</option>
-                            </optgroup>
-                            <optgroup label="Sains, Alam & Masyarakat">
-                                <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
-                                <option value="teknologi">Teknologi, AI & Digitalisasi</option>
-                                <option value="kesehatan">Kesehatan & Medis</option>
-                                <option value="pendidikan">Pendidikan, Kampus & Riset</option>
-                                <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
-                            </optgroup>
-                            <optgroup label="Tren & Gaya Hidup">
-                                <option value="olahraga">Olahraga & Timnas</option>
-                                <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <div id="linkedin-filter-box" class="hidden p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-700/60 space-y-2.5">
-                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>💼 Filter Khusus LinkedIn & Project Fit</span>
-                            <span class="text-[10px] text-emerald-400">Geekgarden</span>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence (Peluang Masuk)</label>
-                            <select id="li-filter-conf" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Status Confidence --</option>
-                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
-                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
-                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Sumber Platform Project</label>
-                            <select id="li-filter-source" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Sumber Project --</option>
-                                <option value="linkedin">LinkedIn</option>
-                                <option value="projects.co.id">Projects.co.id</option>
-                                <option value="freelancer">Freelancer.com</option>
-                                <option value="sribu">Sribu</option>
-                                <option value="upwork">Upwork</option>
-                                <option value="fastwork">Fastwork</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
-                            <select id="li-filter-service" onchange="applyClientFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Tipe Layanan --</option>
-                                <option value="web & mobile">Web & Mobile Development</option>
-                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                                <option value="ui/ux">UI/UX Design & Product</option>
-                                <option value="qa">QA & Software Testing</option>
-                                <option value="staff augmentation">IT Staff Augmentation</option>
-                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2.5">
-                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>📍 3. Filter Lokasi Wilayah</span>
-                            <span class="text-[10px] text-gray-500 font-normal">Provinsi ➔ Kab/Kota</span>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Provinsi</label>
-                            <select id="sb-prov" onchange="onProvinceChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-indigo-500 outline-none">
-                                <option value="">-- Semua Provinsi --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Pilih Kabupaten / Kota</label>
-                            <select id="sb-kab" onchange="applyClientFilters()" disabled class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-400 disabled:opacity-50 focus:border-indigo-500 outline-none">
-                                <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-semibold text-amber-300">🗓️ 4. Filter Rentang Waktu</span>
-                            <select id="sb-time-preset" onchange="onTimePresetChange()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-200 outline-none">
-                                <option value="all">Semua Waktu</option>
-                                <option value="1d">24 Jam Terakhir</option>
-                                <option value="3d">3 Hari Terakhir</option>
-                                <option value="7d">7 Hari Terakhir</option>
-                                <option value="30d">30 Hari Terakhir</option>
-                                <option value="custom">Pilih Tanggal</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] text-gray-400 mb-0.5">Dari Tanggal</label>
-                                <input id="sb-date-from" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-gray-400 mb-0.5">Sampai Tanggal</label>
-                                <input id="sb-date-to" type="date" onchange="onCustomDateChange()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-1.5 text-[11px] text-gray-200 outline-none focus:border-amber-500">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-[#0b0d14]/70 border border-gray-800 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-semibold text-emerald-300">🔍 5. Filter Kata Kunci & Teks</label>
-                            <select id="sb-text-mode" onchange="applyClientFilters()" class="bg-[#131726] border border-gray-700 rounded px-2 py-0.5 text-[10px] text-gray-300 outline-none">
-                                <option value="all">Semua Kolom</option>
-                                <option value="hashtag">Khusus Hashtag (#)</option>
-                                <option value="exact">Frasa Spesifik</option>
-                            </select>
-                        </div>
-                        <input id="sb-search" type="text" oninput="applyClientFilters()" onkeydown="if(event.key==='Enter') executeAction(true)" placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..." class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:border-emerald-500 outline-none">
-                        <div class="flex flex-wrap gap-1 pt-0.5">
-                            <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">karhutla</button>
-                            <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">mbg</button>
-                            <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">#ai</button>
-                            <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">ikn</button>
-                            <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">banjir</button>
-                            <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] rounded bg-gray-800 hover:bg-indigo-900/80 text-gray-300 border border-gray-700 transition">investasi</button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris Tampilan</label>
-                        <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
+                <div>
+                    <label for="sb-news-cat" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Klasifikasi Kategori &amp; Tag Isu</label>
+                    <select id="sb-news-cat" onchange="applyClientFilters()" class="ddc-field">
+                        <option value="">-- Semua Kategori & Tag --</option>
+                        <optgroup label="Pemerintahan & Kebijakan">
+                            <option value="politik">Politik & Pemerintahan</option>
+                            <option value="kebijakan">Kebijakan Publik & Regulasi</option>
+                            <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
+                            <option value="ikn">Ibu Kota Nusantara (IKN)</option>
+                            <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
+                            <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
+                        </optgroup>
+                        <optgroup label="Ekonomi & Infrastruktur">
+                            <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
+                            <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
+                            <option value="energi">Energi Hijau & Transisi Energi</option>
+                            <option value="infrastruktur">Infrastruktur & Transportasi</option>
+                        </optgroup>
+                        <optgroup label="Sains, Alam & Masyarakat">
+                            <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
+                            <option value="teknologi">Teknologi, AI & Digitalisasi</option>
+                            <option value="kesehatan">Kesehatan & Medis</option>
+                            <option value="pendidikan">Pendidikan, Kampus & Riset</option>
+                            <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
+                        </optgroup>
+                        <optgroup label="Tren & Gaya Hidup">
+                            <option value="olahraga">Olahraga & Timnas</option>
+                            <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
+                        </optgroup>
+                    </select>
                 </div>
 
-                <!-- Form Bank Data CSV -->
-                <div id="form-bank" class="hidden space-y-3">
+                <!-- Filter Khusus LinkedIn & Project Fit -->
+                <div id="linkedin-filter-box" class="hidden p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/70 dark:border-indigo-800/50 space-y-2.5">
+                    <div class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
+                            <span>Filter LinkedIn &amp; Project Fit</span>
+                        </span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">Geekgarden</span>
+                    </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Kategori Platform</label>
-                        <select id="bd-cat" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="berita">Berita</option>
-                            <option value="keyword_trending">Keyword & Trending</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="twitter">Twitter / X</option>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
+                        <select id="li-filter-conf" onchange="applyClientFilters()" class="ddc-field">
+                            <option value="">-- Semua Status Confidence --</option>
+                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
+                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
+                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Sumber Platform Project</label>
+                        <select id="li-filter-source" onchange="applyClientFilters()" class="ddc-field">
+                            <option value="">-- Semua Sumber Project --</option>
                             <option value="linkedin">LinkedIn</option>
-                            <option value="semua">Semua Kategori</option>
-                        </select>
-                    </div>
-                    <div id="bd-linkedin-filter-box" class="hidden p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-700/60 space-y-2.5">
-                        <div class="text-[11px] font-semibold text-indigo-300 flex items-center justify-between">
-                            <span>💼 Filter Khusus LinkedIn CSV</span>
-                            <span class="text-[10px] text-emerald-400">Geekgarden</span>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence</label>
-                            <select id="bd-li-filter-conf" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Status Confidence --</option>
-                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
-                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
-                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Sumber Platform Project</label>
-                            <select id="bd-li-filter-source" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Sumber Project --</option>
-                                <option value="linkedin">LinkedIn</option>
-                                <option value="projects.co.id">Projects.co.id</option>
-                                <option value="freelancer">Freelancer.com</option>
-                                <option value="sribu">Sribu</option>
-                                <option value="upwork">Upwork</option>
-                                <option value="fastwork">Fastwork</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
-                            <select id="bd-li-filter-service" onchange="applyBankLinkedInFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Tipe Layanan --</option>
-                                <option value="web & mobile">Web & Mobile Development</option>
-                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                                <option value="ui/ux">UI/UX Design & Product</option>
-                                <option value="qa">QA & Software Testing</option>
-                                <option value="staff augmentation">IT Staff Augmentation</option>
-                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Filter Engine / Tool</label>
-                        <select id="bd-tool" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="semua">Semua Tool</option>
-                            <option value="apify">Apify</option>
-                            <option value="diffbot">Diffbot</option>
-                            <option value="newsdata">Newsdata</option>
-                            <option value="brightdata">Bright Data</option>
-                            <option value="kombine">Kombine</option>
+                            <option value="projects.co.id">Projects.co.id</option>
+                            <option value="freelancer">Freelancer.com</option>
+                            <option value="sribu">Sribu</option>
+                            <option value="upwork">Upwork</option>
+                            <option value="fastwork">Fastwork</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">3. Mode Skema Kolom</label>
-                        <select id="bd-schema" onchange="onBankFilterChange()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="standar">Standar Rapih (Disatukan)</option>
-                            <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
-                            <option value="semua">Semua File</option>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
+                        <select id="li-filter-service" onchange="applyClientFilters()" class="ddc-field">
+                            <option value="">-- Semua Tipe Layanan --</option>
+                            <option value="web & mobile">Web & Mobile Development</option>
+                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                            <option value="ui/ux">UI/UX Design & Product</option>
+                            <option value="qa">QA & Software Testing</option>
+                            <option value="staff augmentation">IT Staff Augmentation</option>
+                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
                         </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">4. Pilih File CSV</label>
-                        <select id="bd-file" onchange="executeAction()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="semua">-- Semua File --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">5. Cari Isi Tabel</label>
-                        <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">6. Batas Baris</label>
-                        <input id="bd-limit" type="number" value="200" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
                     </div>
                 </div>
 
-                <!-- Form Keyword -->
-                <div id="form-keyword" class="hidden space-y-3">
+                <!-- Filter Lokasi Wilayah -->
+                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
+                    <div class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                            <span>3. Lokasi Wilayah</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">Provinsi &rarr; Kab/Kota</span>
+                    </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Mode Pencarian</label>
-                        <select id="kw-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
-                            <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
+                        <label class="block text-[11px] text-slate-500 dark:text-zinc-400 mb-1">Pilih Provinsi</label>
+                        <select id="sb-prov" onchange="onProvinceChange()" class="ddc-field">
+                            <option value="">-- Semua Provinsi --</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Keyword / Kategori</label>
-                        <input id="kw-input" type="text" value="karhutla" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                        <input id="kw-limit" type="number" value="30" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
+                        <label class="block text-[11px] text-slate-500 dark:text-zinc-400 mb-1">Pilih Kabupaten / Kota</label>
+                        <select id="sb-kab" onchange="applyClientFilters()" disabled class="ddc-field">
+                            <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- Form Berita -->
-                <div id="form-berita" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Engine Berita</label>
-                        <select id="br-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
-                            <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
-                            <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
-                            <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
+                <!-- Filter Rentang Waktu -->
+                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                            <span>4. Rentang Waktu</span>
+                        </span>
+                        <select id="sb-time-preset" onchange="onTimePresetChange()"
+                                class="rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-[#14171F] px-2 py-1 text-[10px] text-slate-700 dark:text-zinc-300 outline-none">
+                            <option value="all">Semua Waktu</option>
+                            <option value="1d">24 Jam Terakhir</option>
+                            <option value="3d">3 Hari Terakhir</option>
+                            <option value="7d">7 Hari Terakhir</option>
+                            <option value="30d">30 Hari Terakhir</option>
+                            <option value="custom">Pilih Tanggal</option>
                         </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Topik Berita / Lokasi / Tokoh</label>
-                        <input id="br-input" type="text" value="prabowo" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Artikel</label>
-                        <input id="br-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Sosmed -->
-                <div id="form-sosmed" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Platform Sosmed</label>
-                        <select id="sm-platform" onchange="toggleSosmedOptions()" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="instagram">Instagram</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="linkedin">LinkedIn (Bright Data)</option>
-                        </select>
-                    </div>
-                    <div id="sm-engine-box">
-                        <label class="block text-xs text-gray-400 mb-1">Engine</label>
-                        <select id="sm-engine" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="apify">Apify Actor</option>
-                            <option value="diffbot">Diffbot Analyze</option>
-                        </select>
-                    </div>
-                    <div id="sm-mode-box">
-                        <label class="block text-xs text-gray-400 mb-1">Format Kolom</label>
-                        <select id="sm-mode" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                            <option value="bersih">Standar Bersih (9 Kolom)</option>
-                            <option value="full">Full Kolom Asli (29/39 Kolom)</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Keyword / Hashtag / URL</label>
-                        <input id="sm-input" type="text" value="kebakaranhutan" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Jumlah Data</label>
-                        <input id="sm-limit" type="number" value="15" min="1" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs">
-                    </div>
-                </div>
-
-                <!-- Form Pencarian Project & Geekgarden Confidence -->
-                <div id="form-project" class="hidden space-y-3">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">1. Sumber Platform Project</label>
-                        <select id="proj-sources" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-emerald-500 outline-none">
-                            <option value="all">🌐 Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
-                            <option value="linkedin">🔗 LinkedIn Project Leads</option>
-                            <option value="projects_coid">🇮🇩 Projects.co.id (Lokal Indonesia)</option>
-                            <option value="freelancer">🌍 Freelancer.com (Public API)</option>
-                            <option value="web_leads">🕸️ Sribu / Upwork / Fastwork / Portal Lain</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">2. Keyword / Tech Stack / Jenis Project</label>
-                        <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200 focus:border-emerald-500 outline-none">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">3. Wilayah</label>
-                            <select id="proj-region" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200">
-                                <option value="id">🇮🇩 Indonesia</option>
-                                <option value="global">🌍 Global</option>
-                            </select>
+                            <label class="block text-[10px] text-slate-500 dark:text-zinc-400 mb-1">Dari Tanggal</label>
+                            <input id="sb-date-from" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1.5 !px-2 !text-[11px] tabular-nums">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">4. Jumlah Target</label>
-                            <input id="proj-limit" type="number" value="20" min="1" max="50" class="w-full bg-[#0b0d14] border border-gray-700 rounded-lg p-2.5 text-xs text-gray-200">
+                            <label class="block text-[10px] text-slate-500 dark:text-zinc-400 mb-1">Sampai Tanggal</label>
+                            <input id="sb-date-to" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1.5 !px-2 !text-[11px] tabular-nums">
                         </div>
-                    </div>
-
-                    <div class="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-800/50 space-y-2">
-                        <div class="text-[11px] font-semibold text-emerald-300 flex items-center justify-between">
-                            <span>🎯 Filter Hasil & Confidence Geekgarden</span>
-                            <span class="text-[10px] text-gray-400">Realtime</span>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Status Confidence</label>
-                            <select id="proj-filter-conf" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Status --</option>
-                                <option value="fix bisa masuk">✅ Fix Bisa Masuk (≥ 70%)</option>
-                                <option value="fifty-fifty">⚖️ Fifty-Fifty (40% – 69%)</option>
-                                <option value="tidak bisa">❌ Tidak Bisa (&lt; 40%)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Filter Sumber Hasil</label>
-                            <select id="proj-filter-source" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Sumber --</option>
-                                <option value="linkedin">LinkedIn Project Lead</option>
-                                <option value="projects.co.id">Projects.co.id</option>
-                                <option value="freelancer">Freelancer.com</option>
-                                <option value="sribu">Sribu</option>
-                                <option value="upwork">Upwork</option>
-                                <option value="fastwork">Fastwork</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Tipe Layanan Geekgarden</label>
-                            <select id="proj-filter-service" onchange="applyProjectFilters()" class="w-full bg-[#131726] border border-gray-700 rounded-lg p-2 text-xs text-gray-200">
-                                <option value="">-- Semua Tipe Layanan --</option>
-                                <option value="web & mobile">Web & Mobile Development</option>
-                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                                <option value="ui/ux">UI/UX Design & Product</option>
-                                <option value="qa">QA & Software Testing</option>
-                                <option value="staff augmentation">IT Staff Augmentation</option>
-                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                            </select>
-                        </div>
-                        <button type="button" onclick="showProjectResults()" id="btn-proj-show" class="mt-2 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg shadow transition flex items-center justify-center gap-1.5">
-                            <span>📊 Tampilkan Hasil & Grafik</span>
-                        </button>
                     </div>
                 </div>
 
-                <button onclick="executeAction(true)" id="btn-run" class="mt-4 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
-                    🗄️ Muat Tabel Supabase
-                </button>
-                <!-- Progress Bar & Timer Durasi Scraper Realtime -->
-                <div id="scraper-progress-box" class="hidden mt-3 p-3 rounded-xl bg-[#0b0d14] border border-emerald-800/60 space-y-2">
-                    <div class="flex items-center justify-between text-[11px]">
-                        <span id="scraper-progress-label" class="text-emerald-400 font-semibold truncate">
-                            🚀 Scraper & Simpan DB Berjalan...
-                        </span>
-                        <span id="scraper-elapsed-timer" class="font-mono text-xs font-bold text-amber-300 shrink-0 ml-2">
-                            00:00
-                        </span>
+                <!-- Filter Kata Kunci -->
+                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="sb-search" class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+                            <span>5. Kata Kunci &amp; Teks</span>
+                        </label>
+                        <select id="sb-text-mode" onchange="applyClientFilters()"
+                                class="rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-[#14171F] px-2 py-1 text-[10px] text-slate-700 dark:text-zinc-300 outline-none">
+                            <option value="all">Semua Kolom</option>
+                            <option value="hashtag">Khusus Hashtag (#)</option>
+                            <option value="exact">Frasa Spesifik</option>
+                        </select>
                     </div>
-                    <div class="w-full h-2 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
-                        <div id="scraper-progress-bar"
-                             class="h-full w-0 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-400 rounded-full transition-all duration-300">
-                        </div>
+                    <input id="sb-search" type="text" oninput="applyClientFilters()"
+                           onkeydown="if(event.key==='Enter') executeAction(true)"
+                           placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..."
+                           class="ddc-field">
+                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                        <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">karhutla</button>
+                        <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">mbg</button>
+                        <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">#ai</button>
+                        <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">ikn</button>
+                        <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">banjir</button>
+                        <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">investasi</button>
                     </div>
-                    <div class="flex items-center justify-between text-[10px] text-gray-400">
-                        <span id="scraper-progress-sub" class="truncate">Menghubungkan ke endpoint scraper...</span>
-                        <span id="scraper-progress-pct" class="font-mono text-gray-200 ml-2">0%</span>
-                    </div>
+                </div>
+
+                <div>
+                    <label for="sb-limit" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">6. Batas Baris Tampilan</label>
+                    <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="ddc-field tabular-nums">
                 </div>
             </div>
 
-            <!-- Panel Polarisasi Wilayah -->
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">
-                    📍 Ringkasan Polarisasi Tempat
-                </div>
-                <div id="loc-badges" class="space-y-2 text-xs">
-                    <div class="text-gray-500 text-xs">Memuat analisis wilayah...</div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- KOLOM TENGAH: KPI, BANNER REAKTIF, 7 GRAFIK, DAN TABEL -->
-        <section class="lg:col-span-6 space-y-4">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📦 Total Raw Data</div>
-                    <div id="kpi-raw" class="text-xl font-bold text-white mt-0.5">0</div>
-                    <div class="text-[10px] text-indigo-400">scraper.raw_data</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📰 Artikel Berita</div>
-                    <div id="kpi-news" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">news.articles</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">🔥 Keyword & Tren</div>
-                    <div id="kpi-kw" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">keyword + trend</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-3.5">
-                    <div class="text-[11px] text-gray-400">📱 Sosmed & Sentimen</div>
-                    <div id="kpi-social" class="text-xl font-bold text-purple-400 mt-0.5">0</div>
-                    <div class="text-[10px] text-gray-500">social + analytics</div>
-                </div>
-            </div>
-
-            <div id="reactive-banner" class="hidden bg-indigo-950/70 border border-indigo-700/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                    <span id="reactive-banner-text" class="text-indigo-200 font-medium">Mode Grafik Dinamis Aktif</span>
-                </div>
-                <button onclick="resetSearchFilter()" class="px-2.5 py-1 bg-indigo-800/80 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold transition">
-                    ✕ Kembali ke Grafik Global
-                </button>
-            </div>
-
-            <!-- PANEL GRAFIK KHUSUS PROJECT HUNTER (GEEKGARDEN FIT) -->
-            <div id="project-charts-panel" class="hidden space-y-4">
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div onclick="quickFilterProjectConf('fix bisa masuk')" class="cursor-pointer bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-800/60 rounded-2xl p-3 transition">
-                        <div class="text-[11px] text-emerald-300">✅ Fix Bisa Masuk</div>
-                        <div id="pkpi-fix" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
-                        <div class="text-[10px] text-gray-400">Skor ≥ 80% (Klik filter)</div>
-                    </div>
-                    <div onclick="quickFilterProjectConf('fifty-fifty')" class="cursor-pointer bg-amber-950/30 hover:bg-amber-950/50 border border-amber-800/60 rounded-2xl p-3 transition">
-                        <div class="text-[11px] text-amber-300">⚖️ Fifty-Fifty</div>
-                        <div id="pkpi-fifty" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
-                        <div class="text-[10px] text-gray-400">Skor 40–79% (Klik filter)</div>
-                    </div>
-                    <div onclick="quickFilterProjectConf('tidak bisa')" class="cursor-pointer bg-rose-950/30 hover:bg-rose-950/50 border border-rose-800/60 rounded-2xl p-3 transition">
-                        <div class="text-[11px] text-rose-300">❌ Tidak Bisa</div>
-                        <div id="pkpi-no" class="text-xl font-bold text-rose-400 mt-0.5">0</div>
-                        <div class="text-[10px] text-gray-400">Skor &lt; 40% (Klik filter)</div>
-                    </div>
-                    <div onclick="quickFilterProjectConf('')" class="cursor-pointer bg-indigo-950/30 hover:bg-indigo-950/50 border border-indigo-800/60 rounded-2xl p-3 transition">
-                        <div class="text-[11px] text-indigo-300">⭐ Rata-rata Fit</div>
-                        <div id="pkpi-avg" class="text-xl font-bold text-indigo-300 mt-0.5">0%</div>
-                        <div id="pkpi-total" class="text-[10px] text-gray-400">0 project tampil</div>
-                    </div>
+            <!-- 2. Form Bank Data CSV -->
+            <div id="form-bank" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Kategori Platform</label>
+                    <select id="bd-cat" onchange="onBankFilterChange()" class="ddc-field">
+                        <option value="berita">Berita</option>
+                        <option value="keyword_trending">Keyword & Trending</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="twitter">Twitter / X</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="semua">Semua Kategori</option>
+                    </select>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-[#131726] border border-emerald-900/60 rounded-2xl p-4 shadow-xl">
-                        <div class="mb-2">
-                            <h3 class="text-xs font-bold text-white">🎯 Distribusi Confidence Geekgarden</h3>
-                            <p class="text-[10px] text-gray-400">Proporsi kelayakan project (Klik slice untuk filter)</p>
-                        </div>
-                        <div class="h-56"><canvas id="chartProjConfidence"></canvas></div>
+                <div id="bd-linkedin-filter-box" class="hidden p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/70 dark:border-indigo-800/50 space-y-2.5">
+                    <div class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
+                        <span>Filter Khusus LinkedIn CSV</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">Geekgarden</span>
                     </div>
-
-                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                        <div class="mb-2">
-                            <h3 class="text-xs font-bold text-white">🌐 Sebaran Sumber Platform Project</h3>
-                            <p class="text-[10px] text-gray-400">Jumlah lead dari LinkedIn, Projects.co.id, Freelancer, dll.</p>
-                        </div>
-                        <div class="h-56"><canvas id="chartProjSources"></canvas></div>
-                    </div>
-
-                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                        <div class="mb-2">
-                            <h3 class="text-xs font-bold text-white">🛠️ Kecocokan Tipe Layanan Geekgarden</h3>
-                            <p class="text-[10px] text-gray-400">Klasifikasi kebutuhan project berdasarkan layanan perusahaan</p>
-                        </div>
-                        <div class="h-56"><canvas id="chartProjServices"></canvas></div>
-                    </div>
-
-                    <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                        <div class="mb-2">
-                            <h3 class="text-xs font-bold text-white">🏆 Top Project Paling Potensial (Skor %)</h3>
-                            <p class="text-[10px] text-gray-400">Peringkat skor confidence tertinggi (Klik bar untuk buka link)</p>
-                        </div>
-                        <div class="h-56"><canvas id="chartProjTopScores"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 id="title-chart-loc" class="text-xs font-bold text-white">🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)</h3>
-                            <p class="text-[10px] text-gray-400">Sentimen Positif / Netral / Negatif per Wilayah (Klik untuk filter)</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartLocations"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">👤 Tokoh / Orang Paling Trending</h3>
-                            <p class="text-[10px] text-gray-400">Frekuensi kemunculan tokoh pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartPeople"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white"> Konten & Postingan Paling Menonjol (Viral)</h3>
-                            <p class="text-[10px] text-gray-400">Peringkat engagement / dampak tertinggi pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartViral"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🏷️ Top Hashtag & Tagar Isu Populer</h3>
-                            <p class="text-[10px] text-gray-400">Tagar yang paling banyak digunakan pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartHashtags"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🔥 Top Keyword & Topik Paling Trending</h3>
-                            <p class="text-[10px] text-gray-400">Volume kueri / kata kunci tertinggi pada data terpilih</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartKeywords"></canvas></div>
-                </div>
-
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">⏱️ Tren Waktu & Aktivitas Ingesti</h3>
-                            <p class="text-[10px] text-gray-400">Distribusi waktu publikasi / ingesti sesuai rentang filter</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartTimeline"></canvas></div>
-                </div>
-
-                <div class="md:col-span-2 bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">🫀 Kesehatan Sistem & Trafik API</h3>
-                            <p class="text-[10px] text-gray-400">Memantau beban server scraper (Request) dan kecepatan respons server (milidetik)</p>
-                        </div>
-                    </div>
-                    <div class="h-56"><canvas id="chartSystem"></canvas></div>
-                </div>
-            </div>
-
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-gray-800">
                     <div>
-                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                            <span>📊 Tabel Output Data Explorer</span>
-                            <span class="text-xs font-normal px-2.5 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800 rounded-full">
-                                <span id="row-count">0</span> baris
-                            </span>
-                        </h2>
-                        <p id="status-text" class="text-[11px] text-gray-400 mt-0.5">
-                            Siap memuat atau mengekstrak data.
-                        </p>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
+                        <select id="bd-li-filter-conf" onchange="applyBankLinkedInFilters()" class="ddc-field">
+                            <option value="">-- Semua Status Confidence --</option>
+                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
+                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
+                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
+                        </select>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="resetSearchFilter()" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] rounded-lg border border-gray-700 transition">
-                            Reset Filter
-                        </button>
-                        <a id="btn-download" href="#" class="hidden px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition shadow">
-                            📥 Download CSV
-                        </a>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Sumber Platform Project</label>
+                        <select id="bd-li-filter-source" onchange="applyBankLinkedInFilters()" class="ddc-field">
+                            <option value="">-- Semua Sumber Project --</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="projects.co.id">Projects.co.id</option>
+                            <option value="freelancer">Freelancer.com</option>
+                            <option value="sribu">Sribu</option>
+                            <option value="upwork">Upwork</option>
+                            <option value="fastwork">Fastwork</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
+                        <select id="bd-li-filter-service" onchange="applyBankLinkedInFilters()" class="ddc-field">
+                            <option value="">-- Semua Tipe Layanan --</option>
+                            <option value="web & mobile">Web & Mobile Development</option>
+                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                            <option value="ui/ux">UI/UX Design & Product</option>
+                            <option value="qa">QA & Software Testing</option>
+                            <option value="staff augmentation">IT Staff Augmentation</option>
+                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto max-h-[440px] border border-gray-800/80 rounded-xl bg-[#0b0d14]">
-                    <table class="w-full text-left text-xs text-gray-300">
-                        <thead id="table-head" class="bg-[#161b2e] text-gray-300 uppercase text-[11px] sticky top-0 z-10"></thead>
-                        <tbody id="table-body" class="divide-y divide-gray-800/70">
-                            <tr><td class="p-8 text-center text-gray-500">Memuat data...</td></tr>
-                        </tbody>
-                    </table>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Filter Engine / Tool</label>
+                    <select id="bd-tool" onchange="onBankFilterChange()" class="ddc-field">
+                        <option value="semua">Semua Tool</option>
+                        <option value="apify">Apify</option>
+                        <option value="diffbot">Diffbot</option>
+                        <option value="newsdata">Newsdata</option>
+                        <option value="brightdata">Bright Data</option>
+                        <option value="kombine">Kombine</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Mode Skema Kolom</label>
+                    <select id="bd-schema" onchange="onBankFilterChange()" class="ddc-field">
+                        <option value="standar">Standar Rapih (Disatukan)</option>
+                        <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
+                        <option value="semua">Semua File</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Pilih File CSV</label>
+                    <select id="bd-file" onchange="executeAction()" class="ddc-field">
+                        <option value="semua">-- Semua File --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">5. Cari Isi Tabel</label>
+                    <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="ddc-field">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">6. Batas Baris</label>
+                    <input id="bd-limit" type="number" value="200" min="1" class="ddc-field tabular-nums">
                 </div>
             </div>
-        </section>
 
-        <!-- KOLOM KANAN: CRON PROGRESS BAR, SENTIMEN, SKEMA -->
-        <aside class="lg:col-span-3 space-y-4">
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        ⏰ Cron Scheduler (8 Jam)
-                    </span>
-                    <span id="cron-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
-                        ACTIVE
-                    </span>
+            <!-- 3. Form Keyword -->
+            <div id="form-keyword" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Mode Pencarian</label>
+                    <select id="kw-mode" class="ddc-field">
+                        <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
+                        <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Keyword / Kategori</label>
+                    <input id="kw-input" type="text" value="karhutla" class="ddc-field">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Data</label>
+                    <input id="kw-limit" type="number" value="30" min="1" class="ddc-field tabular-nums">
+                </div>
+            </div>
+
+            <!-- 4. Form Berita -->
+            <div id="form-berita" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Engine Berita</label>
+                    <select id="br-engine" class="ddc-field">
+                        <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
+                        <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
+                        <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
+                        <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Topik Berita / Lokasi / Tokoh</label>
+                    <input id="br-input" type="text" value="prabowo" class="ddc-field">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Artikel</label>
+                    <input id="br-limit" type="number" value="15" min="1" class="ddc-field tabular-nums">
+                </div>
+            </div>
+
+            <!-- 5. Form Sosmed -->
+            <div id="form-sosmed" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Platform Sosmed</label>
+                    <select id="sm-platform" onchange="toggleSosmedOptions()" class="ddc-field">
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="twitter">Twitter / X</option>
+                        <option value="linkedin">LinkedIn (Bright Data)</option>
+                    </select>
+                </div>
+                <div id="sm-engine-box">
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Engine</label>
+                    <select id="sm-engine" class="ddc-field">
+                        <option value="apify">Apify Actor</option>
+                        <option value="diffbot">Diffbot Analyze</option>
+                    </select>
+                </div>
+                <div id="sm-mode-box">
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Format Kolom</label>
+                    <select id="sm-mode" class="ddc-field">
+                        <option value="bersih">Standar Bersih (9 Kolom)</option>
+                        <option value="full">Full Kolom Asli (29/39 Kolom)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Keyword / Hashtag / URL</label>
+                    <input id="sm-input" type="text" value="kebakaranhutan" class="ddc-field">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Data</label>
+                    <input id="sm-limit" type="number" value="15" min="1" class="ddc-field tabular-nums">
+                </div>
+            </div>
+
+            <!-- 6. Form Pencarian Project & Geekgarden Confidence -->
+            <div id="form-project" class="hidden space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Sumber Platform Project</label>
+                    <select id="proj-sources" class="ddc-field">
+                        <option value="all">Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
+                        <option value="linkedin">LinkedIn Project Leads</option>
+                        <option value="projects_coid">Projects.co.id (Lokal Indonesia)</option>
+                        <option value="freelancer">Freelancer.com (Public API)</option>
+                        <option value="web_leads">Sribu / Upwork / Fastwork / Portal Lain</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Keyword / Tech Stack / Jenis Project</label>
+                    <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="ddc-field">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Wilayah</label>
+                        <select id="proj-region" class="ddc-field">
+                            <option value="id">Indonesia</option>
+                            <option value="global">Global</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Jumlah Target</label>
+                        <input id="proj-limit" type="number" value="20" min="1" max="50" class="ddc-field tabular-nums">
+                    </div>
                 </div>
 
-                <div class="bg-[#0b0d14] border border-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Jadwal WIB:</span>
-                        <span class="font-semibold text-white">08:00 • 16:00 • 00:00</span>
+                <div class="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2.5">
+                    <div class="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                            <span>Filter Hasil &amp; Confidence</span>
+                        </span>
+                        <span class="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Realtime</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Target / Siklus:</span>
-                        <span class="font-semibold text-emerald-400">1.000 Baris</span>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
+                        <select id="proj-filter-conf" onchange="applyProjectFilters()" class="ddc-field">
+                            <option value="">-- Semua Status --</option>
+                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
+                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
+                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
+                        </select>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Next Run:</span>
-                        <span id="cron-next" class="font-mono text-[11px] text-indigo-300">-</span>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Filter Sumber Hasil</label>
+                        <select id="proj-filter-source" onchange="applyProjectFilters()" class="ddc-field">
+                            <option value="">-- Semua Sumber --</option>
+                            <option value="linkedin">LinkedIn Project Lead</option>
+                            <option value="projects.co.id">Projects.co.id</option>
+                            <option value="freelancer">Freelancer.com</option>
+                            <option value="sribu">Sribu</option>
+                            <option value="upwork">Upwork</option>
+                            <option value="fastwork">Fastwork</option>
+                        </select>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Last Run:</span>
-                        <span id="cron-last" class="font-mono text-[11px] text-gray-300">-</span>
+                    <div>
+                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
+                        <select id="proj-filter-service" onchange="applyProjectFilters()" class="ddc-field">
+                            <option value="">-- Semua Tipe Layanan --</option>
+                            <option value="web & mobile">Web & Mobile Development</option>
+                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                            <option value="ui/ux">UI/UX Design & Product</option>
+                            <option value="qa">QA & Software Testing</option>
+                            <option value="staff augmentation">IT Staff Augmentation</option>
+                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                        </select>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Status:</span>
-                        <span id="cron-status" class="font-semibold text-amber-300">idle</span>
-                    </div>
-<div class="pt-2.5 mt-2 border-t border-gray-800/90 space-y-2.5">
-                        <div>
-                            <div class="flex justify-between items-center text-[10px] mb-1">
-                                <span id="cron-prog-label" class="text-gray-400">Capaian Batch (1.000 Baris):</span>
-                                <span id="cron-prog-pct" class="font-mono font-semibold text-emerald-400">0 / 1.000 (0%)</span>
-                            </div>
-                            <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-0.5">
-                                <div id="cron-prog-bar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center text-[10px] mb-1">
-                                <span class="text-gray-400">Siklus Waktu (8 Jam):</span>
-                                <span id="cron-cycle-pct" class="font-mono text-[10px] text-indigo-300">0%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800/80">
-                                <div id="cron-cycle-bar" class="h-full bg-indigo-500/80 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-3 space-y-2">
-                    <button onclick="triggerCronNow()" id="btn-cron" class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow transition">
-                        ⚡ Trigger Batch 1.000 Baris Sekarang
+                    <button type="button" onclick="showProjectResults()" id="btn-proj-show"
+                            class="mt-1 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg shadow-2xs transition inline-flex items-center justify-center gap-1.5">
+                        <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
+                        <span>Tampilkan Hasil &amp; Grafik</span>
                     </button>
-                    <button onclick="syncCsvToSupabase()" id="btn-sync" class="w-full py-2 px-3 bg-[#1a1f33] hover:bg-gray-800 text-gray-200 font-semibold text-xs rounded-xl border border-gray-700 transition">
-                        🔄 Sync Semua CSV ke Supabase
-                    </button>
                 </div>
             </div>
 
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl">
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    ⚖️ Polarisasi Sentimen & Share Platform
-                </div>
-                <div class="h-44"><canvas id="chartSentiment"></canvas></div>
-            </div>
+            <!-- Primary Action Button -->
+            <button type="button" onclick="executeAction(true)" id="btn-run"
+                    class="mt-4 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition">
+                Muat Tabel Supabase
+            </button>
 
-            <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-xl text-xs space-y-1.5">
-                <div class="flex items-center justify-between mb-2.5">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        🏛️ 7 Skema Supabase Warehouse
+            <!-- Progress Bar & Timer Durasi Scraper Realtime -->
+            <div id="scraper-progress-box" class="hidden mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0F1117] border border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span id="scraper-progress-label" class="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                        Scraper &amp; Simpan DB Berjalan...
                     </span>
-                    <button onclick="forceReloadAll()" class="text-[11px] text-indigo-400 hover:text-indigo-300">↻</button>
+                    <span id="scraper-elapsed-timer" class="font-mono tabular-nums text-xs font-semibold text-amber-700 dark:text-amber-300 shrink-0 ml-2">
+                        00:00
+                    </span>
                 </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">1. core.sources</span>
-                    <span id="st-sources" class="font-bold text-white">0</span>
+                <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div id="scraper-progress-bar"
+                         class="h-full w-0 bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-300">
+                    </div>
                 </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">2. scraper.jobs</span>
-                    <span id="st-jobs" class="font-bold text-white">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">3. scraper.raw_data</span>
-                    <span id="st-raw" class="font-bold text-indigo-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">4. news.articles</span>
-                    <span id="st-news" class="font-bold text-emerald-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">5. keyword.keywords</span>
-                    <span id="st-keywords" class="font-bold text-amber-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">6. trend.snapshots</span>
-                    <span id="st-trends" class="font-bold text-amber-300">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">7. social.accounts</span>
-                    <span id="st-accounts" class="font-bold text-purple-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">8. social.posts</span>
-                    <span id="st-posts" class="font-bold text-pink-400">0</span>
-                </div>
-                <div class="flex justify-between items-center p-2 rounded-lg bg-[#0b0d14] border border-gray-800/70">
-                    <span class="text-gray-400">9. analytics.sentiment</span>
-                    <span id="st-sentiment" class="font-bold text-cyan-400">0</span>
+                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400">
+                    <span id="scraper-progress-sub" class="truncate">Menghubungkan ke endpoint scraper...</span>
+                    <span id="scraper-progress-pct" class="font-mono tabular-nums text-slate-700 dark:text-zinc-200 ml-2">0%</span>
                 </div>
             </div>
-        </aside>
-    </main>
+        </div>
 
-    <script src="/app.js?v=20261123_thr80"></script>
+        <!-- Card Ringkasan Polarisasi Wilayah -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="map" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Ringkasan Polarisasi Wilayah
+                </span>
+            </div>
+            <div id="loc-badges" class="space-y-2 text-xs">
+                <div class="text-slate-400 dark:text-zinc-500 text-xs">Memuat analisis wilayah...</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- KOLOM TENGAH: KPI, GRAFIK, DAN DATA EXPLORER -->
+    <section class="xl:col-span-6 space-y-5">
+
+        <!-- 4 KPI Utama -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Total Raw Data</span>
+                    <span class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                        <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                    </span>
+                </div>
+                <div id="kpi-raw" class="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-2">0</div>
+                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">scraper.raw_data</div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Artikel Berita</span>
+                    <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                        <i data-lucide="newspaper" class="w-3.5 h-3.5"></i>
+                    </span>
+                </div>
+                <div id="kpi-news" class="text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400 mt-2">0</div>
+                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">news.articles</div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Keyword &amp; Tren</span>
+                    <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+                        <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+                    </span>
+                </div>
+                <div id="kpi-kw" class="text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-400 mt-2">0</div>
+                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">keyword + trend</div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Sosmed &amp; Sentimen</span>
+                    <span class="p-1.5 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400">
+                        <i data-lucide="message-square-heart" class="w-3.5 h-3.5"></i>
+                    </span>
+                </div>
+                <div id="kpi-social" class="text-2xl font-bold tabular-nums text-violet-700 dark:text-violet-400 mt-2">0</div>
+                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">social + analytics</div>
+            </div>
+        </div>
+
+        <!-- Banner Mode Grafik Dinamis (Pastel Alert) -->
+        <div id="reactive-banner"
+             class="hidden bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs" style="display:none !important" aria-hidden="true">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                <span id="reactive-banner-text" class="text-indigo-800 dark:text-indigo-200 font-medium">Mode Grafik Dinamis Aktif</span>
+            </div>
+            <button type="button" onclick="resetSearchFilter()"
+                    class="px-2.5 py-1 bg-white hover:bg-indigo-100/70 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/60 dark:hover:bg-indigo-800/70 dark:text-indigo-100 dark:border-indigo-700 rounded-lg text-[11px] font-medium transition">
+                Kembali ke Grafik Global
+            </button>
+        </div>
+
+        <!-- PANEL GRAFIK KHUSUS PROJECT HUNTER (GEEKGARDEN FIT) -->
+        <div id="project-charts-panel" class="hidden space-y-5">
+            <!-- 4 Kartu Status Confidence Pastel -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div onclick="quickFilterProjectConf('fix bisa masuk')"
+                     class="cursor-pointer bg-emerald-50/80 hover:bg-emerald-50 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                        <span>Fix Bisa Masuk</span>
+                    </div>
+                    <div id="pkpi-fix" class="text-2xl font-bold tabular-nums text-emerald-800 dark:text-emerald-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-emerald-700/80 dark:text-zinc-400 mt-0.5">Skor ≥ 80% (Klik filter)</div>
+                </div>
+
+                <div onclick="quickFilterProjectConf('fifty-fifty')"
+                     class="cursor-pointer bg-amber-50/80 hover:bg-amber-50 dark:bg-amber-950/25 dark:hover:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+                        <span>Fifty-Fifty</span>
+                    </div>
+                    <div id="pkpi-fifty" class="text-2xl font-bold tabular-nums text-amber-800 dark:text-amber-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-amber-700/80 dark:text-zinc-400 mt-0.5">Skor 40–79% (Klik filter)</div>
+                </div>
+
+                <div onclick="quickFilterProjectConf('tidak bisa')"
+                     class="cursor-pointer bg-rose-50/80 hover:bg-rose-50 dark:bg-rose-950/25 dark:hover:bg-rose-950/40 border border-rose-200/90 dark:border-rose-800/60 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-300">
+                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                        <span>Tidak Bisa</span>
+                    </div>
+                    <div id="pkpi-no" class="text-2xl font-bold tabular-nums text-rose-800 dark:text-rose-400 mt-1.5">0</div>
+                    <div class="text-[10px] text-rose-700/80 dark:text-zinc-400 mt-0.5">Skor &lt; 40% (Klik filter)</div>
+                </div>
+
+                <div onclick="quickFilterProjectConf('')"
+                     class="cursor-pointer bg-white hover:bg-slate-50 dark:bg-[#14171F] dark:hover:bg-zinc-800/70 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 transition">
+                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>Rata-rata Fit</span>
+                    </div>
+                    <div id="pkpi-avg" class="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-1.5">0%</div>
+                    <div id="pkpi-total" class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 tabular-nums">0 project tampil</div>
+                </div>
+            </div>
+
+            <!-- 4 Grafik Project Hunter -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Distribusi Confidence Geekgarden</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Proporsi kelayakan project (klik slice untuk filter)</p>
+                    </div>
+                    <div class="h-56"><canvas id="chartProjConfidence"></canvas></div>
+                </div>
+
+                <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Sebaran Sumber Platform Project</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Jumlah lead dari LinkedIn, Projects.co.id, Freelancer, dll.</p>
+                    </div>
+                    <div class="h-56"><canvas id="chartProjSources"></canvas></div>
+                </div>
+
+                <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Kecocokan Tipe Layanan Geekgarden</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Klasifikasi kebutuhan project berdasarkan layanan</p>
+                    </div>
+                    <div class="h-56"><canvas id="chartProjServices"></canvas></div>
+                </div>
+
+                <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                    <div class="mb-3">
+                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Project Paling Potensial</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Skor confidence tertinggi (klik bar untuk buka link)</p>
+                    </div>
+                    <div class="h-56"><canvas id="chartProjTopScores"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7 GRAFIK ANALITIK GLOBAL -->
+        <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 id="title-chart-loc" class="text-xs font-semibold text-slate-900 dark:text-white">Polarisasi Lokasi (Sebaran Wilayah)</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Sentimen Positif / Netral / Negatif per wilayah</p>
+                </div>
+                <div class="h-56"><canvas id="chartLocations"></canvas></div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Tokoh Paling Sering Disebut</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Frekuensi kemunculan tokoh pada data terpilih</p>
+                </div>
+                <div class="h-56"><canvas id="chartPeople"></canvas></div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Konten &amp; Postingan Paling Menonjol</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Peringkat engagement tertinggi pada data terpilih</p>
+                </div>
+                <div class="h-56"><canvas id="chartViral"></canvas></div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Hashtag &amp; Tagar Populer</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Tagar paling sering muncul pada data terpilih</p>
+                </div>
+                <div class="h-56"><canvas id="chartHashtags"></canvas></div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Keyword &amp; Topik Trending</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Volume kueri tertinggi pada data terpilih</p>
+                </div>
+                <div class="h-56"><canvas id="chartKeywords"></canvas></div>
+            </div>
+
+            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Tren Waktu &amp; Aktivitas Ingesti</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Distribusi waktu publikasi sesuai rentang filter</p>
+                </div>
+                <div class="h-56"><canvas id="chartTimeline"></canvas></div>
+            </div>
+
+            <div class="md:col-span-2 ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+                <div class="mb-3">
+                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Kesehatan Sistem &amp; Trafik API</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Beban request server scraper dan kecepatan respons (ms)</p>
+                </div>
+                <div class="h-56"><canvas id="chartSystem"></canvas></div>
+            </div>
+        </div>
+
+        <!-- TABEL OUTPUT DATA EXPLORER -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex flex-wrap justify-between items-center gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-zinc-800">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="table-2" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                        <span>Data Explorer</span>
+                        <span class="text-[11px] font-medium tabular-nums px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 rounded-full">
+                            <span id="row-count">0</span> baris
+                        </span>
+                    </h2>
+                    <p id="status-text" class="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Siap memuat atau mengekstrak data.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="resetSearchFilter()"
+                            class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[11px] font-medium rounded-lg transition">
+                        Reset Filter
+                    </button>
+                    <a id="btn-download" href="#"
+                       class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition no-underline">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Download CSV</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto max-h-[460px] border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#0F1117]">
+                <table class="w-full text-left text-xs text-slate-700 dark:text-zinc-300 tabular-nums">
+                    <thead id="table-head" class="bg-slate-50 dark:bg-[#161a24] text-slate-500 dark:text-zinc-400 uppercase text-[11px] font-semibold sticky top-0 z-10"></thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-zinc-800/70">
+                        <tr><td class="p-8 text-center text-slate-400 dark:text-zinc-500">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- KOLOM KANAN: CRON SCHEDULER, SENTIMEN, & 7 SKEMA -->
+    <aside class="xl:col-span-3 space-y-5">
+
+        <!-- Card Cron Scheduler -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-3.5">
+                <span class="inline-flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
+                    <i data-lucide="clock" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                    <span>Cron Scheduler (8 Jam)</span>
+                </span>
+                <span id="cron-badge"
+                      class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                    ACTIVE
+                </span>
+            </div>
+
+            <div class="bg-slate-50/90 dark:bg-[#0F1117] border border-slate-200/70 dark:border-zinc-800 rounded-xl p-3.5 space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-500 dark:text-zinc-400">Jadwal WIB</span>
+                    <span class="font-semibold text-slate-900 dark:text-white tabular-nums">08:00 • 16:00 • 00:00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500 dark:text-zinc-400">Target / Siklus</span>
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">1.000 Baris</span>
+                </div>
+                <div class="flex justify-between gap-2">
+                    <span class="text-slate-500 dark:text-zinc-400 shrink-0">Next Run</span>
+                    <span id="cron-next" class="font-mono tabular-nums text-[11px] text-indigo-700 dark:text-indigo-300 truncate">-</span>
+                </div>
+                <div class="flex justify-between gap-2">
+                    <span class="text-slate-500 dark:text-zinc-400 shrink-0">Last Run</span>
+                    <span id="cron-last" class="font-mono tabular-nums text-[11px] text-slate-700 dark:text-zinc-300 truncate">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500 dark:text-zinc-400">Status</span>
+                    <span id="cron-status" class="font-semibold text-amber-700 dark:text-amber-300">idle</span>
+                </div>
+
+                <div class="pt-3 mt-2 border-t border-slate-200/80 dark:border-zinc-800 space-y-2.5">
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] mb-1">
+                            <span id="cron-prog-label" class="text-slate-500 dark:text-zinc-400">Capaian Batch</span>
+                            <span id="cron-prog-pct" class="font-mono tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">0 / 1.000 (0%)</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div id="cron-prog-bar" class="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] mb-1">
+                            <span class="text-slate-500 dark:text-zinc-400">Siklus Waktu (8 Jam)</span>
+                            <span id="cron-cycle-pct" class="font-mono tabular-nums text-indigo-700 dark:text-indigo-300">0%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div id="cron-cycle-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3.5 space-y-2">
+                <button type="button" onclick="triggerCronNow()" id="btn-cron"
+                        class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center gap-1.5">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                    <span>Trigger Batch 1.000 Baris</span>
+                </button>
+                <button type="button" onclick="syncCsvToSupabase()" id="btn-sync"
+                        class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700 font-medium text-xs rounded-xl transition inline-flex items-center justify-center gap-1.5">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Sync Semua CSV ke Supabase</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Card Sentimen & Share Platform -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Polarisasi Sentimen &amp; Platform
+                </span>
+            </div>
+            <div class="h-44"><canvas id="chartSentiment"></canvas></div>
+        </div>
+
+        <!-- Card 7 Skema Supabase Warehouse -->
+        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs text-xs">
+            <div class="flex items-center justify-between mb-3">
+                <span class="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white tracking-tight">
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
+                    <span>7 Skema Supabase</span>
+                </span>
+                <button type="button" onclick="forceReloadAll()" title="Muat ulang statistik skema"
+                        class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-1.5 tabular-nums">
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">1. core.sources</span>
+                    <span id="st-sources" class="font-semibold text-slate-900 dark:text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">2. scraper.jobs</span>
+                    <span id="st-jobs" class="font-semibold text-slate-900 dark:text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">3. scraper.raw_data</span>
+                    <span id="st-raw" class="font-semibold text-indigo-700 dark:text-indigo-400">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">4. news.articles</span>
+                    <span id="st-news" class="font-semibold text-emerald-700 dark:text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">5. keyword.keywords</span>
+                    <span id="st-keywords" class="font-semibold text-amber-700 dark:text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">6. trend.snapshots</span>
+                    <span id="st-trends" class="font-semibold text-amber-600 dark:text-amber-300">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">7. social.accounts</span>
+                    <span id="st-accounts" class="font-semibold text-violet-700 dark:text-violet-400">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">8. social.posts</span>
+                    <span id="st-posts" class="font-semibold text-pink-700 dark:text-pink-400">0</span>
+                </div>
+                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
+                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">9. analytics.sentiment</span>
+                    <span id="st-sentiment" class="font-semibold text-cyan-700 dark:text-cyan-400">0</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<!-- ======================================================================= -->
+<!-- SIDEBAR ROUTING, THEME TOGGLE & CHART.JS THEME ADAPTER                  -->
+<!-- ======================================================================= -->
+<script>
+(function () {
+    const sidebar = document.getElementById("ddc-sidebar");
+    const overlay = document.getElementById("ddc-sidebar-overlay");
+    const reopenBtn = document.getElementById("ddc-sidebar-reopen");
+
+    const PAGE_META = {
+        supabase: { title: "Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
+        bank:     { title: "Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
+        keyword:  { title: "1. Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
+        berita:   { title: "2. Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
+        sosmed:   { title: "3. Social Media", desc: "Pengumpulan postingan Instagram, TikTok, Facebook, dan Twitter/X." },
+        project:  { title: "4. Pencarian Project", desc: "Pencarian peluang project freelance & klasifikasi kecocokan Geekgarden." }
+    };
+
+    /* --- Chart.js Light/Dark Sync --- */
+    function applyChartTheme() {
+        if (typeof Chart === "undefined") return;
+        const isDark = document.documentElement.classList.contains("dark");
+        const textColor = isDark ? "#a1a1aa" : "#475569";
+        const gridColor = isDark ? "rgba(63, 63, 70, 0.35)" : "rgba(226, 232, 240, 0.85)";
+
+        Chart.defaults.color = textColor;
+        Chart.defaults.borderColor = gridColor;
+        Chart.defaults.font.family = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
+
+        const instances = Chart.instances ? Object.values(Chart.instances) : [];
+        instances.forEach((chart) => {
+            if (!chart || !chart.options) return;
+            if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = textColor;
+            }
+            if (chart.options.scales) {
+                Object.values(chart.options.scales).forEach((scale) => {
+                    if (!scale) return;
+                    if (scale.ticks) scale.ticks.color = textColor;
+                    if (scale.grid) scale.grid.color = gridColor;
+                });
+            }
+            try { chart.update("none"); } catch (e) {}
+        });
+    }
+
+    window.ddcToggleTheme = function () {
+        const htmlEl = document.documentElement;
+        const nowDark = !htmlEl.classList.contains("dark");
+        htmlEl.classList.toggle("dark", nowDark);
+        try { localStorage.setItem("ddc_theme", nowDark ? "dark" : "light"); } catch (e) {}
+        applyChartTheme();
+    };
+
+    /* --- Sidebar Toggle --- */
+    window.ddcToggleMobileSidebar = function (forceOpen) {
+        if (!sidebar) return;
+        const isClosed = sidebar.classList.contains("-translate-x-full");
+        const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
+        sidebar.classList.toggle("-translate-x-full", !open);
+        if (overlay) overlay.classList.toggle("hidden", !open);
+    };
+
+    window.ddcToggleDesktopSidebar = function () {
+        document.body.classList.toggle("ddc-sb-collapsed");
+        const collapsed = document.body.classList.contains("ddc-sb-collapsed");
+        if (reopenBtn) {
+            reopenBtn.classList.toggle("hidden", !collapsed);
+            reopenBtn.classList.toggle("lg:inline-flex", collapsed);
+        }
+    };
+
+    /* --- Multi-Page Routing & Active Sidebar Highlight (Preline Style) --- */
+    function getTabFromUrl() {
+        const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
+        if (parts[0] === "dashboard" && PAGE_META[parts[1]]) return parts[1];
+        const q = new URLSearchParams(window.location.search).get("page");
+        if (q && PAGE_META[q.toLowerCase()]) return q.toLowerCase();
+        return "supabase";
+    }
+
+    const ACTIVE_CLASSES = ["bg-slate-900", "text-white", "dark:bg-zinc-800", "dark:text-white", "font-semibold", "shadow-2xs"];
+    const INACTIVE_CLASSES = ["text-slate-600", "dark:text-zinc-400", "hover:bg-slate-100", "dark:hover:bg-zinc-800/70", "font-medium"];
+
+    function updateSidebarUI(tab) {
+        const activeTab = PAGE_META[tab] ? tab : "supabase";
+        document.querySelectorAll(".ddc-sb-item").forEach((el) => {
+            const isAct = el.getAttribute("data-ddc-tab") === activeTab;
+            ACTIVE_CLASSES.forEach((c) => el.classList.toggle(c, isAct));
+            INACTIVE_CLASSES.forEach((c) => el.classList.toggle(c, !isAct));
+        });
+
+        const meta = PAGE_META[activeTab];
+        const tEl = document.getElementById("ddc-page-title");
+        const dEl = document.getElementById("ddc-page-desc");
+        if (tEl) tEl.textContent = meta.title;
+        if (dEl) dEl.textContent = meta.desc;
+        document.title = meta.title + " — DDC Portal";
+    }
+
+    let _syncingUrl = false;
+    window.ddcGoPage = function (tab, ev) {
+        if (ev && (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) return true;
+        if (ev) ev.preventDefault();
+        const target = PAGE_META[tab] ? tab : "supabase";
+        const targetPath = "/dashboard/" + target;
+        if (window.location.pathname !== targetPath) {
+            try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
+        }
+        updateSidebarUI(target);
+        if (typeof window.switchTab === "function") {
+            _syncingUrl = true;
+            try { window.switchTab(target); } finally { _syncingUrl = false; }
+        }
+        if (window.innerWidth < 1024) {
+            window.ddcToggleMobileSidebar(false);
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setTimeout(applyChartTheme, 250);
+        return false;
+    };
+
+    function initAppShell() {
+        if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons();
+        }
+        applyChartTheme();
+
+        if (typeof window.switchTab === "function" && !window.switchTab.__ddcWrapped) {
+            const origSwitchTab = window.switchTab;
+            const wrapped = function (tab) {
+                const res = origSwitchTab.apply(this, arguments);
+                updateSidebarUI(tab);
+                if (!_syncingUrl && PAGE_META[tab]) {
+                    const targetPath = "/dashboard/" + tab;
+                    if (window.location.pathname !== targetPath) {
+                        try { window.history.replaceState({ tab: tab }, "", targetPath); } catch (e) {}
+                    }
+                }
+                setTimeout(applyChartTheme, 250);
+                return res;
+            };
+            wrapped.__ddcWrapped = true;
+            window.switchTab = wrapped;
+        }
+
+        const initialTab = getTabFromUrl();
+        updateSidebarUI(initialTab);
+        if (typeof window.switchTab === "function") {
+            _syncingUrl = true;
+            try { window.switchTab(initialTab); } finally { _syncingUrl = false; }
+        }
+
+        // Sinkronkan tema chart setelah data awal selesai di-fetch oleh app.js
+        setTimeout(applyChartTheme, 900);
+        setTimeout(applyChartTheme, 2200);
+    }
+
+    window.addEventListener("popstate", function () {
+        const tab = getTabFromUrl();
+        updateSidebarUI(tab);
+        if (typeof window.switchTab === "function") {
+            _syncingUrl = true;
+            try { window.switchTab(tab); } finally { _syncingUrl = false; }
+        }
+    });
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () { setTimeout(initAppShell, 0); });
+    } else {
+        setTimeout(initAppShell, 0);
+    }
+})();
+</script>
+
+<!-- Preline UI Interactive JS & Core App Logic -->
+<script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
+<script src="/app.js?v=20261123_preline"></script>
+
+<!-- DDC_TAB_CHARTS_AND_BANNER_START -->
+<style id="ddc-tab-charts-style">
+    /* Pastikan notif bar di atas grafik tidak muncul kembali di menu pencarian */
+    #reactive-banner {
+        display: none !important;
+    }
+</style>
+<script>
+(function () {
+    const ALL_DEFAULT_CHARTS = [
+        "chartLocations",
+        "chartPeople",
+        "chartViral",
+        "chartHashtags",
+        "chartKeywords",
+        "chartTimeline",
+        "chartSystem"
+    ];
+
+    const TAB_CHART_CONFIG = {
+        supabase: {
+            mode: "default",
+            charts: ["chartLocations", "chartPeople", "chartViral", "chartHashtags", "chartKeywords", "chartTimeline", "chartSystem"],
+            showSentiment: true,
+            hideBanner: true
+        },
+        bank: {
+            mode: "default",
+            charts: ["chartLocations", "chartKeywords", "chartViral", "chartTimeline"],
+            showSentiment: true,
+            hideBanner: true
+        },
+        keyword: {
+            mode: "default",
+            charts: ["chartKeywords", "chartTimeline", "chartLocations", "chartHashtags"],
+            showSentiment: false,
+            hideBanner: true
+        },
+        berita: {
+            mode: "default",
+            charts: ["chartLocations", "chartPeople", "chartKeywords", "chartTimeline"],
+            showSentiment: true,
+            hideBanner: true
+        },
+        sosmed: {
+            mode: "default",
+            charts: ["chartViral", "chartHashtags", "chartPeople", "chartTimeline"],
+            showSentiment: true,
+            hideBanner: true
+        },
+        project: {
+            mode: "project",
+            charts: [],
+            showSentiment: false,
+            hideBanner: true
+        }
+    };
+
+    function getCurrentTabFromUrl() {
+        const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
+        if (parts[0] === "dashboard" && TAB_CHART_CONFIG[parts[1]]) return parts[1];
+        const q = new URLSearchParams(window.location.search).get("page");
+        if (q && TAB_CHART_CONFIG[q.toLowerCase()]) return q.toLowerCase();
+        return "supabase";
+    }
+
+    function applyChartsForTab(tab) {
+        const activeTab = TAB_CHART_CONFIG[tab] ? tab : "supabase";
+        const cfg = TAB_CHART_CONFIG[activeTab];
+
+        // 1. Hapus / sembunyikan notif bar di atas grafik saat pindah tab
+        const banner = document.getElementById("reactive-banner");
+        if (banner) banner.classList.add("hidden");
+        document.body.classList.toggle("ddc-hide-reactive-banner", Boolean(cfg.hideBanner));
+
+        // 2. Toggle panel grafik global vs grafik Project Hunter
+        const defaultGrid = document.getElementById("default-charts-grid");
+        const projectPanel = document.getElementById("project-charts-panel");
+
+        if (cfg.mode === "project") {
+            if (defaultGrid) defaultGrid.classList.add("hidden");
+            if (projectPanel) projectPanel.classList.remove("hidden");
+        } else {
+            if (projectPanel) projectPanel.classList.add("hidden");
+            if (defaultGrid) defaultGrid.classList.remove("hidden");
+
+            const visibleCards = [];
+            ALL_DEFAULT_CHARTS.forEach((canvasId) => {
+                const canvas = document.getElementById(canvasId);
+                const card = canvas ? canvas.closest("#default-charts-grid > div") : null;
+                if (!card) return;
+                const isVisible = cfg.charts.includes(canvasId);
+                card.classList.toggle("hidden", !isVisible);
+                card.classList.remove("md:col-span-2");
+                if (isVisible) visibleCards.push(card);
+            });
+
+            // Jika jumlah grafik ganjil (mis. 7 di Supabase), buat kartu terakhir melebar penuh
+            if (visibleCards.length % 2 === 1) {
+                visibleCards[visibleCards.length - 1].classList.add("md:col-span-2");
+            }
+        }
+
+        // 3. Sesuaikan kartu Sentimen di sidebar kanan
+        const sentCanvas = document.getElementById("chartSentiment");
+        const sentCard = sentCanvas ? sentCanvas.closest("aside > div") : null;
+        if (sentCard) {
+            sentCard.classList.toggle("hidden", !cfg.showSentiment);
+        }
+
+        // 4. Resize ulang seluruh instance Chart.js agar proporsi tetap tajam
+        requestAnimationFrame(() => {
+            if (typeof Chart !== "undefined" && Chart.instances) {
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && typeof ch.resize === "function") ch.resize(); } catch (e) {}
+                });
+            }
+        });
+    }
+
+    window.ddcApplyChartsForTab = applyChartsForTab;
+
+    function hookTabHandlers() {
+        if (typeof window.switchTab === "function" && !window.switchTab.__ddcChartHooked) {
+            const origSwitch = window.switchTab;
+            const wrapped = function (tab) {
+                const res = origSwitch.apply(this, arguments);
+                applyChartsForTab(tab);
+                return res;
+            };
+            wrapped.__ddcChartHooked = true;
+            window.switchTab = wrapped;
+        }
+
+        if (typeof window.ddcGoPage === "function" && !window.ddcGoPage.__ddcChartHooked) {
+            const origGo = window.ddcGoPage;
+            const wrappedGo = function (tab, ev) {
+                const res = origGo.apply(this, arguments);
+                applyChartsForTab(tab);
+                return res;
+            };
+            wrappedGo.__ddcChartHooked = true;
+            window.ddcGoPage = wrappedGo;
+        }
+
+        applyChartsForTab(getCurrentTabFromUrl());
+    }
+
+    window.addEventListener("popstate", () => applyChartsForTab(getCurrentTabFromUrl()));
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => setTimeout(hookTabHandlers, 30));
+    } else {
+        setTimeout(hookTabHandlers, 30);
+    }
+})();
+</script>
+<!-- DDC_TAB_CHARTS_AND_BANNER_END -->
 </body>
 </html>
