@@ -152,12 +152,18 @@ html {
         html:not(.dark) #table-body .text-indigo-400 { color: #4338ca !important; }
 
 /* === 1. SMOOTH THEME TRANSITION (CROSSFADE HALUS, ANTI SILAU) === */
-    ::view-transition-old(root),
-    ::view-transition-new(root) {
-        animation-duration: 0.42s;
-        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-        mix-blend-mode: normal;
-    }
+    /* === CIRCULAR RIPPLE THEME TRANSITION (GPU-ACCELERATED) === */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none !important;
+    mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+    z-index: 1;
+}
+::view-transition-new(root) {
+    z-index: 9999;
+}
 
     html.ddc-theme-transitioning,
     html.ddc-theme-transitioning body,
@@ -310,3 +316,13 @@ html {
     #reactive-banner {
         display: none !important;
     }
+
+/* DDC_PROJECT_PAGE_CLEANUP_START */
+body.ddc-page-project #default-charts-grid,
+body.ddc-page-project #chartSentiment,
+body.ddc-page-project #cron-badge,
+body.ddc-page-project #st-sources,
+body.ddc-page-project #st-raw {
+    display: none !important;
+}
+/* DDC_PROJECT_PAGE_CLEANUP_END */

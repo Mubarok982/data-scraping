@@ -39,7 +39,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link rel="stylesheet" href="/styles.css?v=20261123_ext">
+    <link rel="stylesheet" href="/styles.css?v=20261123_proj_clean">
 </head>
 
 <body class="bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
@@ -190,7 +190,7 @@
                 Supabase Live
             </span>
 
-            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme()" title="Ganti Tema Terang / Gelap"
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terang / Gelap"
                     class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
                 <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
                 <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
@@ -198,6 +198,7 @@
                 <span class="hidden dark:sm:inline">Mode Terang</span>
             </button>
 
+            
             <button type="button" onclick="forceReloadAll()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -1009,9 +1010,8 @@
         });
     }
 
-    // DDC_SMOOTH_THEME_TOGGLE_START
     let _ddcThemeTimer = null;
-    window.ddcToggleTheme = function () {
+    window.ddcToggleTheme = function (ev) {
         const htmlEl = document.documentElement;
         const nowDark = !htmlEl.classList.contains("dark");
         const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1023,9 +1023,42 @@
         };
 
         if (!reduceMotion && typeof document.startViewTransition === "function") {
-            document.startViewTransition(() => {
+            const btn = document.getElementById("ddc-theme-toggle");
+            let x = window.innerWidth - 60;
+            let y = 28;
+            if (ev && typeof ev.clientX === "number" && (ev.clientX !== 0 || ev.clientY !== 0)) {
+                x = ev.clientX;
+                y = ev.clientY;
+            } else if (btn) {
+                const rect = btn.getBoundingClientRect();
+                x = rect.left + rect.width / 2;
+                y = rect.top + rect.height / 2;
+            }
+
+            const endRadius = Math.hypot(
+                Math.max(x, window.innerWidth - x),
+                Math.max(y, window.innerHeight - y)
+            );
+
+            const transition = document.startViewTransition(() => {
                 commitTheme();
             });
+
+            transition.ready.then(() => {
+                document.documentElement.animate(
+                    {
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${endRadius}px at ${x}px ${y}px)`
+                        ]
+                    },
+                    {
+                        duration: 550,
+                        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                        pseudoElement: "::view-transition-new(root)"
+                    }
+                );
+            }).catch(() => {});
             return;
         }
 
@@ -1038,7 +1071,6 @@
         }
         commitTheme();
     };
-    // DDC_SMOOTH_THEME_TOGGLE_END
 
     /* --- Sidebar Toggle --- */
     window.ddcToggleMobileSidebar = function (forceOpen) {
@@ -1162,7 +1194,7 @@
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
-<script src="/app.js?v=20261123_keep_li_nofilter"></script>
+<script src="/app.js?v=20261123_proj_clean"></script>
 
 <script>
 (function () {
@@ -1611,5 +1643,99 @@
 })();
 </script>
 
+<script>
+</script>
+<script>
+// DDC_PROJECT_CLEANUP_START
+(function () {
+    function detectTab() {
+        const parts = (window.location.pathname || "").toLowerCase().split("/").filter(Boolean);
+        if (parts[0] === "dashboard" && parts[1]) return parts[1];
+        const q = new URLSearchParams(window.location.search).get("page");
+        return (q || "supabase").toLowerCase();
+    }
+
+    function findSidebarCardByTarget(targetEl, fallbackText) {
+        if (targetEl) {
+            const card = targetEl.closest("aside .ddc-card, aside > div");
+            if (card) return card;
+        }
+        if (fallbackText) {
+            const cards = document.querySelectorAll("aside .ddc-card, aside > div");
+            for (const c of cards) {
+                if ((c.textContent || "").includes(fallbackText)) return c;
+            }
+        }
+        return null;
+    }
+
+    function applyProjectPageCleanup(tabName) {
+        const tab = (tabName || detectTab() || "supabase").toLowerCase();
+        const isProject = (tab === "project");
+        document.body.classList.toggle("ddc-page-project", isProject);
+
+        const cronCard = findSidebarCardByTarget(document.getElementById("cron-badge"), "Cron Scheduler");
+        const schemaCard = findSidebarCardByTarget(document.getElementById("st-raw"), "Skema Supabase");
+        const sentimentCard = findSidebarCardByTarget(document.getElementById("chartSentiment"), "Polarisasi Sentimen");
+        const locCard = findSidebarCardByTarget(document.getElementById("loc-badges"), "Polarisasi Wilayah");
+
+        [cronCard, schemaCard, sentimentCard, locCard].forEach((card) => {
+            if (!card) return;
+            if (isProject) {
+                card.classList.add("hidden");
+                card.style.display = "none";
+            } else {
+                card.classList.remove("hidden");
+                card.style.display = "";
+            }
+        });
+
+        ["chartLocations", "chartSentiment"].forEach((cid) => {
+            const cv = document.getElementById(cid);
+            const cCard = cv ? cv.closest(".ddc-card") : null;
+            if (cCard && isProject) {
+                cCard.classList.add("hidden");
+                cCard.style.display = "none";
+            }
+        });
+
+        if (isProject && typeof window.ddcApplyChartsForTab === "function") {
+            try { window.ddcApplyChartsForTab("project"); } catch (e) {}
+        }
+    }
+
+    window.ddcApplyProjectCleanup = applyProjectPageCleanup;
+
+    function hookCleanup() {
+        ["switchTab", "ddcGoPage", "ddcApplyChartsForTab"].forEach((fnName) => {
+            if (typeof window[fnName] === "function" && !window[fnName].__ddcProjCleanHooked) {
+                const orig = window[fnName];
+                const wrapped = function (arg1) {
+                    const res = orig.apply(this, arguments);
+                    const nextTab = (fnName === "ddcApplyChartsForTab") ? arg1 : (typeof arg1 === "string" ? arg1 : detectTab());
+                    applyProjectPageCleanup(nextTab);
+                    setTimeout(() => applyProjectPageCleanup(nextTab), 120);
+                    return res;
+                };
+                wrapped.__ddcProjCleanHooked = true;
+                window[fnName] = wrapped;
+            }
+        });
+
+        applyProjectPageCleanup(detectTab());
+        setTimeout(() => applyProjectPageCleanup(detectTab()), 300);
+        setTimeout(() => applyProjectPageCleanup(detectTab()), 1000);
+    }
+
+    window.addEventListener("popstate", () => applyProjectPageCleanup(detectTab()));
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => setTimeout(hookCleanup, 60));
+    } else {
+        setTimeout(hookCleanup, 60);
+    }
+})();
+// DDC_PROJECT_CLEANUP_END
+</script>
 </body>
 </html>
