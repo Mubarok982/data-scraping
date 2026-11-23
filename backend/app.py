@@ -1434,10 +1434,6 @@ def api_warehouse_analytics():
     return {"status": "success", "analytics": get_dashboard_analytics()}
 
 
-if __name__ == "__main__":
-    app.launch(server_name="0.0.0.0", server_port=7860)
-
-
 @app.get("/api/v1/warehouse/analytics")
 def get_analytics():
     from backend.db import get_conn, get_dashboard_analytics
@@ -1826,3 +1822,7 @@ def load_all_project_records(limit: int = 5000, force: bool = False) -> dict:
 def get_project_hunter_records(limit: int = Query(5000, ge=1, le=10000), refresh: bool = False):
     """Mengambil seluruh gabungan data historis Project Hunter (Supabase + CSV lokal)."""
     return load_all_project_records(limit=limit, force=refresh)
+
+
+if __name__ == "__main__":
+    app.launch(server_name="0.0.0.0", server_port=7860)
