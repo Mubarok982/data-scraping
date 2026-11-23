@@ -1824,5 +1824,15 @@ def get_project_hunter_records(limit: int = Query(5000, ge=1, le=10000), refresh
     return load_all_project_records(limit=limit, force=refresh)
 
 
+
+@app.get("/styles.css", include_in_schema=False)
+def serve_styles_css():
+    return FileResponse(
+        "frontend/styles.css",
+        media_type="text/css",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
+
+
 if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860)

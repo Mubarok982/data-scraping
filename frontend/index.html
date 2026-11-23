@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDC Scraper Portal — Data Warehouse & Intelligence</title>
 
-    <!-- Typography: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Anti-flicker Theme Init (Default: Warm Light Mode) -->
     <script>
         (function () {
             try {
@@ -24,7 +22,6 @@
         })();
     </script>
 
-    <!-- Tailwind CSS + Preline Config -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -39,171 +36,13 @@
         };
     </script>
 
-    <!-- Chart.js & Lucide Stroke Icons -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <style>
-        html {
-            font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-            scroll-behavior: smooth;
-        }
-
-        /* Scrollbar halus (Light & Dark) */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        html.dark ::-webkit-scrollbar-thumb { background: #2e3446; }
-        html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        html.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
-
-        /* Sidebar Layout Desktop */
-        @media (min-width: 1024px) {
-            body {
-                padding-left: 16.5rem;
-                transition: padding-left 0.2s ease;
-            }
-            body.ddc-sb-collapsed {
-                padding-left: 0;
-            }
-            body.ddc-sb-collapsed #ddc-sidebar {
-                transform: translateX(-100%);
-            }
-        }
-
-        /* Preline Input & Card Refinement */
-        .ddc-card {
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .ddc-field {
-            width: 100%;
-            border-radius: 0.5rem;
-            border: 1px solid #e2e8f0;
-            background-color: #ffffff;
-            color: #1e293b;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.75rem;
-            line-height: 1.25rem;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .ddc-field:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-        }
-        .ddc-field:disabled {
-            background-color: #f8fafc;
-            color: #94a3b8;
-            cursor: not-allowed;
-        }
-        html.dark .ddc-field {
-            border-color: #272b36;
-            background-color: #0f1117;
-            color: #e4e4e7;
-        }
-        html.dark .ddc-field:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
-        }
-        html.dark .ddc-field:disabled {
-            background-color: #161922;
-            color: #52525b;
-        }
-
-        /* =====================================================================
-           LIGHT MODE BRIDGE UNTUK ELEMEN DINAMIS YANG DIRENDER OLEH frontend/app.js
-           (Agar tabel, badge status, dan ringkasan wilayah tetap kontras & pastel)
-           ===================================================================== */
-        html:not(.dark) #table-head {
-            background-color: #f8fafc !important;
-            color: #475569 !important;
-        }
-        html:not(.dark) #table-head th {
-            color: #475569 !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-        }
-        html:not(.dark) #table-body {
-            color: #334155 !important;
-        }
-        html:not(.dark) #table-body tr {
-            border-color: #f1f5f9 !important;
-        }
-        html:not(.dark) #table-body tr:hover {
-            background-color: #f8fafc !important;
-        }
-        html:not(.dark) #table-body .text-white,
-        html:not(.dark) #table-body .text-gray-100,
-        html:not(.dark) #table-body .text-gray-200,
-        html:not(.dark) #loc-badges .text-white,
-        html:not(.dark) #loc-badges .text-gray-100,
-        html:not(.dark) #loc-badges .text-gray-200 {
-            color: #0f172a !important;
-        }
-        html:not(.dark) #table-body .text-gray-300,
-        html:not(.dark) #table-body .text-gray-400,
-        html:not(.dark) #loc-badges .text-gray-300,
-        html:not(.dark) #loc-badges .text-gray-400 {
-            color: #475569 !important;
-        }
-        html:not(.dark) #table-body a {
-            color: #4f46e5 !important;
-        }
-        html:not(.dark) #loc-badges > div {
-            background-color: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-        }
-        /* Konversi badge gelap dinamis menjadi pastel lembut di Light Mode */
-        html:not(.dark) #table-body [class*="bg-emerald-9"],
-        html:not(.dark) #loc-badges [class*="bg-emerald-9"],
-        html:not(.dark) #cron-badge[class*="bg-emerald-9"] {
-            background-color: #ecfdf5 !important;
-            color: #047857 !important;
-            border-color: #a7f3d0 !important;
-        }
-        html:not(.dark) #table-body [class*="bg-amber-9"],
-        html:not(.dark) #loc-badges [class*="bg-amber-9"] {
-            background-color: #fffbeb !important;
-            color: #b45309 !important;
-            border-color: #fde68a !important;
-        }
-        html:not(.dark) #table-body [class*="bg-rose-9"],
-        html:not(.dark) #table-body [class*="bg-red-9"],
-        html:not(.dark) #loc-badges [class*="bg-rose-9"] {
-            background-color: #fff1f2 !important;
-            color: #be123c !important;
-            border-color: #fecdd3 !important;
-        }
-        html:not(.dark) #table-body [class*="bg-indigo-9"],
-        html:not(.dark) #table-body [class*="bg-blue-9"],
-        html:not(.dark) #table-body [class*="bg-purple-9"] {
-            background-color: #eef2ff !important;
-            color: #4338ca !important;
-            border-color: #c7d2fe !important;
-        }
-        html:not(.dark) #table-body [class*="bg-gray-8"],
-        html:not(.dark) #table-body [class*="bg-gray-9"],
-        html:not(.dark) #table-body [class*="bg-[#"] {
-            background-color: #f1f5f9 !important;
-            color: #334155 !important;
-            border-color: #e2e8f0 !important;
-        }
-        html:not(.dark) #table-body .text-emerald-300,
-        html:not(.dark) #table-body .text-emerald-400 { color: #047857 !important; }
-        html:not(.dark) #table-body .text-amber-300,
-        html:not(.dark) #table-body .text-amber-400 { color: #b45309 !important; }
-        html:not(.dark) #table-body .text-rose-300,
-        html:not(.dark) #table-body .text-rose-400 { color: #be123c !important; }
-        html:not(.dark) #table-body .text-indigo-300,
-        html:not(.dark) #table-body .text-indigo-400 { color: #4338ca !important; }
-    </style>
+    <link rel="stylesheet" href="/styles.css?v=20261123_ext">
 </head>
 
 <body class="bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
-
-<!-- ======================================================================= -->
-<!-- PRELINE APPLICATION SHELL: COLLAPSIBLE LEFT SIDEBAR                     -->
-<!-- ======================================================================= -->
 <div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
      class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"></div>
 
@@ -211,7 +50,7 @@
        class="fixed inset-y-0 left-0 z-50 w-[16.5rem] bg-white dark:bg-[#14171F] border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
 
     <div class="p-4 overflow-y-auto space-y-6">
-        <!-- Brand -->
+        
         <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
             <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
                class="flex items-center gap-2.5 no-underline group">
@@ -231,7 +70,6 @@
             </button>
         </div>
 
-        <!-- Group 1: Data & Arsip -->
         <div class="space-y-1">
             <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                 Data &amp; Arsip
@@ -254,7 +92,6 @@
             </a>
         </div>
 
-        <!-- Group 2: Scraper Manual -->
         <div class="space-y-1">
             <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                 Scraper Manual
@@ -285,7 +122,6 @@
             </a>
         </div>
 
-        <!-- Group 3: Project & Lead Hunter -->
         <div class="space-y-1">
             <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Project &amp; Lead Hunter
@@ -301,7 +137,6 @@
         </div>
     </div>
 
-    <!-- Sidebar Footer -->
     <div class="p-3.5 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
         <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
             <span class="flex items-center gap-1.5">
@@ -316,7 +151,6 @@
     </div>
 </aside>
 
-<!-- Hidden Legacy Tab Buttons (dipertahankan agar fungsi switchTab di app.js tetap aman) -->
 <div class="hidden" aria-hidden="true">
     <button type="button" onclick="switchTab('supabase')" id="tab-supabase"></button>
     <button type="button" onclick="switchTab('bank')" id="tab-bank"></button>
@@ -326,18 +160,15 @@
     <button type="button" onclick="switchTab('project')" id="tab-project"></button>
 </div>
 
-<!-- ======================================================================= -->
-<!-- SLIM WORKSPACE TOP UTILITY BAR (Tanpa Header Banner Berat)              -->
-<!-- ======================================================================= -->
 <div class="max-w-[1680px] mx-auto px-4 sm:px-6 pt-4 pb-1">
     <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
         <div class="flex items-center gap-3 min-w-0">
-            <!-- Mobile Menu Button -->
+            
             <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Menu"
                     class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
                 <i data-lucide="menu" class="w-4 h-4"></i>
             </button>
-            <!-- Desktop Reopen Sidebar Button -->
+            
             <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
                     class="hidden items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
                 <i data-lucide="panel-left-open" class="w-4 h-4"></i>
@@ -359,7 +190,6 @@
                 Supabase Live
             </span>
 
-            <!-- Light / Dark Theme Toggle -->
             <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme()" title="Ganti Tema Terang / Gelap"
                     class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
                 <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
@@ -383,15 +213,10 @@
     </div>
 </div>
 
-<!-- ======================================================================= -->
-<!-- MAIN 3-COLUMN WORKSPACE                                                 -->
-<!-- ======================================================================= -->
 <main class="max-w-[1680px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
 
-    <!-- KOLOM KIRI: PARAMETER FILTER & POLARISASI WILAYAH -->
     <aside class="xl:col-span-3 space-y-5">
 
-        <!-- Card Parameter & Filter Data -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
@@ -407,7 +232,6 @@
                 </button>
             </div>
 
-            <!-- 1. Form Supabase -->
             <div id="form-supabase" class="space-y-3.5">
                 <div>
                     <label for="sb-cat" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Tabel Skema Domain</label>
@@ -454,51 +278,6 @@
                     </select>
                 </div>
 
-                <!-- Filter Khusus LinkedIn & Project Fit -->
-                <div id="linkedin-filter-box" class="hidden p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/70 dark:border-indigo-800/50 space-y-2.5">
-                    <div class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5">
-                            <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
-                            <span>Filter LinkedIn &amp; Project Fit</span>
-                        </span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">Geekgarden</span>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
-                        <select id="li-filter-conf" onchange="applyClientFilters()" class="ddc-field">
-                            <option value="">-- Semua Status Confidence --</option>
-                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
-                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
-                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Sumber Platform Project</label>
-                        <select id="li-filter-source" onchange="applyClientFilters()" class="ddc-field">
-                            <option value="">-- Semua Sumber Project --</option>
-                            <option value="linkedin">LinkedIn</option>
-                            <option value="projects.co.id">Projects.co.id</option>
-                            <option value="freelancer">Freelancer.com</option>
-                            <option value="sribu">Sribu</option>
-                            <option value="upwork">Upwork</option>
-                            <option value="fastwork">Fastwork</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
-                        <select id="li-filter-service" onchange="applyClientFilters()" class="ddc-field">
-                            <option value="">-- Semua Tipe Layanan --</option>
-                            <option value="web & mobile">Web & Mobile Development</option>
-                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                            <option value="ui/ux">UI/UX Design & Product</option>
-                            <option value="qa">QA & Software Testing</option>
-                            <option value="staff augmentation">IT Staff Augmentation</option>
-                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Filter Lokasi Wilayah -->
                 <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
                     <div class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
                         <span class="inline-flex items-center gap-1.5">
@@ -521,7 +300,6 @@
                     </div>
                 </div>
 
-                <!-- Filter Rentang Waktu -->
                 <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
@@ -550,7 +328,6 @@
                     </div>
                 </div>
 
-                <!-- Filter Kata Kunci -->
                 <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
                     <div class="flex items-center justify-between gap-2">
                         <label for="sb-search" class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
@@ -584,7 +361,6 @@
                 </div>
             </div>
 
-            <!-- 2. Form Bank Data CSV -->
             <div id="form-bank" class="hidden space-y-3.5">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Kategori Platform</label>
@@ -600,46 +376,6 @@
                     </select>
                 </div>
 
-                <div id="bd-linkedin-filter-box" class="hidden p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/70 dark:border-indigo-800/50 space-y-2.5">
-                    <div class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
-                        <span>Filter Khusus LinkedIn CSV</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">Geekgarden</span>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
-                        <select id="bd-li-filter-conf" onchange="applyBankLinkedInFilters()" class="ddc-field">
-                            <option value="">-- Semua Status Confidence --</option>
-                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
-                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
-                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Sumber Platform Project</label>
-                        <select id="bd-li-filter-source" onchange="applyBankLinkedInFilters()" class="ddc-field">
-                            <option value="">-- Semua Sumber Project --</option>
-                            <option value="linkedin">LinkedIn</option>
-                            <option value="projects.co.id">Projects.co.id</option>
-                            <option value="freelancer">Freelancer.com</option>
-                            <option value="sribu">Sribu</option>
-                            <option value="upwork">Upwork</option>
-                            <option value="fastwork">Fastwork</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
-                        <select id="bd-li-filter-service" onchange="applyBankLinkedInFilters()" class="ddc-field">
-                            <option value="">-- Semua Tipe Layanan --</option>
-                            <option value="web & mobile">Web & Mobile Development</option>
-                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                            <option value="ui/ux">UI/UX Design & Product</option>
-                            <option value="qa">QA & Software Testing</option>
-                            <option value="staff augmentation">IT Staff Augmentation</option>
-                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Filter Engine / Tool</label>
                     <select id="bd-tool" onchange="onBankFilterChange()" class="ddc-field">
@@ -651,31 +387,23 @@
                         <option value="kombine">Kombine</option>
                     </select>
                 </div>
+                <input type="hidden" id="bd-schema" value="semua">
                 <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Mode Skema Kolom</label>
-                    <select id="bd-schema" onchange="onBankFilterChange()" class="ddc-field">
-                        <option value="standar">Standar Rapih (Disatukan)</option>
-                        <option value="mentah">Khusus Mentah (29/39 Kolom)</option>
-                        <option value="semua">Semua File</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Pilih File CSV</label>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Pilih File CSV</label>
                     <select id="bd-file" onchange="executeAction()" class="ddc-field">
                         <option value="semua">-- Semua File --</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">5. Cari Isi Tabel</label>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Cari Isi Tabel</label>
                     <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="ddc-field">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">6. Batas Baris</label>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">5. Batas Baris</label>
                     <input id="bd-limit" type="number" value="200" min="1" class="ddc-field tabular-nums">
                 </div>
             </div>
 
-            <!-- 3. Form Keyword -->
             <div id="form-keyword" class="hidden space-y-3.5">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Mode Pencarian</label>
@@ -694,7 +422,6 @@
                 </div>
             </div>
 
-            <!-- 4. Form Berita -->
             <div id="form-berita" class="hidden space-y-3.5">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Engine Berita</label>
@@ -715,7 +442,6 @@
                 </div>
             </div>
 
-            <!-- 5. Form Sosmed -->
             <div id="form-sosmed" class="hidden space-y-3.5">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Platform Sosmed</label>
@@ -751,7 +477,6 @@
                 </div>
             </div>
 
-            <!-- 6. Form Pencarian Project & Geekgarden Confidence -->
             <div id="form-project" class="hidden space-y-3.5">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Sumber Platform Project</label>
@@ -830,13 +555,11 @@
                 </div>
             </div>
 
-            <!-- Primary Action Button -->
             <button type="button" onclick="executeAction(true)" id="btn-run"
                     class="mt-4 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition">
                 Muat Tabel Supabase
             </button>
 
-            <!-- Progress Bar & Timer Durasi Scraper Realtime -->
             <div id="scraper-progress-box" class="hidden mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0F1117] border border-emerald-200 dark:border-emerald-800/60 space-y-2">
                 <div class="flex items-center justify-between text-[11px]">
                     <span id="scraper-progress-label" class="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
@@ -858,7 +581,6 @@
             </div>
         </div>
 
-        <!-- Card Ringkasan Polarisasi Wilayah -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
             <div class="flex items-center gap-2 mb-3">
                 <i data-lucide="map" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
@@ -872,10 +594,8 @@
         </div>
     </aside>
 
-    <!-- KOLOM TENGAH: KPI, GRAFIK, DAN DATA EXPLORER -->
     <section class="xl:col-span-6 space-y-5">
 
-        <!-- 4 KPI Utama -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
                 <div class="flex items-center justify-between">
@@ -922,7 +642,6 @@
             </div>
         </div>
 
-        <!-- Banner Mode Grafik Dinamis (Pastel Alert) -->
         <div id="reactive-banner"
              class="hidden bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs" style="display:none !important" aria-hidden="true">
             <div class="flex items-center gap-2">
@@ -935,9 +654,8 @@
             </button>
         </div>
 
-        <!-- PANEL GRAFIK KHUSUS PROJECT HUNTER (GEEKGARDEN FIT) -->
         <div id="project-charts-panel" class="hidden space-y-5">
-            <!-- 4 Kartu Status Confidence Pastel -->
+            
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                 <div onclick="quickFilterProjectConf('fix bisa masuk')"
                      class="cursor-pointer bg-emerald-50/80 hover:bg-emerald-50 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 rounded-2xl p-4 transition">
@@ -980,7 +698,6 @@
                 </div>
             </div>
 
-            <!-- 4 Grafik Project Hunter -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
                     <div class="mb-3">
@@ -1016,7 +733,6 @@
             </div>
         </div>
 
-        <!-- 7 GRAFIK ANALITIK GLOBAL -->
         <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
                 <div class="mb-3">
@@ -1075,7 +791,6 @@
             </div>
         </div>
 
-        <!-- TABEL OUTPUT DATA EXPLORER -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
             <div class="flex flex-wrap justify-between items-center gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-zinc-800">
                 <div>
@@ -1115,10 +830,8 @@
         </div>
     </section>
 
-    <!-- KOLOM KANAN: CRON SCHEDULER, SENTIMEN, & 7 SKEMA -->
     <aside class="xl:col-span-3 space-y-5">
 
-        <!-- Card Cron Scheduler -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
             <div class="flex items-center justify-between mb-3.5">
                 <span class="inline-flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
@@ -1189,7 +902,6 @@
             </div>
         </div>
 
-        <!-- Card Sentimen & Share Platform -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
             <div class="flex items-center gap-2 mb-3">
                 <i data-lucide="pie-chart" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
@@ -1200,7 +912,6 @@
             <div class="h-44"><canvas id="chartSentiment"></canvas></div>
         </div>
 
-        <!-- Card 7 Skema Supabase Warehouse -->
         <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs text-xs">
             <div class="flex items-center justify-between mb-3">
                 <span class="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white tracking-tight">
@@ -1255,9 +966,6 @@
     </aside>
 </main>
 
-<!-- ======================================================================= -->
-<!-- SIDEBAR ROUTING, THEME TOGGLE & CHART.JS THEME ADAPTER                  -->
-<!-- ======================================================================= -->
 <script>
 (function () {
     const sidebar = document.getElementById("ddc-sidebar");
@@ -1277,8 +985,8 @@
     function applyChartTheme() {
         if (typeof Chart === "undefined") return;
         const isDark = document.documentElement.classList.contains("dark");
-        const textColor = isDark ? "#a1a1aa" : "#475569";
-        const gridColor = isDark ? "rgba(63, 63, 70, 0.35)" : "rgba(226, 232, 240, 0.85)";
+        const textColor = isDark ? "#a8acb8" : "#5c5852";
+        const gridColor = isDark ? "rgba(75, 82, 99, 0.32)" : "rgba(214, 208, 198, 0.72)";
 
         Chart.defaults.color = textColor;
         Chart.defaults.borderColor = gridColor;
@@ -1301,13 +1009,36 @@
         });
     }
 
+    // DDC_SMOOTH_THEME_TOGGLE_START
+    let _ddcThemeTimer = null;
     window.ddcToggleTheme = function () {
         const htmlEl = document.documentElement;
         const nowDark = !htmlEl.classList.contains("dark");
-        htmlEl.classList.toggle("dark", nowDark);
-        try { localStorage.setItem("ddc_theme", nowDark ? "dark" : "light"); } catch (e) {}
-        applyChartTheme();
+        const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        const commitTheme = () => {
+            htmlEl.classList.toggle("dark", nowDark);
+            try { localStorage.setItem("ddc_theme", nowDark ? "dark" : "light"); } catch (e) {}
+            applyChartTheme();
+        };
+
+        if (!reduceMotion && typeof document.startViewTransition === "function") {
+            document.startViewTransition(() => {
+                commitTheme();
+            });
+            return;
+        }
+
+        if (!reduceMotion) {
+            htmlEl.classList.add("ddc-theme-transitioning");
+            clearTimeout(_ddcThemeTimer);
+            _ddcThemeTimer = setTimeout(() => {
+                htmlEl.classList.remove("ddc-theme-transitioning");
+            }, 460);
+        }
+        commitTheme();
     };
+    // DDC_SMOOTH_THEME_TOGGLE_END
 
     /* --- Sidebar Toggle --- */
     window.ddcToggleMobileSidebar = function (forceOpen) {
@@ -1430,17 +1161,9 @@
 })();
 </script>
 
-<!-- Preline UI Interactive JS & Core App Logic -->
 <script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
-<script src="/app.js?v=20261123_preline"></script>
+<script src="/app.js?v=20261123_keep_li_nofilter"></script>
 
-<!-- DDC_TAB_CHARTS_AND_BANNER_START -->
-<style id="ddc-tab-charts-style">
-    /* Pastikan notif bar di atas grafik tidak muncul kembali di menu pencarian */
-    #reactive-banner {
-        display: none !important;
-    }
-</style>
 <script>
 (function () {
     const ALL_DEFAULT_CHARTS = [
@@ -1480,7 +1203,7 @@
         },
         sosmed: {
             mode: "default",
-            charts: ["chartViral", "chartHashtags", "chartPeople", "chartTimeline"],
+            charts: ["chartViral", "chartHashtags", "chartKeywords", "chartPeople", "chartTimeline"],
             showSentiment: true,
             hideBanner: true
         },
@@ -1591,6 +1314,302 @@
     }
 })();
 </script>
-<!-- DDC_TAB_CHARTS_AND_BANNER_END -->
+
+<script>
+(function () {
+    const STOPWORDS = new Set([
+        // Indonesia
+        "yang","dan","di","ke","dari","ini","itu","untuk","dengan","pada","adalah","tidak","tak","ada","bisa",
+        "akan","juga","atau","dalam","oleh","sudah","telah","secara","sebagai","agar","karena","saat","bagi",
+        "para","kami","kita","saya","aku","anda","kamu","mereka","dia","beliau","lebih","sangat","masih","hanya",
+        "dapat","harus","jadi","tapi","tetapi","namun","seperti","bahwa","jika","kalau","bila","ketika","hingga",
+        "sampai","antara","atas","bawah","depan","belakang","tentang","terhadap","melalui","semua","seluruh",
+        "setiap","banyak","sedikit","baru","lama","besar","kecil","hari","bulan","tahun","waktu","orang","pihak",
+        "hal","cara","buat","bikin","mau","ingin","sudah","belum","lagi","saja","aja","kok","sih","nih","dong",
+        "deh","kan","yah","yaa","yuk","apa","siapa","mana","kenapa","mengapa","bagaimana","berapa","pun","nya",
+        "tersebut","berikut","lain","lainnya","serta","maupun","atau","sama","terus","lalu","kemudian","sehingga",
+        "selama","sebelum","sesudah","setelah","tanpa","punya","memiliki","menjadi","melakukan","memberikan",
+        "mengatakan","menurut","sementara","sekitar","hampir","cukup","terlalu","paling","bukan","jangan","pernah",
+        "selalu","sering","kadang","mungkin","pasti","tentu","memang","cuma","hanya","banget","bgt","yg","dgn",
+        "utk","dr","pd","tdk","gk","ga","gak","nggak","tp","krn","sdh","blm","dlm","org","jd","bs","lg","sm",
+        // English & Social Media noise
+        "the","and","for","with","this","that","from","have","has","had","your","you","are","was","were","been",
+        "will","would","can","could","should","about","into","over","after","before","more","most","some","such",
+        "only","than","then","just","also","very","here","there","when","where","what","which","who","how","why",
+        "not","but","out","all","any","our","their","they","them","she","her","his","him","its","one","two",
+        "http","https","www","com","net","org","co","id","php","html","amp","via","fyp","viral","video","foto",
+        "photo","post","reel","reels","story","feed","instagram","tiktok","facebook","twitter","thread","threads",
+        "linkedin","youtube","shorts","link","bio","klik","follow","like","comment","share","subscribe","dm",
+        "cek","simak","baca","selengkapnya","lengkapnya","berita","update","info","terbaru","hariini","indonesia"
+    ]);
+
+    const IGNORE_HEADER_RE = /^(no|#|id|url|link|tautan|date|tanggal|tgl|waktu|time|created|published|collected|scraped|likes?|comments?|shares?|views?|retweets?|replies|engagement|score|skor|sentiment|sentimen|platform|source|sumber|tool|engine|author|username|user|akun|account|status|budget|kategori|category|tipe|type)$/i;
+    const TEXT_HEADER_RE = /(keyword|kueri|query|topik|topic|title|judul|caption|content|konten|text|teks|deskripsi|description|hashtag|tagar|tag|snippet|ringkasan|summary|message|pesan|body)/i;
+
+    let latestApiRows = [];
+    let debounceTimer = null;
+
+    // Tangkap data mentah terbaru dari API sebagai cadangan bila tabel belum selesai render
+    if (window.fetch && !window.fetch.__ddcKwWrapped) {
+        const origFetch = window.fetch.bind(window);
+        window.fetch = async function (...args) {
+            const resp = await origFetch(...args);
+            try {
+                const url = typeof args[0] === "string" ? args[0] : (args[0] && args[0].url) || "";
+                if (/\/api\/v1\/(warehouse\/records|bank-data\/query|sosmed\/|berita\/|keyword\/)/i.test(url)) {
+                    resp.clone().json().then((json) => {
+                        const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json?.records) ? json.records : null);
+                        if (rows) {
+                            latestApiRows = rows;
+                            scheduleKwCheck(220);
+                            scheduleKwCheck(750);
+                        }
+                    }).catch(() => {});
+                }
+            } catch (e) {}
+            return resp;
+        };
+        window.fetch.__ddcKwWrapped = true;
+    }
+
+    function tokenizeText(rawText) {
+        if (!rawText) return [];
+        const cleaned = String(rawText)
+            .toLowerCase()
+            .replace(/https?:\/\/\S+/g, " ")
+            .replace(/www\.\S+/g, " ")
+            .replace(/@[a-z0-9._-]+/g, " ")
+            .replace(/&[a-z]+;/g, " ")
+            .replace(/[^a-z0-9#\s]/g, " ");
+        const parts = cleaned.split(/\s+/);
+        const uniq = new Set();
+        for (let tok of parts) {
+            if (!tok) continue;
+            if (tok.startsWith("#")) tok = tok.slice(1);
+            if (tok.length < 3 || tok.length > 28) continue;
+            if (/^\d+$/.test(tok)) continue;
+            if (STOPWORDS.has(tok)) continue;
+            uniq.add(tok);
+        }
+        return Array.from(uniq);
+    }
+
+    function extractKeywordsFromTable() {
+        const tbody = document.getElementById("table-body");
+        if (!tbody) return [];
+        const trs = Array.from(tbody.querySelectorAll("tr"));
+        if (!trs.length) return [];
+
+        const headers = Array.from(document.querySelectorAll("#table-head th")).map((th) =>
+            (th.textContent || "").trim()
+        );
+        const preferredIdx = [];
+        const fallbackIdx = [];
+        headers.forEach((h, i) => {
+            if (TEXT_HEADER_RE.test(h)) preferredIdx.push(i);
+            else if (h && !IGNORE_HEADER_RE.test(h)) fallbackIdx.push(i);
+        });
+        const activeIdx = preferredIdx.length ? preferredIdx : fallbackIdx;
+
+        const counts = new Map();
+        let validRows = 0;
+
+        for (const tr of trs) {
+            const tds = Array.from(tr.querySelectorAll("td"));
+            if (tds.length <= 1) continue; // lewati baris "Memuat data..." / "Tidak ada data"
+            validRows++;
+
+            let rowText = "";
+            if (activeIdx.length) {
+                rowText = activeIdx.map((i) => (tds[i] ? tds[i].textContent : "")).join(" ");
+            } else {
+                // Ambil sel teks terpanjang pada baris ini
+                let longest = "";
+                for (const td of tds) {
+                    const t = (td.textContent || "").trim();
+                    if (t.length > longest.length && !/^https?:\/\//i.test(t)) longest = t;
+                }
+                rowText = longest;
+            }
+
+            const tokens = tokenizeText(rowText);
+            for (const tok of tokens) {
+                counts.set(tok, (counts.get(tok) || 0) + 1);
+            }
+        }
+
+        if (!validRows || counts.size === 0) return [];
+        return Array.from(counts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+    }
+
+    function extractKeywordsFromApiRows() {
+        if (!Array.isArray(latestApiRows) || !latestApiRows.length) return [];
+        const counts = new Map();
+        const textKeys = [
+            "keyword", "query", "topik", "topic", "hashtags", "hashtag", "tags",
+            "title", "judul", "Judul", "caption", "Caption", "content", "Konten",
+            "text", "Text", "full_text", "description", "deskripsi", "Deskripsi",
+            "snippet", "message", "body", "post_text"
+        ];
+        for (const row of latestApiRows) {
+            if (!row || typeof row !== "object") continue;
+            const buf = [];
+            for (const k of textKeys) {
+                if (row[k]) buf.push(Array.isArray(row[k]) ? row[k].join(" ") : String(row[k]));
+            }
+            if (!buf.length) {
+                for (const [k, v] of Object.entries(row)) {
+                    if (typeof v === "string" && v.length > 15 && !IGNORE_HEADER_RE.test(k) && !/^https?:\/\//i.test(v)) {
+                        buf.push(v);
+                    }
+                }
+            }
+            for (const tok of tokenizeText(buf.join(" "))) {
+                counts.set(tok, (counts.get(tok) || 0) + 1);
+            }
+        }
+        return Array.from(counts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+    }
+
+    function isChartEffectivelyEmpty(chart) {
+        if (!chart || !chart.data) return true;
+        const labels = Array.isArray(chart.data.labels) ? chart.data.labels : [];
+        const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
+        if (!labels.length || !datasets.length) return true;
+
+        const placeholderOnly = labels.every((l) =>
+            /^(belum ada|tidak ada|kosong|no data|none|n\/a|-|\s*)$/i.test(String(l || "").trim())
+        );
+        if (placeholderOnly) return true;
+
+        let totalVal = 0;
+        for (const ds of datasets) {
+            if (!Array.isArray(ds.data)) continue;
+            for (const v of ds.data) {
+                const num = typeof v === "object" && v !== null ? Number(v.y ?? v.x ?? 0) : Number(v);
+                if (!Number.isNaN(num)) totalVal += Math.abs(num);
+            }
+        }
+        return totalVal === 0;
+    }
+
+    function ensureKeywordChartPopulated() {
+        if (typeof Chart === "undefined") return;
+        const canvas = document.getElementById("chartKeywords");
+        if (!canvas) return;
+        const card = canvas.closest("#default-charts-grid > div");
+        if (card && card.classList.contains("hidden")) return;
+
+        let chart = typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+
+        // Jika app.js sudah mengisi chart dengan data asli non-fallback, jangan ditimpa
+        if (chart) {
+            const currentLabelsKey = JSON.stringify(chart.data?.labels || []);
+            if (chart.__ddcIsFallback && chart.__ddcFallbackLabelsKey !== currentLabelsKey) {
+                chart.__ddcIsFallback = false;
+            }
+            if (!isChartEffectivelyEmpty(chart) && !chart.__ddcIsFallback) {
+                return;
+            }
+        }
+
+        let topPairs = extractKeywordsFromTable();
+        if (!topPairs.length) topPairs = extractKeywordsFromApiRows();
+        if (!topPairs.length) return;
+
+        const labels = topPairs.map(([k]) => k);
+        const values = topPairs.map(([, v]) => v);
+        const isDark = document.documentElement.classList.contains("dark");
+        const textColor = isDark ? "#a8acb8" : "#5c5852";
+        const gridColor = isDark ? "rgba(75, 82, 99, 0.32)" : "rgba(214, 208, 198, 0.72)";
+
+        if (chart) {
+            chart.data.labels = labels;
+            if (!chart.data.datasets || !chart.data.datasets.length) {
+                chart.data.datasets = [{
+                    label: "Frekuensi Kata Kunci",
+                    data: values,
+                    backgroundColor: "rgba(99, 102, 241, 0.78)",
+                    borderRadius: 6
+                }];
+            } else {
+                chart.data.datasets[0].label = "Frekuensi Kata Kunci";
+                chart.data.datasets[0].data = values;
+            }
+            chart.__ddcIsFallback = true;
+            chart.__ddcFallbackLabelsKey = JSON.stringify(labels);
+            try { chart.update(); } catch (e) {}
+        } else {
+            const created = new Chart(canvas.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Frekuensi Kata Kunci",
+                        data: values,
+                        backgroundColor: "rgba(99, 102, 241, 0.78)",
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false } }
+                    }
+                }
+            });
+            created.__ddcIsFallback = true;
+            created.__ddcFallbackLabelsKey = JSON.stringify(labels);
+        }
+    }
+
+    function scheduleKwCheck(delayMs = 260) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(ensureKeywordChartPopulated, delayMs);
+    }
+
+    function initSocialKeywordFix() {
+        const tbody = document.getElementById("table-body");
+        if (tbody && typeof MutationObserver !== "undefined") {
+            const obs = new MutationObserver(() => scheduleKwCheck(280));
+            obs.observe(tbody, { childList: true, subtree: true });
+        }
+
+        // Pastikan di menu Social Media (tab sosmed), grafik Top Keyword ikut diperbarui bila tampil
+        ["onDomainChange", "onBankFilterChange", "applyClientFilters", "switchTab"].forEach((fnName) => {
+            if (typeof window[fnName] === "function" && !window[fnName].__ddcKwHooked) {
+                const orig = window[fnName];
+                const wrapped = function () {
+                    const res = orig.apply(this, arguments);
+                    scheduleKwCheck(350);
+                    return res;
+                };
+                wrapped.__ddcKwHooked = true;
+                window[fnName] = wrapped;
+            }
+        });
+
+        setTimeout(ensureKeywordChartPopulated, 1000);
+        setTimeout(ensureKeywordChartPopulated, 2500);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => setTimeout(initSocialKeywordFix, 80));
+    } else {
+        setTimeout(initSocialKeywordFix, 80);
+    }
+})();
+</script>
+
 </body>
 </html>

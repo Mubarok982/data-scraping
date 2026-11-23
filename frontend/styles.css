@@ -1,0 +1,312 @@
+html {
+            font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar halus (Light & Dark) */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        html.dark ::-webkit-scrollbar-thumb { background: #2e3446; }
+        html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        html.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+
+        /* Sidebar Layout Desktop */
+        @media (min-width: 1024px) {
+            body {
+                padding-left: 16.5rem;
+                transition: padding-left 0.2s ease;
+            }
+            body.ddc-sb-collapsed {
+                padding-left: 0;
+            }
+            body.ddc-sb-collapsed #ddc-sidebar {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Preline Input & Card Refinement */
+        .ddc-card {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .ddc-field {
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
+            color: #1e293b;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            line-height: 1.25rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .ddc-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+        .ddc-field:disabled {
+            background-color: #f8fafc;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        html.dark .ddc-field {
+            border-color: #272b36;
+            background-color: #0f1117;
+            color: #e4e4e7;
+        }
+        html.dark .ddc-field:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+        html.dark .ddc-field:disabled {
+            background-color: #161922;
+            color: #52525b;
+        }
+
+        /* =====================================================================
+           LIGHT MODE BRIDGE UNTUK ELEMEN DINAMIS YANG DIRENDER OLEH frontend/app.js
+           (Agar tabel, badge status, dan ringkasan wilayah tetap kontras & pastel)
+           ===================================================================== */
+        html:not(.dark) #table-head {
+            background-color: #f8fafc !important;
+            color: #475569 !important;
+        }
+        html:not(.dark) #table-head th {
+            color: #475569 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        html:not(.dark) #table-body {
+            color: #334155 !important;
+        }
+        html:not(.dark) #table-body tr {
+            border-color: #f1f5f9 !important;
+        }
+        html:not(.dark) #table-body tr:hover {
+            background-color: #f8fafc !important;
+        }
+        html:not(.dark) #table-body .text-white,
+        html:not(.dark) #table-body .text-gray-100,
+        html:not(.dark) #table-body .text-gray-200,
+        html:not(.dark) #loc-badges .text-white,
+        html:not(.dark) #loc-badges .text-gray-100,
+        html:not(.dark) #loc-badges .text-gray-200 {
+            color: #0f172a !important;
+        }
+        html:not(.dark) #table-body .text-gray-300,
+        html:not(.dark) #table-body .text-gray-400,
+        html:not(.dark) #loc-badges .text-gray-300,
+        html:not(.dark) #loc-badges .text-gray-400 {
+            color: #475569 !important;
+        }
+        html:not(.dark) #table-body a {
+            color: #4f46e5 !important;
+        }
+        html:not(.dark) #loc-badges > div {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+        /* Konversi badge gelap dinamis menjadi pastel lembut di Light Mode */
+        html:not(.dark) #table-body [class*="bg-emerald-9"],
+        html:not(.dark) #loc-badges [class*="bg-emerald-9"],
+        html:not(.dark) #cron-badge[class*="bg-emerald-9"] {
+            background-color: #ecfdf5 !important;
+            color: #047857 !important;
+            border-color: #a7f3d0 !important;
+        }
+        html:not(.dark) #table-body [class*="bg-amber-9"],
+        html:not(.dark) #loc-badges [class*="bg-amber-9"] {
+            background-color: #fffbeb !important;
+            color: #b45309 !important;
+            border-color: #fde68a !important;
+        }
+        html:not(.dark) #table-body [class*="bg-rose-9"],
+        html:not(.dark) #table-body [class*="bg-red-9"],
+        html:not(.dark) #loc-badges [class*="bg-rose-9"] {
+            background-color: #fff1f2 !important;
+            color: #be123c !important;
+            border-color: #fecdd3 !important;
+        }
+        html:not(.dark) #table-body [class*="bg-indigo-9"],
+        html:not(.dark) #table-body [class*="bg-blue-9"],
+        html:not(.dark) #table-body [class*="bg-purple-9"] {
+            background-color: #eef2ff !important;
+            color: #4338ca !important;
+            border-color: #c7d2fe !important;
+        }
+        html:not(.dark) #table-body [class*="bg-gray-8"],
+        html:not(.dark) #table-body [class*="bg-gray-9"],
+        html:not(.dark) #table-body [class*="bg-[#"] {
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+            border-color: #e2e8f0 !important;
+        }
+        html:not(.dark) #table-body .text-emerald-300,
+        html:not(.dark) #table-body .text-emerald-400 { color: #047857 !important; }
+        html:not(.dark) #table-body .text-amber-300,
+        html:not(.dark) #table-body .text-amber-400 { color: #b45309 !important; }
+        html:not(.dark) #table-body .text-rose-300,
+        html:not(.dark) #table-body .text-rose-400 { color: #be123c !important; }
+        html:not(.dark) #table-body .text-indigo-300,
+        html:not(.dark) #table-body .text-indigo-400 { color: #4338ca !important; }
+
+/* === 1. SMOOTH THEME TRANSITION (CROSSFADE HALUS, ANTI SILAU) === */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 0.42s;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        mix-blend-mode: normal;
+    }
+
+    html.ddc-theme-transitioning,
+    html.ddc-theme-transitioning body,
+    html.ddc-theme-transitioning aside,
+    html.ddc-theme-transitioning main,
+    html.ddc-theme-transitioning div,
+    html.ddc-theme-transitioning button,
+    html.ddc-theme-transitioning a,
+    html.ddc-theme-transitioning input,
+    html.ddc-theme-transitioning select,
+    html.ddc-theme-transitioning table,
+    html.ddc-theme-transitioning th,
+    html.ddc-theme-transitioning td,
+    html.ddc-theme-transitioning span {
+        transition:
+            background-color 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+            color 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 0.36s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    }
+
+    /* === 2. WARM PAPER LIGHT MODE (MENGGANTI PUTIH MENCOLOK #FFFFFF) === */
+    html:not(.dark) body {
+        background-color: #ECE9E2 !important;
+        color: #2E2C29 !important;
+    }
+
+    /* Kartu, Sidebar, & Tombol Permukaan */
+    html:not(.dark) .bg-white {
+        background-color: #F7F5F0 !important;
+    }
+    html:not(.dark) .bg-white.hover\:bg-slate-50:hover,
+    html:not(.dark) .hover\:bg-slate-50:hover,
+    html:not(.dark) .hover\:bg-slate-100:hover {
+        background-color: #EAE6DD !important;
+    }
+
+    /* Permukaan Sekunder & Panel Filter */
+    html:not(.dark) .bg-slate-50,
+    html:not(.dark) .bg-slate-50\/80,
+    html:not(.dark) .bg-slate-50\/90 {
+        background-color: #F0EDE6 !important;
+    }
+    html:not(.dark) .bg-slate-100 {
+        background-color: #E7E3DA !important;
+    }
+
+    /* Border Hangat & Lembut */
+    html:not(.dark) .border-slate-200,
+    html:not(.dark) .border-slate-200\/90,
+    html:not(.dark) .border-slate-200\/80,
+    html:not(.dark) .border-slate-200\/70 {
+        border-color: #DFDAD0 !important;
+    }
+    html:not(.dark) .border-slate-100 {
+        border-color: #E7E2D8 !important;
+    }
+
+    /* Teks Arang Hangat (Lebih Nyaman Dibaca Lama) */
+    html:not(.dark) .text-slate-900 { color: #242320 !important; }
+    html:not(.dark) .text-slate-800 { color: #32302C !important; }
+    html:not(.dark) .text-slate-700 { color: #44413C !important; }
+    html:not(.dark) .text-slate-600 { color: #5C5852 !important; }
+    html:not(.dark) .text-slate-500 { color: #706B63 !important; }
+    html:not(.dark) .text-slate-400 { color: #8A847A !important; }
+
+    /* Tombol & Menu Aktif Gelap yang Lebih Lembut */
+    html:not(.dark) .bg-slate-900 {
+        background-color: #2B2926 !important;
+    }
+    html:not(.dark) .hover\:bg-slate-800:hover {
+        background-color: #3D3A36 !important;
+    }
+
+    /* Input & Select Hangat */
+    html:not(.dark) .ddc-field {
+        background-color: #FAF8F4 !important;
+        border-color: #DBD5C9 !important;
+        color: #2A2825 !important;
+    }
+    html:not(.dark) .ddc-field:focus {
+        border-color: #5B5BD6 !important;
+        box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.12) !important;
+    }
+    html:not(.dark) .ddc-field:disabled {
+        background-color: #EFECE5 !important;
+        color: #9A948A !important;
+    }
+
+    /* Tabel & Badge Wilayah di Warm Light Mode */
+    html:not(.dark) #table-head {
+        background-color: #F0EDE6 !important;
+        color: #5C5852 !important;
+    }
+    html:not(.dark) #table-head th {
+        color: #5C5852 !important;
+        border-bottom-color: #DFDAD0 !important;
+    }
+    html:not(.dark) #table-body tr {
+        border-color: #EBE7DE !important;
+    }
+    html:not(.dark) #table-body tr:hover {
+        background-color: #F1EEE7 !important;
+    }
+    html:not(.dark) #loc-badges > div {
+        background-color: #F0EDE6 !important;
+        border-color: #DFDAD0 !important;
+    }
+
+    /* Kartu Status Pastel Lebih Lembut (Tidak Terlalu Terang) */
+    html:not(.dark) .bg-emerald-50,
+    html:not(.dark) .bg-emerald-50\/80,
+    html:not(.dark) .bg-emerald-50\/70 {
+        background-color: #EBF4EE !important;
+        border-color: #C7E2D0 !important;
+    }
+    html:not(.dark) .bg-amber-50,
+    html:not(.dark) .bg-amber-50\/80 {
+        background-color: #F7F0DF !important;
+        border-color: #E7D5AE !important;
+    }
+    html:not(.dark) .bg-rose-50,
+    html:not(.dark) .bg-rose-50\/80 {
+        background-color: #F7EAEB !important;
+        border-color: #E8C7CB !important;
+    }
+    html:not(.dark) .bg-indigo-50,
+    html:not(.dark) .bg-indigo-50\/70 {
+        background-color: #ECEEF7 !important;
+        border-color: #CFD5EC !important;
+    }
+
+    /* === 3. SOFT DARK MODE (PERHALUS KONTRAS SAAT TRANSISI) === */
+    html.dark body {
+        background-color: #13161D !important;
+    }
+    html.dark .dark\:bg-\[\#14171F\] {
+        background-color: #1A1D26 !important;
+    }
+    html.dark .dark\:bg-\[\#0F1117\],
+    html.dark .dark\:bg-\[\#0F1117\]\/70 {
+        background-color: #141720 !important;
+    }
+    html.dark .ddc-field {
+        background-color: #141720 !important;
+        border-color: #2B303D !important;
+    }
+
+/* Pastikan notif bar di atas grafik tidak muncul kembali di menu pencarian */
+    #reactive-banner {
+        display: none !important;
+    }
