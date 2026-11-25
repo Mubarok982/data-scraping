@@ -272,7 +272,7 @@ def unify_dataframe_columns(df: pd.DataFrame, category: str, meta: dict) -> pd.D
     return df
 
 
-def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
+def save_platform_csv(rows: list, subfolder: str, prefix: str, ingest_to_db: bool = True) -> Optional[str]:
     if not rows:
         return None
     folder_path = os.path.join(BASE_OUTPUT_DIR, subfolder)
@@ -282,15 +282,16 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str) -> Optional[str]:
     filepath = os.path.join(folder_path, f"{safe_prefix}_{ts}.csv")
     pd.DataFrame(rows).to_csv(filepath, index=False)
 
-    # Otomatis kirim ke 7 skema Supabase Data Warehouse
-    tool_guess = prefix.split("_")[0] if "_" in prefix else "kombine"
-    ingest_dataset_to_supabase(
-        category=subfolder,
-        tool=tool_guess,
-        job_name=f"live_scrape_{safe_prefix}",
-        parameters={"subfolder": subfolder, "prefix": prefix},
-        rows=rows
-    )
+    # Otomatis kirim ke 7 skema Supabase Data Warehouse (lewati untuk ekspor hasil baca DB)
+    if ingest_to_db:
+        tool_guess = prefix.split("_")[0] if "_" in prefix else "kombine"
+        ingest_dataset_to_supabase(
+            category=subfolder,
+            tool=tool_guess,
+            job_name=f"live_scrape_{safe_prefix}",
+            parameters={"subfolder": subfolder, "prefix": prefix},
+            rows=rows
+        )
     return filepath
 
 @app.get("/api/v1/warehouse/stats", tags=["0. Bank Data (Data Warehouse)"])
@@ -1486,7 +1487,7 @@ def api_warehouse_records(
 ):
     from backend.db import query_warehouse_records
     rows = query_warehouse_records(category=category, search_query=search_query, limit=limit)
-    csv_path = save_platform_csv(rows, "supabase_export", f"db_{category}") if rows else None
+    csv_path = save_platform_csv(rows, "supabase_export", f"db_{category}", ingest_to_db=False) if rows else None
     return {"status": "success", "returned_rows": len(rows), "csv": csv_path, "data": rows}
 
 
@@ -1523,59 +1524,6 @@ def api_sync_csv_to_supabase():
 def api_warehouse_analytics():
     from backend.db import get_dashboard_analytics
     return {"status": "success", "analytics": get_dashboard_analytics()}
-
-
-@app.get("/api/v1/warehouse/analytics")
-def get_analytics():
-    from backend.db import get_conn, get_dashboard_analytics
-    import psycopg2.extras
-    
-    conn = get_conn()
-    if not conn:
-        return {"error": "Database error"}
-    
-    try:
-        # Ambil analitik bawaan
-        base_analytics = get_dashboard_analytics(conn)
-        
-        # Tambahkan 3 kueri analitik baru
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # A. Grafik Viral
-            cur.execute('''
-                SELECT COALESCE(p.content, 'Hanya Media/Video') as title, 
-                       (COALESCE(pm.likes_count,0) + COALESCE(pm.comments_count,0) + COALESCE(pm.shares_count,0)) as engagement 
-                FROM social.posts p 
-                JOIN social.post_metrics pm ON p.id = pm.post_id 
-                ORDER BY engagement DESC LIMIT 5
-            ''')
-            base_analytics['top_viral'] = [dict(r) for r in cur.fetchall()]
-            
-            # B. Grafik Hashtag
-            cur.execute('''
-                SELECT h.name as tag, COUNT(ph.post_id) as count 
-                FROM social.hashtags h 
-                JOIN social.post_hashtags ph ON h.id = ph.hashtag_id 
-                GROUP BY h.name ORDER BY count DESC LIMIT 6
-            ''')
-            base_analytics['top_hashtags'] = [dict(r) for r in cur.fetchall()]
-            
-            # C. Grafik Kesehatan Sistem (System Health)
-            cur.execute('''
-                SELECT TO_CHAR(created_at, 'HH24:00') as time, 
-                       COALESCE(ROUND(AVG(response_time_ms)), 0)::int as avg_ms, 
-                       COUNT(id) as req_count 
-                FROM core.api_request_logs 
-                GROUP BY time ORDER BY time DESC LIMIT 8
-            ''')
-            logs = [dict(r) for r in cur.fetchall()]
-            base_analytics['system_health'] = sorted(logs, key=lambda x: x['time'])
-            
-        return {"analytics": base_analytics}
-    except Exception as e:
-        print("Analytics error:", e)
-        return {"analytics": {}}
-    finally:
-        conn.close()
 
 
 @app.post("/api/v1/notify/test")
@@ -1726,9 +1674,10 @@ try:
 
     def _prewarm_analytics_bg():
         try:
-            from backend.db import get_dashboard_analytics
+            from backend.db import get_dashboard_analytics, get_warehouse_summary_stats
             get_dashboard_analytics()
-            print("[Pre-Warm] Cache analitik dashboard siap di memori.")
+            get_warehouse_summary_stats()
+            print("[Pre-Warm] Cache analitik & ringkasan warehouse siap di memori.")
         except Exception as _pw_e:
             print(f"[Pre-Warm] Dilewati: {_pw_e}")
 
@@ -1875,7 +1824,6 @@ def load_all_project_records(limit: int = 5000, force: bool = False) -> dict:
                         SELECT payload, collected_at, data_type
                         FROM scraper.raw_data
                         WHERE data_type IN ('job_search', 'project_hunter', '/api/v1/project/search')
-                           OR payload ? 'confidence_status'
                         ORDER BY collected_at DESC NULLS LAST
                         LIMIT %s
                         """,

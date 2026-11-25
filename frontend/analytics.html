@@ -3,352 +3,361 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Warehouse — Analytics Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0d14; }
-        ::-webkit-scrollbar-thumb { background: #2d334d; border-radius: 3px; }
-    </style>
-</head>
-<body class="bg-[#0b0d14] text-gray-200 h-screen overflow-hidden font-sans flex">
-<!-- DDC_MULTI_PAGE_SIDEBAR_START -->
-<style id="ddc-sidebar-layout-style">
-  @media (min-width: 1024px) {
-    body {
-      padding-left: 17rem !important;
-      transition: padding-left 0.2s ease;
-    }
-    body.ddc-sb-collapsed {
-      padding-left: 0 !important;
-    }
-    body.ddc-sb-collapsed #ddc-sidebar {
-      transform: translateX(-100%);
-    }
-  }
-</style>
+    <title>ANALYTICS_MATRIX — DDC//TERM Global Telemetry</title>
 
-<!-- Desktop Reopen Button (ketika sidebar di-collapse) -->
-<button type="button" id="ddc-sidebar-reopen" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(true) : ddcToggleDesktopSidebar()" title="Buka Sidebar"
-  class="lg:hidden fixed top-3 left-3 z-50 px-2.5 py-1.5 rounded-lg bg-[#14192b] hover:bg-purple-600 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold shadow-lg transition">
-  ☰ Menu
-</button>
-
-<!-- Mobile Overlay -->
-<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"></div>
-
-<!-- Fixed Left Sidebar -->
-<aside id="ddc-sidebar" class="fixed inset-y-0 left-0 z-50 w-[17rem] bg-[#0b0f1e] border-r border-gray-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 shadow-2xl">
-  <div class="p-4 overflow-y-auto space-y-5">
-    <!-- Brand -->
-    <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
-      <a href="/dashboard/supabase" data-ddc-tab="supabase" class="flex items-center gap-2.5 no-underline">
-        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-        <div>
-          <div class="font-bold text-sm text-white leading-tight">DDC Scraper Portal</div>
-          <div class="text-[10px] text-gray-400">Multi-Page Dashboard</div>
-        </div>
-      </a>
-      <button type="button" onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()" title="Tutup / Lipat Sidebar"
-        class="p-1.5 rounded-lg bg-[#14192b] hover:bg-gray-800 text-gray-400 hover:text-white text-xs border border-gray-800">✕</button>
-    </div>
-
-    <!-- DATA & ARSIP -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Data &amp; Arsip</div>
-      <a href="/dashboard/supabase" data-ddc-tab="supabase" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🗄️ Database Supabase</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Live DB</span>
-      </a>
-      <a href="/dashboard/bank" data-ddc-tab="bank" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🏛️ Bank Data (CSV)</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">CSV</span>
-      </a>
-    </div>
-
-    <!-- SCRAPER MANUAL -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Scraper Manual</div>
-      <a href="/dashboard/keyword" data-ddc-tab="keyword" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>🔍 1. Keyword &amp; Trend</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">KW</span>
-      </a>
-      <a href="/dashboard/berita" data-ddc-tab="berita" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📰 2. Portal Berita</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">News</span>
-      </a>
-      <a href="/dashboard/sosmed" data-ddc-tab="sosmed" class="ddc-sb-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#14192b] text-gray-300 hover:bg-[#1e2540] transition no-underline">
-        <span class="flex items-center gap-2 truncate"><span class="ddc-sb-dot w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0"></span>📱 3. Social Media</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 border border-white/10 shrink-0">Social</span>
-      </a>
-    </div>
-
-    <!-- ANALITIK -->
-    <div class="space-y-1.5">
-      <div class="px-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Analitik Terpisah</div>
-      <a href="/analytics" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition no-underline bg-emerald-600 text-white shadow-md shadow-emerald-900/40">
-        <span class="flex items-center gap-2 truncate">📊 Analytics Dashboard</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/25 border border-white/10 shrink-0">Page</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Footer info -->
-  <div class="p-3 border-t border-gray-800/80 text-[10px] text-gray-500 flex items-center justify-between">
-    <span>Cron 8 Jam (WIB)</span>
-    <span class="text-emerald-400">● Online</span>
-  </div>
-</aside>
-
-
-<script>
-(function() {
-  const sidebar = document.getElementById("ddc-sidebar");
-  const overlay = document.getElementById("ddc-sidebar-overlay");
-  const reopenBtn = document.getElementById("ddc-sidebar-reopen");
-
-  window.ddcToggleMobileSidebar = function(forceOpen) {
-    if (!sidebar) return;
-    const isClosed = sidebar.classList.contains("-translate-x-full");
-    const open = (typeof forceOpen === "boolean") ? forceOpen : isClosed;
-    sidebar.classList.toggle("-translate-x-full", !open);
-    if (overlay) overlay.classList.toggle("hidden", !open);
-  };
-
-  window.ddcToggleDesktopSidebar = function() {
-    document.body.classList.toggle("ddc-sb-collapsed");
-    const collapsed = document.body.classList.contains("ddc-sb-collapsed");
-    if (reopenBtn) reopenBtn.classList.toggle("lg:hidden", !collapsed);
-  };
-
-})();
-</script>
-<!-- DDC_MULTI_PAGE_SIDEBAR_END -->
-
-<!-- LEFT SIDEBAR NAVBAR -->
-    <aside class="w-64 bg-[#111420] border-r border-gray-800 flex flex-col h-full flex-shrink-0 z-20">
-        <div class="h-16 flex items-center px-5 border-b border-gray-800 gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                <span class="text-sm">🧩</span>
-            </div>
-            <span class="font-bold text-white tracking-tight">DDC Portal</span>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Menu Utama</div>
-            
-            <a href="/" class="flex items-center gap-3 px-3 py-2.5 text-gray-400 hover:text-gray-200 hover:bg-[#1a1f33] rounded-xl font-medium transition">
-                <span>🗄️</span> Data Explorer
-            </a>
-            <a href="/analytics" class="flex items-center gap-3 px-3 py-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl font-medium transition border border-indigo-500/30">
-                <span>📊</span> Analytics Dashboard
-            </a>
-            
-            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2 px-2">Statistik Supabase</div>
-            <div class="px-3 space-y-2 text-xs">
-                <div class="flex justify-between items-center"><span class="text-gray-400">news.articles</span><span id="st-news" class="font-bold text-emerald-400">0</span></div>
-                <div class="flex justify-between items-center"><span class="text-gray-400">keyword.keys</span><span id="st-keywords" class="font-bold text-amber-400">0</span></div>
-                <div class="flex justify-between items-center"><span class="text-gray-400">trend.snaps</span><span id="st-trends" class="font-bold text-amber-300">0</span></div>
-                <div class="flex justify-between items-center"><span class="text-gray-400">social.posts</span><span id="st-posts" class="font-bold text-pink-400">0</span></div>
-                <div class="flex justify-between items-center"><span class="text-gray-400">scraper.raw</span><span id="st-raw" class="font-bold text-indigo-400">0</span></div>
-            </div>
-            
-            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2 px-2">Cron Scheduler</div>
-            <div class="px-3 space-y-2 text-xs bg-[#0b0d14] p-3 rounded-lg border border-gray-800">
-                <div class="flex justify-between"><span class="text-gray-400">Next:</span><span id="cron-next" class="text-indigo-300">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-400">Status:</span><span id="cron-status" class="text-amber-300">idle</span></div>
-            </div>
-            <button onclick="syncCsvToSupabase()" id="btn-sync" class="w-full mt-2 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded-lg transition">
-                🔄 Sync Semua CSV 
-            </button>
-        </nav>
-    </aside>
-
-    <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-        
-
-        <div class="flex-1 overflow-y-auto p-6 space-y-5">
-            <!-- 4 KPI Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-sm">
-                    <div class="text-[11px] text-gray-400">📦 Total Raw Payload</div>
-                    <div id="kpi-raw" class="text-2xl font-bold text-white mt-1">0</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-sm">
-                    <div class="text-[11px] text-gray-400">📰 Portal Berita</div>
-                    <div id="kpi-news" class="text-2xl font-bold text-emerald-400 mt-1">0</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-sm">
-                    <div class="text-[11px] text-gray-400">🔥 Keyword & Trends</div>
-                    <div id="kpi-kw" class="text-2xl font-bold text-amber-400 mt-1">0</div>
-                </div>
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-4 shadow-sm">
-                    <div class="text-[11px] text-gray-400">📱 Social Media</div>
-                    <div id="kpi-social" class="text-2xl font-bold text-pink-400 mt-1">0</div>
-                </div>
-            </div>
-
-            <!-- GRID 6 GRAFIK -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <!-- 1. Polarisasi Lokasi -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">🗺️ Polarisasi Lokasi (Sebaran Isu Wilayah)</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Sentimen Positif vs Netral vs Negatif per Provinsi</p>
-                    <div class="h-64"><canvas id="chartLoc"></canvas></div>
-                </div>
-
-                <!-- 2. Orang Ter-trending -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">👤 Tokoh / Orang Paling Trending</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Frekuensi penyebutan nama tokoh di Berita & Sosmed</p>
-                    <div class="h-64"><canvas id="chartPpl"></canvas></div>
-                </div>
-
-                <!-- 3. Keyword Paling Trending -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">🔥 Top Keyword Paling Dicari</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Indeks volume pencarian tertinggi dari Google Trends</p>
-                    <div class="h-64"><canvas id="chartKw"></canvas></div>
-                </div>
-
-                <!-- 4. Waktu / Timeline -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">⏱️ Tren Waktu Ingesti</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Grafik lonjakan data masuk per jam</p>
-                    <div class="h-64"><canvas id="chartTime"></canvas></div>
-                </div>
-
-                <!-- 5. Rasio Sentimen Keseluruhan -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">⚖️ Rasio Sentimen Keseluruhan</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Proporsi sentimen dari Diffbot AI pada Artikel & Sosmed</p>
-                    <div class="h-56"><canvas id="chartSent"></canvas></div>
-                </div>
-
-                <!-- 6. Share of Voice (Proporsi Platform) -->
-                <div class="bg-[#131726] border border-gray-800/90 rounded-2xl p-5 shadow-sm">
-                    <h3 class="text-sm font-bold text-white mb-1">📡 Share of Voice Platform</h3>
-                    <p class="text-[10px] text-gray-400 mb-4">Distribusi sumber data: Berita vs Sosmed vs Keyword</p>
-                    <div class="h-56"><canvas id="chartPlat"></canvas></div>
-                </div>
-            </div>
-        </div>
-    </main>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <script>
-        let cLoc=null, cPpl=null, cKw=null, cTime=null, cSent=null, cPlat=null;
-        Chart.defaults.color = '#9ca3af'; Chart.defaults.font.family = 'sans-serif'; Chart.defaults.font.size = 11;
-
-        async function syncCsvToSupabase() {
-            const btn = document.getElementById('btn-sync');
-            btn.disabled = true; btn.innerText = "⏳ Syncing...";
+        (function () {
             try {
-                await fetch('/api/v1/warehouse/sync-csv', { method: 'POST' });
-                await loadCharts();
-            } catch (e) { alert("Error: " + e.message); }
-            finally { btn.disabled = false; btn.innerText = "🔄 Sync Semua CSV"; }
-        }
-
-        async function loadCharts() {
-            try {
-                // 1. Load Statistik Side Bar
-                const resSt = await fetch('/api/v1/scheduler/status');
-                const jsonSt = await res.json();
-                const wh = jsonSt.supabase_warehouse.counts;
-                const sc = jsonSt.scheduler;
-                
-                document.getElementById('st-news').innerText = wh.news_articles || 0;
-                document.getElementById('st-keywords').innerText = wh.keywords || 0;
-                document.getElementById('st-trends').innerText = wh.trend_snapshots || 0;
-                document.getElementById('st-posts').innerText = wh.social_posts || 0;
-                document.getElementById('st-raw').innerText = wh.raw_data || 0;
-                
-                document.getElementById('cron-next').innerText = sc.next_run_wib || '-';
-                document.getElementById('cron-status').innerText = (sc.last_execution || {}).status || 'idle';
-                
-                document.getElementById('kpi-raw').innerText = wh.raw_data || 0;
-                document.getElementById('kpi-news').innerText = wh.news_articles || 0;
-                document.getElementById('kpi-kw').innerText = (wh.keywords || 0) + (wh.trend_snapshots || 0);
-                document.getElementById('kpi-social').innerText = (wh.social_posts || 0) + (wh.social_accounts || 0);
-
-                // 2. Load Data Analitik
-                const res = await fetch('/api/v1/warehouse/analytics');
-                const json = await res.json();
-                const an = json.analytics || {};
-
-                // Render Chart 1: Lokasi
-                const locs = an.locations || [];
-                if(cLoc) cLoc.destroy();
-                cLoc = new Chart(document.getElementById('chartLoc'), {
-                    type: 'bar',
-                    data: {
-                        labels: locs.map(x => x.location),
-                        datasets: [
-                            { label: 'Positif', data: locs.map(x => x.positive), backgroundColor: '#10b981' },
-                            { label: 'Netral', data: locs.map(x => x.neutral), backgroundColor: '#6366f1' },
-                            { label: 'Negatif', data: locs.map(x => x.negative), backgroundColor: '#ef4444' }
-                        ]
-                    },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { color: '#1f2937' } }, y: { stacked: true, grid: { display: false } } } }
-                });
-
-                // Render Chart 2: Orang
-                const ppl = an.top_people || [];
-                if(cPpl) cPpl.destroy();
-                cPpl = new Chart(document.getElementById('chartPpl'), {
-                    type: 'bar',
-                    data: { labels: ppl.map(x => x.name), datasets: [{ label: 'Mentions', data: ppl.map(x => x.mentions), backgroundColor: '#a855f7', borderRadius: 4 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } } }
-                });
-
-                // Render Chart 3: Keyword
-                const kws = an.top_keywords || [];
-                if(cKw) cKw.destroy();
-                cKw = new Chart(document.getElementById('chartKw'), {
-                    type: 'bar',
-                    data: { labels: kws.map(x => x.keyword.substring(0,20)), datasets: [{ label: 'Volume', data: kws.map(x => x.volume), backgroundColor: '#f59e0b', borderRadius: 4 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } } }
-                });
-
-                // Render Chart 4: Waktu
-                const tl = an.timeline || [];
-                if(cTime) cTime.destroy();
-                cTime = new Chart(document.getElementById('chartTime'), {
-                    type: 'line',
-                    data: {
-                        labels: tl.map(x => x.time),
-                        datasets: [
-                            { label: 'Berita', data: tl.map(x => x.berita), borderColor: '#10b981', tension: 0.3 },
-                            { label: 'Keyword', data: tl.map(x => x.keyword), borderColor: '#f59e0b', tension: 0.3 },
-                            { label: 'Sosmed', data: tl.map(x => x.sosmed), borderColor: '#ec4899', tension: 0.3 }
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { color: '#1f2937' } } } }
-                });
-
-                // Render Chart 5: Sentimen
-                const s = an.sentiment_summary || {};
-                if(cSent) cSent.destroy();
-                cSent = new Chart(document.getElementById('chartSent'), {
-                    type: 'doughnut',
-                    data: { labels: ['Positif', 'Netral', 'Negatif'], datasets: [{ data: [s.positive||0, s.neutral||0, s.negative||0], backgroundColor: ['#10b981', '#6366f1', '#ef4444'], borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right' } } }
-                });
-
-                // Render Chart 6: Platform Share
-                const ps = an.platform_share || {};
-                if(cPlat) cPlat.destroy();
-                cPlat = new Chart(document.getElementById('chartPlat'), {
-                    type: 'polarArea',
-                    data: { labels: Object.keys(ps), datasets: [{ data: Object.values(ps), backgroundColor: ['rgba(16,185,129,0.7)', 'rgba(245,158,11,0.7)', 'rgba(236,72,153,0.7)', 'rgba(56,189,248,0.7)'], borderWidth: 1, borderColor: '#1f2937' }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: '#374151' }, ticks: { display: false } } }, plugins: { legend: { position: 'right' } } }
-                });
-
-            } catch (e) { console.error(e); }
-        }
-
-        window.onload = () => { loadCharts(); setInterval(loadCharts, 30000); };
+                const saved = localStorage.getItem('ddc_theme');
+                if (saved === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
     </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="/styles.css?v=20261125_bb_term">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23000000%22/><rect x=%224%22 y=%224%22 width=%2292%22 height=%2292%22 fill=%22none%22 stroke=%22%23ff8c00%22 stroke-width=%228%22/><text y=%22.76em%22 x=%2214%22 font-family=%22monospace%22 font-weight=%22bold%22 font-size=%2258%22 fill=%22%23ff8c00%22>D%3E</text></svg>">
+</head>
+
+<body data-page="analytics" class="min-h-screen antialiased selection:bg-amber-500/30 selection:text-amber-200">
+
+<!-- Mobile Sidebar Overlay -->
+<div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
+     class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px] lg:hidden"></div>
+
+<!-- LEFT SIDEBAR NAVBAR -->
+<aside id="ddc-sidebar"
+       class="fixed inset-y-0 left-0 z-50 w-56 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-150">
+    <div class="p-2.5 overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-[var(--bb-border)]">
+            <a href="/dashboard/supabase" class="flex items-center gap-1.5 no-underline">
+                <span class="px-1.5 py-0.5 bg-[var(--bb-amber-soft)] border border-[var(--bb-amber)] text-[var(--bb-amber-bright)] font-mono font-bold text-[11px] tracking-wider">DDC//TERM</span>
+            </a>
+            <button type="button"
+                    onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()"
+                    title="Lipat Sidebar"
+                    class="bb-btn !py-0.5 !px-1.5 !text-[10px]">◀</button>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Workspace</div>
+            <button type="button" onclick="bbExecuteCommand('QUAD')" class="ddc-sb-item w-full text-left">
+                <span class="truncate">⊞ 4-Pane Launchpad</span>
+                <span class="text-[9px] text-[var(--bb-green)]">QUAD</span>
+            </button>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Data &amp; Arsip</div>
+            <a href="/dashboard/supabase" class="ddc-sb-item">
+                <span class="truncate">Database Supabase</span>
+                <span class="text-[9px] text-[var(--bb-green)]">F2</span>
+            </a>
+            <a href="/dashboard/bank" class="ddc-sb-item">
+                <span class="truncate">Bank Data (CSV)</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F3</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Scraper Manual</div>
+            <a href="/dashboard/keyword" class="ddc-sb-item">
+                <span class="truncate">1. Keyword &amp; Trend</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F4</span>
+            </a>
+            <a href="/dashboard/berita" class="ddc-sb-item">
+                <span class="truncate">2. Portal Berita</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F5</span>
+            </a>
+            <a href="/dashboard/sosmed" class="ddc-sb-item">
+                <span class="truncate">3. Social Media</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F6</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-green)]">Job Hunter</div>
+            <a href="/dashboard/project" class="ddc-sb-item">
+                <span class="truncate">4. Pencarian Project</span>
+                <span class="text-[9px] text-[var(--bb-amber)]">F7</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Analitik</div>
+            <a href="/analytics" class="ddc-sb-item bb-fkey-active">
+                <span class="truncate">Global Analytics</span>
+                <span class="text-[9px] text-[var(--bb-cyan)]">F8</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="p-2.5 border-t border-[var(--bb-border)] font-mono text-[10px] flex items-center justify-between text-[var(--bb-text-muted)]">
+        <span>CRON 8H (WIB)</span>
+        <span class="text-[var(--bb-green)]">● LIVE</span>
+    </div>
+</aside>
+
+<!-- =========================================================================
+     TOP SYSTEM BAR (BLOOMBERG TERMINAL CHROME)
+     ========================================================================= -->
+<header class="sticky top-0 z-40 border-b border-[var(--bb-border)] bg-[var(--bb-bg)]">
+    <div class="px-2.5 py-1 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-bg-elev)]">
+        <div class="flex items-center gap-2 min-w-0">
+            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Sidebar"
+                    class="lg:hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰</button>
+            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
+                    class="hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰ NAV</button>
+
+            <span class="font-mono text-[10px] text-[var(--bb-text-muted)] tracking-wider truncate">
+                GLOBAL ANALYTICS MATRIX
+            </span>
+
+            <span class="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 border border-[var(--bb-green)]/40 bg-[var(--bb-green-soft)] text-[var(--bb-green)] font-mono text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-green)]"></span>
+                SUPA:LIVE
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                API:<span id="bb-api-latency" class="text-[var(--bb-cyan)]">--ms</span>
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                CRON_NEXT:<span id="bb-cron-countdown" class="text-[var(--bb-amber)]">--:--:--</span>
+            </span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <span id="bb-wib-clock" class="font-mono text-[10px] px-1.5 py-0.5 border border-[var(--bb-border)] bg-[var(--bb-panel)] text-[var(--bb-amber)]">
+                --:--:-- WIB
+            </span>
+
+            <button type="button" onclick="bbToggleHelpModal(true)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">? HELP</button>
+
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="sun" class="w-3 h-3 hidden dark:inline text-amber-400"></i>
+                <i data-lucide="moon" class="w-3 h-3 inline dark:hidden"></i>
+                <span class="hidden sm:inline">THEME</span>
+            </button>
+
+            <button type="button" onclick="bbLoadAnalyticsPage()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                <span class="hidden sm:inline">REFRESH</span>
+            </button>
+
+            <a href="/docs" target="_blank" class="bb-btn bb-btn-amber !py-0.5 !px-2 !text-[10px]">API /DOCS ↗</a>
+        </div>
+    </div>
+
+    <!-- Command Line Bar + Action Keys -->
+    <div class="px-2.5 py-1.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-panel)]">
+        <div class="relative flex items-center gap-1.5 flex-1 min-w-0 max-w-2xl">
+            <span class="font-mono text-[11px] font-bold text-[var(--bb-amber)] shrink-0 select-none">CMD&gt;</span>
+            <div class="relative flex-1 min-w-0">
+                <input id="bb-cmd-input" type="text" autocomplete="off" spellcheck="false"
+                       placeholder="Ketik langsung di mana saja: NW PRABOWO | IG #AI | JOB FLUTTER | QUAD | MENU"
+                       class="bb-input !py-1 !px-2 !text-[11px] uppercase placeholder:normal-case placeholder:text-[var(--bb-text-dim)]">
+                <div id="bb-cmd-ac" class="hidden absolute left-0 right-0 top-full mt-0.5 z-50 max-h-64 overflow-y-auto"></div>
+            </div>
+            <button type="button" id="bb-cmd-go" onclick="bbRunCommandFromInput()" class="bb-key-action !py-1 !px-2.5 !text-[11px] shrink-0">
+                &lt;GO&gt; ↵
+            </button>
+        </div>
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 lg:pb-0">
+            <button type="button" id="bb-btn-back" onclick="bbNavBack()" disabled class="bb-key-action">&lt;BACK&gt;</button>
+            <button type="button" id="bb-btn-fwd" onclick="bbNavForward()" disabled class="bb-key-action">&lt;FWD&gt;</button>
+            <button type="button" onclick="bbToggleMenuModal(true)" class="bb-key-action">&lt;MENU&gt;</button>
+            <button type="button" onclick="bbExecuteCommand('QUAD')" class="bb-key-action">&lt;QUAD&gt;</button>
+        </div>
+    </div>
+
+    <div class="bb-ticker-wrap">
+        <div class="bb-ticker-label"><span>ANALYTICS_FEED</span></div>
+        <div class="bb-ticker-track-viewport">
+            <div id="bb-ticker-track" class="bb-ticker-track">
+                <span class="bb-tick-item text-[var(--bb-text-muted)]">MEMUAT GLOBAL ANALYTICS MATRIX...</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- KPI Telemetry Strip -->
+<div class="px-2.5 pt-2 pb-1">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+        <div class="bb-kpi-cell">
+            <div class="flex justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>RAW_PAYLOAD</span><span class="text-[var(--bb-cyan)]">scraper.raw</span>
+            </div>
+            <div id="kpi-raw" class="font-mono text-lg font-bold text-[var(--bb-text)] mt-0.5">0</div>
+        </div>
+        <div class="bb-kpi-cell">
+            <div class="flex justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>NEWS_WIRE</span><span class="text-[var(--bb-green)]">news.articles</span>
+            </div>
+            <div id="kpi-news" class="font-mono text-lg font-bold text-[var(--bb-green)] mt-0.5">0</div>
+        </div>
+        <div class="bb-kpi-cell">
+            <div class="flex justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>KW_&_TRENDS</span><span class="text-[var(--bb-amber)]">keyword+trend</span>
+            </div>
+            <div id="kpi-kw" class="font-mono text-lg font-bold text-[var(--bb-amber)] mt-0.5">0</div>
+        </div>
+        <div class="bb-kpi-cell">
+            <div class="flex justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>SOSMED_POSTS</span><span class="text-[var(--bb-cyan)]">social.posts</span>
+            </div>
+            <div id="kpi-social" class="font-mono text-lg font-bold text-[var(--bb-cyan)] mt-0.5">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN ANALYTICS WORKSPACE -->
+<main class="px-2.5 py-1.5 grid grid-cols-1 xl:grid-cols-12 gap-1.5 items-start">
+    <!-- Left Telemetry & Sync -->
+    <aside class="xl:col-span-3 space-y-1.5">
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P0] WAREHOUSE TELEMETRY</span>
+                <span class="bb-panel-sub">AUTO 30S</span>
+            </div>
+            <div class="bb-panel-body space-y-2 font-mono text-[11px]">
+                <div class="bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] p-2 space-y-1">
+                    <div class="flex justify-between"><span class="text-[var(--bb-text-muted)]">news.articles</span><span id="st-news" class="font-bold text-[var(--bb-green)]">0</span></div>
+                    <div class="flex justify-between"><span class="text-[var(--bb-text-muted)]">keyword.keys</span><span id="st-keywords" class="font-bold text-[var(--bb-amber)]">0</span></div>
+                    <div class="flex justify-between"><span class="text-[var(--bb-text-muted)]">trend.snaps</span><span id="st-trends" class="font-bold text-[var(--bb-amber-bright)]">0</span></div>
+                    <div class="flex justify-between"><span class="text-[var(--bb-text-muted)]">social.posts</span><span id="st-posts" class="font-bold text-[#b58aa5]">0</span></div>
+                    <div class="flex justify-between"><span class="text-[var(--bb-text-muted)]">scraper.raw</span><span id="st-raw" class="font-bold text-[var(--bb-cyan)]">0</span></div>
+                </div>
+                <div class="bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] p-2 space-y-1">
+                    <div class="flex justify-between gap-2"><span class="text-[var(--bb-text-muted)]">CRON_NEXT</span><span id="cron-next" class="text-[var(--bb-cyan)] truncate">-</span></div>
+                    <div class="flex justify-between gap-2"><span class="text-[var(--bb-text-muted)]">STATUS</span><span id="cron-status" class="text-[var(--bb-amber)]">idle</span></div>
+                </div>
+                <button type="button" onclick="bbSyncAnalyticsCsv()" id="btn-sync" class="bb-btn bb-btn-amber w-full">
+                    ↻ SYNC ALL CSV → SUPABASE
+                </button>
+            </div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P5] LIVE TERMINAL LOG</span>
+                <button type="button" onclick="bbClearTerminalLog()" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[CLR]</button>
+            </div>
+            <div class="bb-panel-body !p-1.5">
+                <div id="bb-terminal-log">
+                    <div class="text-[var(--bb-text-muted)]">[BOOT] ANALYTICS_MATRIX aktif.</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 6-Chart Matrix -->
+    <section class="xl:col-span-9 grid grid-cols-1 lg:grid-cols-2 gap-1.5">
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A1] GEO POLARIZATION (WILAYAH)</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-60"><canvas id="chartLoc"></canvas></div></div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A2] TOP TRENDING FIGURES</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-60"><canvas id="chartPpl"></canvas></div></div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A3] TOP SEARCHED KEYWORDS</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-60"><canvas id="chartKw"></canvas></div></div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A4] INGESTION TIMELINE</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-60"><canvas id="chartTime"></canvas></div></div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A5] GLOBAL SENTIMENT RATIO</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-56"><canvas id="chartSent"></canvas></div></div>
+        </div>
+
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[A6] PLATFORM SHARE OF VOICE</span>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+            <div class="bb-panel-body"><div class="bb-chart-wrap h-56"><canvas id="chartPlat"></canvas></div></div>
+        </div>
+    </section>
+</main>
+
+<!-- BLOOMBERG MENU DIRECTORY MODAL (MENU <GO>) -->
+<div id="bb-menu-modal" onclick="if(event.target===this) bbToggleMenuModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-3xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — BLOOMBERG FUNCTION MENU (&lt;MENU&gt; DIRECTORY)</span>
+            <button type="button" onclick="bbToggleMenuModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]" id="bb-menu-grid"></div>
+    </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="bb-help-modal" onclick="if(event.target===this) bbToggleHelpModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-2xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — COMMAND &amp; SHORTCUT REFERENCE</span>
+            <button type="button" onclick="bbToggleHelpModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body space-y-2 font-mono text-[11px]">
+            <div><span class="text-[var(--bb-cyan)]">SUPA [DOMAIN] [KW]</span> — Kembali ke Explorer Supabase</div>
+            <div><span class="text-[var(--bb-cyan)]">NEWS KOMBINE [TOPIK]</span> — Buka/Jalankan Scraper Berita</div>
+            <div><span class="text-[var(--bb-cyan)]">SOC IG/TT/FB/TW/LI [KW]</span> — Buka/Jalankan Scraper Sosmed</div>
+            <div><span class="text-[var(--bb-cyan)]">JOB [KEYWORD]</span> — Buka Job Hunter Desk</div>
+            <div><span class="text-[var(--bb-green)]">/</span> atau <span class="text-[var(--bb-green)]">Ctrl+K</span> — Fokus Command Bar • <span class="text-[var(--bb-green)]">Esc</span> — Tutup Modal / Un-maximize</div>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js?v=20261125_bb_term"></script>
 </body>
 </html>

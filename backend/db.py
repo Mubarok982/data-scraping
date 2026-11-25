@@ -103,8 +103,8 @@ def _get_pool():
     with _DB_POOL_LOCK:
         if _DB_POOL is None:
             _DB_POOL = _ThreadedConnectionPool(
-                minconn=1,
-                maxconn=8,
+                minconn=2,
+                maxconn=12,
                 dsn=db_url,
                 cursor_factory=RealDictCursor,
                 connect_timeout=15,
@@ -862,64 +862,89 @@ def ingest_dataset_to_supabase(
 ingest_Dataset_to_supabase = ingest_dataset_to_supabase
 
 
+_SUMMARY_STATS_CACHE = {"data": None, "ts": 0.0}
+_SUMMARY_STATS_LOCK = _db_threading.Lock()
+_SUMMARY_STATS_TTL = 90
+
+_ALL_32_TABLES = (
+    # 1. core (6)
+    "core.sources", "core.source_configs", "core.categories",
+    "core.tags", "core.api_keys", "core.api_request_logs",
+    # 2. scraper (7)
+    "scraper.jobs", "scraper.job_executions", "scraper.job_logs",
+    "scraper.job_schedules", "scraper.raw_data", "scraper.processing_logs",
+    "scraper.scraper_checkpoints",
+    # 3. news (4)
+    "news.articles", "news.article_contents", "news.article_categories", "news.article_tags",
+    # 4. keyword (4)
+    "keyword.keywords", "keyword.keyword_relations", "keyword.keyword_sources", "keyword.keyword_metrics",
+    # 5. trend (3)
+    "trend.topics", "trend.topic_keywords", "trend.snapshots",
+    # 6. social (6)
+    "social.accounts", "social.posts", "social.post_metrics",
+    "social.hashtags", "social.post_hashtags", "social.comments",
+    # 7. analytics (2)
+    "analytics.daily_summaries", "analytics.sentiment_results",
+)
+
+_SINGLE_RTT_32_COUNT_SQL = "SELECT json_build_object(" + ", ".join(
+    f"'{tbl}', (SELECT COUNT(*) FROM {tbl})" for tbl in _ALL_32_TABLES
+) + ") AS full_counts"
+
+
 def get_warehouse_summary_stats() -> dict:
-    """Mengambil ringkasan jumlah baris utama + rincian lengkap 32 tabel."""
-    conn = get_conn()
-    if not conn:
-        return {"connected": False, "message": "DATABASE_URL belum dikonfigurasi"}
+    """Mengambil ringkasan jumlah baris utama + rincian 32 tabel dalam 1 round-trip SQL + cache TTL."""
+    now = _pool_time.time()
+    cached = _SUMMARY_STATS_CACHE["data"]
+    if cached is not None and (now - _SUMMARY_STATS_CACHE["ts"]) < _SUMMARY_STATS_TTL:
+        return cached
 
-    all_32_tables = [
-        # 1. core (6)
-        "core.sources", "core.source_configs", "core.categories",
-        "core.tags", "core.api_keys", "core.api_request_logs",
-        # 2. scraper (7)
-        "scraper.jobs", "scraper.job_executions", "scraper.job_logs",
-        "scraper.job_schedules", "scraper.raw_data", "scraper.processing_logs",
-        "scraper.scraper_checkpoints",
-        # 3. news (4)
-        "news.articles", "news.article_contents", "news.article_categories", "news.article_tags",
-        # 4. keyword (4)
-        "keyword.keywords", "keyword.keyword_relations", "keyword.keyword_sources", "keyword.keyword_metrics",
-        # 5. trend (3)
-        "trend.topics", "trend.topic_keywords", "trend.snapshots",
-        # 6. social (6)
-        "social.accounts", "social.posts", "social.post_metrics",
-        "social.hashtags", "social.post_hashtags", "social.comments",
-        # 7. analytics (2)
-        "analytics.daily_summaries", "analytics.sentiment_results"
-    ]
+    with _SUMMARY_STATS_LOCK:
+        now = _pool_time.time()
+        cached = _SUMMARY_STATS_CACHE["data"]
+        if cached is not None and (now - _SUMMARY_STATS_CACHE["ts"]) < _SUMMARY_STATS_TTL:
+            return cached
 
-    try:
-        with conn:
-            with conn.cursor() as cur:
-                full_schema_counts = {}
-                for tbl in all_32_tables:
-                    cur.execute(f"SELECT COUNT(*) AS cnt FROM {tbl}")
-                    full_schema_counts[tbl] = cur.fetchone()["cnt"]
+        conn = get_conn()
+        if not conn:
+            return {"connected": False, "message": "DATABASE_URL belum dikonfigurasi"}
 
-                counts = {
-                    "sources": full_schema_counts["core.sources"],
-                    "jobs": full_schema_counts["scraper.jobs"],
-                    "raw_data": full_schema_counts["scraper.raw_data"],
-                    "news_articles": full_schema_counts["news.articles"],
-                    "keywords": full_schema_counts["keyword.keywords"],
-                    "trend_snapshots": full_schema_counts["trend.snapshots"],
-                    "social_accounts": full_schema_counts["social.accounts"],
-                    "social_posts": full_schema_counts["social.posts"],
-                    "sentiment_results": full_schema_counts["analytics.sentiment_results"]
-                }
-        conn.close()
-        return {
-            "connected": True,
-            "counts": counts,
-            "all_32_tables": full_schema_counts
-        }
-    except Exception as e:
         try:
-            conn.close()
-        except Exception:
-            pass
-        return {"connected": False, "message": str(e)}
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(_SINGLE_RTT_32_COUNT_SQL)
+                    row = cur.fetchone() or {}
+                    raw_counts = row.get("full_counts") or {}
+                    if isinstance(raw_counts, str):
+                        raw_counts = json.loads(raw_counts)
+
+                    full_schema_counts = {tbl: int(raw_counts.get(tbl, 0) or 0) for tbl in _ALL_32_TABLES}
+                    counts = {
+                        "sources": full_schema_counts["core.sources"],
+                        "jobs": full_schema_counts["scraper.jobs"],
+                        "raw_data": full_schema_counts["scraper.raw_data"],
+                        "news_articles": full_schema_counts["news.articles"],
+                        "keywords": full_schema_counts["keyword.keywords"],
+                        "trend_snapshots": full_schema_counts["trend.snapshots"],
+                        "social_accounts": full_schema_counts["social.accounts"],
+                        "social_posts": full_schema_counts["social.posts"],
+                        "sentiment_results": full_schema_counts["analytics.sentiment_results"],
+                    }
+            res = {
+                "connected": True,
+                "counts": counts,
+                "all_32_tables": full_schema_counts,
+            }
+            _SUMMARY_STATS_CACHE["data"] = res
+            _SUMMARY_STATS_CACHE["ts"] = _pool_time.time()
+            return res
+        except Exception as e:
+            return {"connected": False, "message": str(e)}
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 ID_LOCATIONS = {
     "DKI Jakarta": ["jakarta", "dki", "jakpus", "jaksel", "jakbar", "jaktim", "jakut", "monas", "istana"],
@@ -952,95 +977,164 @@ KNOWN_FIGURES = {
 
 
 def query_warehouse_records(category: str = "berita", search_query: str = "", limit: int = 200) -> list[dict]:
+    """Query records warehouse teroptimasi: filter/sort/limit dieksekusi di CTE sebelum JOIN/LATERAL."""
     conn = get_conn()
     if not conn:
         return []
     q_like = f"%{search_query.strip()}%" if search_query and search_query.strip() else None
+    cat = (category or "berita").strip().lower()
     rows = []
     try:
         with conn:
             with conn.cursor() as cur:
-                if category == "berita":
-                    sql = """
-                        SELECT s.code AS source, a.published_at AS tanggal, a.author AS penulis,
-                               a.title AS judul, c.content AS isi_berita, a.url AS link,
-                               sr.sentiment, sr.confidence
-                        FROM news.articles a
-                        JOIN core.sources s ON a.source_id = s.id
-                        LEFT JOIN news.article_contents c ON c.article_id = a.id
-                        LEFT JOIN LATERAL (
-                            SELECT sentiment, confidence FROM analytics.sentiment_results
-                            WHERE entity_type = 'news_article' AND entity_id = a.id
-                            ORDER BY analyzed_at DESC LIMIT 1
-                        ) sr ON true
-                    """
+                if cat == "berita":
                     if q_like:
-                        sql += " WHERE a.title ILIKE %s OR c.content ILIKE %s"
-                        cur.execute(sql + " ORDER BY a.published_at DESC NULLS LAST LIMIT %s", (q_like, q_like, limit))
+                        sql = """
+                            WITH base AS (
+                                SELECT a.id, a.source_id, a.published_at, a.author, a.title, a.url, c.content
+                                FROM news.articles a
+                                LEFT JOIN news.article_contents c ON c.article_id = a.id
+                                WHERE a.title ILIKE %s OR c.content ILIKE %s
+                                ORDER BY a.published_at DESC NULLS LAST
+                                LIMIT %s
+                            )
+                            SELECT s.code AS source, b.published_at AS tanggal, b.author AS penulis,
+                                   b.title AS judul, b.content AS isi_berita, b.url AS link,
+                                   sr.sentiment, sr.confidence
+                            FROM base b
+                            JOIN core.sources s ON b.source_id = s.id
+                            LEFT JOIN LATERAL (
+                                SELECT sentiment, confidence FROM analytics.sentiment_results
+                                WHERE entity_type = 'news_article' AND entity_id = b.id
+                                ORDER BY analyzed_at DESC NULLS LAST LIMIT 1
+                            ) sr ON true
+                            ORDER BY b.published_at DESC NULLS LAST
+                        """
+                        cur.execute(sql, (q_like, q_like, limit))
                     else:
-                        cur.execute(sql + " ORDER BY a.published_at DESC NULLS LAST LIMIT %s", (limit,))
+                        sql = """
+                            WITH base AS (
+                                SELECT a.id, a.source_id, a.published_at, a.author, a.title, a.url
+                                FROM news.articles a
+                                ORDER BY a.published_at DESC NULLS LAST
+                                LIMIT %s
+                            )
+                            SELECT s.code AS source, b.published_at AS tanggal, b.author AS penulis,
+                                   b.title AS judul, c.content AS isi_berita, b.url AS link,
+                                   sr.sentiment, sr.confidence
+                            FROM base b
+                            JOIN core.sources s ON b.source_id = s.id
+                            LEFT JOIN news.article_contents c ON c.article_id = b.id
+                            LEFT JOIN LATERAL (
+                                SELECT sentiment, confidence FROM analytics.sentiment_results
+                                WHERE entity_type = 'news_article' AND entity_id = b.id
+                                ORDER BY analyzed_at DESC NULLS LAST LIMIT 1
+                            ) sr ON true
+                            ORDER BY b.published_at DESC NULLS LAST
+                        """
+                        cur.execute(sql, (limit,))
                     rows = [dict(r) for r in cur.fetchall()]
-                elif category in ("facebook", "instagram", "tiktok", "twitter"):
-                    sql = """
-                        SELECT s.code AS source, p.post_type AS platform, p.published_at AS tanggal,
-                               acc.username, p.content AS teks, p.permalink AS link,
+                elif cat in ("facebook", "instagram", "tiktok", "twitter", "threads", "sosmed"):
+                    where_parts = ["p.post_type != 'supabase_export'"]
+                    params = []
+                    if cat != "sosmed":
+                        where_parts.append("(p.post_type = %s OR (p.post_type = 'post' AND p.post_metadata->>'platform' = %s))")
+                        params.extend([cat, cat])
+                    if q_like:
+                        where_parts.append("(p.content ILIKE %s OR acc.username ILIKE %s)")
+                        params.extend([q_like, q_like])
+                    where_sql = " AND ".join(where_parts)
+                    params.append(limit)
+                    sql = f"""
+                        WITH base AS (
+                            SELECT p.id, p.source_id, p.account_id,
+                                   COALESCE(NULLIF(p.post_type, 'post'), p.post_metadata->>'platform', 'sosmed') AS platform,
+                                   p.published_at, acc.username, p.content, p.permalink
+                            FROM social.posts p
+                            LEFT JOIN social.accounts acc ON p.account_id = acc.id
+                            WHERE {where_sql}
+                            ORDER BY p.published_at DESC NULLS LAST
+                            LIMIT %s
+                        )
+                        SELECT s.code AS source, b.platform, b.published_at AS tanggal,
+                               b.username, b.content AS teks, b.permalink AS link,
                                COALESCE(m.likes_count, 0) AS likes,
                                COALESCE(m.comments_count, 0) AS komen,
                                COALESCE(m.shares_count, 0) AS share
-                        FROM social.posts p
-                        JOIN core.sources s ON p.source_id = s.id
-                        LEFT JOIN social.accounts acc ON p.account_id = acc.id
+                        FROM base b
+                        JOIN core.sources s ON b.source_id = s.id
                         LEFT JOIN LATERAL (
                             SELECT likes_count, comments_count, shares_count
-                            FROM social.post_metrics WHERE post_id = p.id
-                            ORDER BY recorded_at DESC LIMIT 1
+                            FROM social.post_metrics WHERE post_id = b.id
+                            ORDER BY recorded_at DESC NULLS LAST LIMIT 1
                         ) m ON true
-                        WHERE p.post_type = %s
+                        ORDER BY b.published_at DESC NULLS LAST
                     """
-                    if q_like:
-                        sql += " AND (p.content ILIKE %s OR acc.username ILIKE %s)"
-                        cur.execute(sql + " ORDER BY p.published_at DESC NULLS LAST LIMIT %s", (category, q_like, q_like, limit))
-                    else:
-                        cur.execute(sql + " ORDER BY p.published_at DESC NULLS LAST LIMIT %s", (category, limit))
+                    cur.execute(sql, tuple(params))
                     rows = [dict(r) for r in cur.fetchall()]
-                elif category == "linkedin":
-                    sql = """
-                        SELECT display_name AS "Nama",
-                               account_metadata->>'Pekerjaan_Saat_Ini' AS "Pekerjaan_Saat_Ini",
-                               account_metadata->>'Tempat_Kerja' AS "Tempat_Kerja",
-                               account_metadata->>'Pendidikan' AS "Pendidikan",
-                               account_metadata->>'Skill' AS "Skill",
-                               account_metadata->>'Lokasi' AS "Lokasi",
-                               followers_count AS "Koneksi",
-                               profile_url AS "Link_Profil"
+                elif cat == "linkedin":
+                    where_sql = "s.platform = 'linkedin'"
+                    params = []
+                    if q_like:
+                        where_sql += " AND (a.display_name ILIKE %s OR a.account_metadata::text ILIKE %s)"
+                        params.extend([q_like, q_like])
+                    params.append(limit)
+                    sql = f"""
+                        SELECT a.display_name AS "Nama",
+                               a.account_metadata->>'Pekerjaan_Saat_Ini' AS "Pekerjaan_Saat_Ini",
+                               a.account_metadata->>'Tempat_Kerja' AS "Tempat_Kerja",
+                               a.account_metadata->>'Pendidikan' AS "Pendidikan",
+                               a.account_metadata->>'Skill' AS "Skill",
+                               a.account_metadata->>'Lokasi' AS "Lokasi",
+                               a.followers_count AS "Koneksi",
+                               a.profile_url AS "Link_Profil"
                         FROM social.accounts a
                         JOIN core.sources s ON a.source_id = s.id
-                        WHERE s.platform = 'linkedin'
+                        WHERE {where_sql}
+                        ORDER BY a.updated_at DESC NULLS LAST
+                        LIMIT %s
                     """
-                    if q_like:
-                        sql += " AND (a.display_name ILIKE %s OR a.account_metadata::text ILIKE %s)"
-                        cur.execute(sql + " ORDER BY a.updated_at DESC LIMIT %s", (q_like, q_like, limit))
-                    else:
-                        cur.execute(sql + " ORDER BY a.updated_at DESC LIMIT %s", (limit,))
+                    cur.execute(sql, tuple(params))
                     rows = [dict(r) for r in cur.fetchall()]
-                elif category in ("keyword", "trending", "keyword_trending"):
-                    sql = """
-                        SELECT k.keyword AS "Query", COALESCE(km.search_volume, 0) AS "Values",
-                               k.language, km.metric_date AS tanggal
-                        FROM keyword.keywords k
-                        LEFT JOIN LATERAL (
-                            SELECT search_volume, metric_date FROM keyword.keyword_metrics
-                            WHERE keyword_id = k.id ORDER BY collected_at DESC LIMIT 1
-                        ) km ON true
-                    """
+                elif cat in ("keyword", "trending", "keyword_trending"):
                     if q_like:
-                        sql += " WHERE k.keyword ILIKE %s"
-                        cur.execute(sql + " ORDER BY km.search_volume DESC NULLS LAST LIMIT %s", (q_like, limit))
+                        sql = """
+                            WITH matched_kw AS (
+                                SELECT id, keyword, language, updated_at
+                                FROM keyword.keywords
+                                WHERE keyword ILIKE %s
+                                ORDER BY updated_at DESC NULLS LAST
+                                LIMIT %s
+                            )
+                            SELECT k.keyword AS "Query", COALESCE(km.search_volume, 0) AS "Values",
+                                   k.language, km.metric_date AS tanggal
+                            FROM matched_kw k
+                            LEFT JOIN LATERAL (
+                                SELECT search_volume, metric_date FROM keyword.keyword_metrics
+                                WHERE keyword_id = k.id ORDER BY collected_at DESC NULLS LAST LIMIT 1
+                            ) km ON true
+                            ORDER BY km.search_volume DESC NULLS LAST
+                        """
+                        cur.execute(sql, (q_like, limit))
                     else:
-                        cur.execute(sql + " ORDER BY km.search_volume DESC NULLS LAST LIMIT %s", (limit,))
+                        sql = """
+                            WITH latest_km AS (
+                                SELECT DISTINCT ON (keyword_id) keyword_id, search_volume, metric_date
+                                FROM keyword.keyword_metrics
+                                ORDER BY keyword_id, collected_at DESC NULLS LAST
+                            )
+                            SELECT k.keyword AS "Query", COALESCE(km.search_volume, 0) AS "Values",
+                                   k.language, km.metric_date AS tanggal
+                            FROM keyword.keywords k
+                            LEFT JOIN latest_km km ON km.keyword_id = k.id
+                            ORDER BY km.search_volume DESC NULLS LAST, k.updated_at DESC NULLS LAST
+                            LIMIT %s
+                        """
+                        cur.execute(sql, (limit,))
                     rows = [dict(r) for r in cur.fetchall()]
-        conn.close()
     except Exception:
+        pass
+    finally:
         try:
             conn.close()
         except Exception:
@@ -1048,229 +1142,308 @@ def query_warehouse_records(category: str = "berita", search_query: str = "", li
     return rows
 
 
+_ANALYTICS_BUNDLE_SQL = """
+WITH
+loc_defs AS (
+    SELECT d.location, d.aliases
+    FROM jsonb_to_recordset(%s::jsonb) AS d(location text, aliases text[])
+),
+fig_defs AS (
+    SELECT d.name, d.aliases
+    FROM jsonb_to_recordset(%s::jsonb) AS d(name text, aliases text[])
+),
+news_sample AS (
+    SELECT
+        LOWER(LEFT(COALESCE(a.title, ''), 200) || ' ' || LEFT(COALESCE(a.summary, ''), 350)) AS txt,
+        'berita'::text AS src,
+        TO_CHAR(COALESCE(a.published_at, a.created_at), 'YYYY-MM-DD HH24:00') AS tb
+    FROM news.articles a
+    ORDER BY a.created_at DESC NULLS LAST
+    LIMIT 1200
+),
+soc_sample AS (
+    SELECT
+        LOWER(LEFT(COALESCE(p.content, ''), 350)) AS txt,
+        'sosmed'::text AS src,
+        TO_CHAR(COALESCE(p.published_at, p.created_at), 'YYYY-MM-DD HH24:00') AS tb
+    FROM social.posts p
+    ORDER BY p.created_at DESC NULLS LAST
+    LIMIT 1200
+),
+kw_sample AS (
+    SELECT k.id, k.keyword, k.updated_at,
+           COALESCE(km.search_volume, 50)::int AS vol,
+           TO_CHAR(k.updated_at, 'YYYY-MM-DD HH24:00') AS tb
+    FROM (
+        SELECT id, keyword, updated_at
+        FROM keyword.keywords
+        ORDER BY updated_at DESC NULLS LAST
+        LIMIT 300
+    ) k
+    LEFT JOIN LATERAL (
+        SELECT search_volume
+        FROM keyword.keyword_metrics
+        WHERE keyword_id = k.id
+        ORDER BY collected_at DESC NULLS LAST
+        LIMIT 1
+    ) km ON true
+),
+all_texts AS (
+    SELECT txt, src, COALESCE(tb, TO_CHAR(now(), 'YYYY-MM-DD HH24:00')) AS tb FROM news_sample
+    UNION ALL
+    SELECT txt, src, COALESCE(tb, TO_CHAR(now(), 'YYYY-MM-DD HH24:00')) AS tb FROM soc_sample
+    UNION ALL
+    SELECT LOWER(keyword) AS txt, 'keyword'::text AS src, COALESCE(tb, TO_CHAR(now(), 'YYYY-MM-DD HH24:00')) AS tb FROM kw_sample
+),
+scored AS (
+    SELECT
+        at.txt,
+        at.src,
+        at.tb,
+        CASE
+            WHEN (SELECT COUNT(*) FROM unnest(%s::text[]) pw WHERE POSITION(pw IN at.txt) > 0)
+               > (SELECT COUNT(*) FROM unnest(%s::text[]) nw WHERE POSITION(nw IN at.txt) > 0) THEN 'positive'
+            WHEN (SELECT COUNT(*) FROM unnest(%s::text[]) nw WHERE POSITION(nw IN at.txt) > 0)
+               > (SELECT COUNT(*) FROM unnest(%s::text[]) pw WHERE POSITION(pw IN at.txt) > 0) THEN 'negative'
+            ELSE 'neutral'
+        END AS sent
+    FROM all_texts at
+),
+loc_matches AS (
+    SELECT
+        COALESCE(
+            NULLIF(m.matched_locs, '{}'::text[]),
+            CASE
+                WHEN EXISTS (
+                    SELECT 1 FROM unnest(ARRAY['nasional','indonesia','pemerintah','menteri','dpr','presiden']) f
+                    WHERE POSITION(f IN s.txt) > 0
+                ) THEN ARRAY['DKI Jakarta']
+                ELSE '{}'::text[]
+            END
+        ) AS locs,
+        s.txt,
+        s.sent
+    FROM scored s
+    CROSS JOIN LATERAL (
+        SELECT COALESCE(array_agg(ld.location), '{}'::text[]) AS matched_locs
+        FROM loc_defs ld
+        WHERE EXISTS (SELECT 1 FROM unnest(ld.aliases) al WHERE POSITION(al IN s.txt) > 0)
+    ) m
+),
+loc_expanded AS (
+    SELECT loc, sent, txt
+    FROM loc_matches, unnest(locs) AS loc
+),
+loc_issue_counts AS (
+    SELECT
+        le.loc,
+        ik.issue_kw,
+        COUNT(*) AS cnt,
+        ROW_NUMBER() OVER (PARTITION BY le.loc ORDER BY COUNT(*) DESC, ik.issue_kw ASC) AS rn
+    FROM loc_expanded le
+    CROSS JOIN unnest(ARRAY['karhutla','prabowo','teknologi','ekonomi','gempa','mbg','ikn','banjir','politik']) AS ik(issue_kw)
+    WHERE POSITION(ik.issue_kw IN le.txt) > 0
+    GROUP BY le.loc, ik.issue_kw
+),
+loc_agg AS (
+    SELECT
+        le.loc AS location,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE le.sent = 'positive')::int AS positive,
+        COUNT(*) FILTER (WHERE le.sent = 'neutral')::int AS neutral,
+        COUNT(*) FILTER (WHERE le.sent = 'negative')::int AS negative,
+        ROUND(((COUNT(*) FILTER (WHERE le.sent = 'positive') - COUNT(*) FILTER (WHERE le.sent = 'negative'))::numeric / GREATEST(COUNT(*), 1)) * 100, 1)::float AS polarization_index,
+        UPPER(COALESCE((SELECT lic.issue_kw FROM loc_issue_counts lic WHERE lic.loc = le.loc AND lic.rn = 1), 'umum')) AS dominant_issue
+    FROM loc_expanded le
+    GROUP BY le.loc
+    ORDER BY total DESC
+    LIMIT 10
+),
+people_agg AS (
+    SELECT
+        fd.name,
+        COUNT(*)::int AS mentions,
+        COUNT(*) FILTER (WHERE s.sent = 'positive')::int AS positive,
+        COUNT(*) FILTER (WHERE s.sent = 'negative')::int AS negative,
+        COUNT(*) FILTER (WHERE s.sent = 'neutral')::int AS neutral
+    FROM fig_defs fd
+    JOIN scored s ON EXISTS (SELECT 1 FROM unnest(fd.aliases) al WHERE POSITION(al IN s.txt) > 0)
+    GROUP BY fd.name
+    ORDER BY mentions DESC
+    LIMIT 10
+),
+timeline_desc AS (
+    SELECT
+        RIGHT(s.tb, 11) AS time,
+        s.tb AS full_tb,
+        COUNT(*) FILTER (WHERE s.src = 'berita')::int AS berita,
+        COUNT(*) FILTER (WHERE s.src = 'keyword')::int AS keyword,
+        COUNT(*) FILTER (WHERE s.src = 'sosmed')::int AS sosmed
+    FROM scored s
+    GROUP BY s.tb
+    ORDER BY s.tb DESC
+    LIMIT 12
+),
+pg_counts AS (
+    SELECT
+        COALESCE(SUM(CASE WHEN schemaname = 'news' AND relname = 'articles' THEN GREATEST(n_live_tup, 0) END), 0)::int AS berita_cnt,
+        COALESCE(SUM(CASE WHEN (schemaname = 'keyword' AND relname = 'keywords') OR (schemaname = 'trend' AND relname = 'snapshots') THEN GREATEST(n_live_tup, 0) END), 0)::int AS kw_cnt,
+        COALESCE(SUM(CASE WHEN schemaname = 'social' AND relname = 'posts' THEN GREATEST(n_live_tup, 0) END), 0)::int AS sos_cnt
+    FROM pg_stat_user_tables
+    WHERE schemaname IN ('news', 'keyword', 'trend', 'social')
+),
+li_count AS (
+    SELECT COUNT(*)::int AS cnt
+    FROM social.accounts a
+    JOIN core.sources s ON a.source_id = s.id
+    WHERE s.platform = 'linkedin'
+)
+SELECT json_build_object(
+    'locations', COALESCE((SELECT json_agg(loc_agg) FROM loc_agg), '[]'::json),
+    'top_people', COALESCE((SELECT json_agg(people_agg) FROM people_agg), '[]'::json),
+    'top_keywords', COALESCE((
+        SELECT json_agg(kw_row) FROM (
+            SELECT keyword, vol AS volume FROM kw_sample ORDER BY vol DESC, updated_at DESC LIMIT 10
+        ) kw_row
+    ), '[]'::json),
+    'timeline', COALESCE((
+        SELECT json_agg(json_build_object('time', t.time, 'berita', t.berita, 'keyword', t.keyword, 'sosmed', t.sosmed) ORDER BY t.full_tb ASC)
+        FROM timeline_desc t
+    ), '[]'::json),
+    'sentiment_summary', (
+        SELECT json_build_object(
+            'positive', COUNT(*) FILTER (WHERE sent = 'positive')::int,
+            'neutral', COUNT(*) FILTER (WHERE sent = 'neutral')::int,
+            'negative', COUNT(*) FILTER (WHERE sent = 'negative')::int
+        ) FROM scored
+    ),
+    'platform_share', (
+        SELECT json_build_object(
+            'Berita', CASE WHEN pc.berita_cnt > 0 THEN pc.berita_cnt ELSE (SELECT COUNT(*)::int FROM news_sample) END,
+            'Keyword & Trend', CASE WHEN pc.kw_cnt > 0 THEN pc.kw_cnt ELSE (SELECT COUNT(*)::int FROM kw_sample) END,
+            'Social Media', CASE WHEN pc.sos_cnt > 0 THEN pc.sos_cnt ELSE (SELECT COUNT(*)::int FROM soc_sample) END,
+            'LinkedIn', lc.cnt
+        )
+        FROM pg_counts pc, li_count lc
+    ),
+    'raw_viral', COALESCE((
+        SELECT json_agg(v) FROM (
+            SELECT
+                LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
+                top_pm.engagement
+            FROM (
+                SELECT
+                    pm.post_id,
+                    (
+                        COALESCE(pm.likes_count, 0) +
+                        COALESCE(pm.comments_count, 0) +
+                        COALESCE(pm.shares_count, 0) +
+                        COALESCE(pm.views_count, 0) +
+                        COALESCE((pm.engagement_rate * 100)::bigint, 0)
+                    )::bigint AS engagement
+                FROM social.post_metrics pm
+                ORDER BY (
+                    COALESCE(pm.likes_count, 0) +
+                    COALESCE(pm.comments_count, 0) +
+                    COALESCE(pm.shares_count, 0) +
+                    COALESCE(pm.views_count, 0) +
+                    COALESCE((pm.engagement_rate * 100)::bigint, 0)
+                ) DESC
+                LIMIT 80
+            ) top_pm
+            JOIN social.posts p ON p.id = top_pm.post_id
+            ORDER BY top_pm.engagement DESC
+            LIMIT 30
+        ) v
+    ), '[]'::json),
+    'raw_viral_fallback', COALESCE((
+        SELECT json_agg(vf) FROM (
+            SELECT
+                LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
+                GREATEST(LENGTH(COALESCE(p.content, '')), 30)::bigint AS engagement
+            FROM social.posts p
+            ORDER BY p.created_at DESC NULLS LAST
+            LIMIT 20
+        ) vf
+    ), '[]'::json),
+    'top_hashtags', COALESCE((
+        SELECT json_agg(h_row) FROM (
+            SELECT h.name AS tag, ph_cnt.cnt AS count
+            FROM (
+                SELECT hashtag_id, COUNT(post_id)::int AS cnt
+                FROM social.post_hashtags
+                GROUP BY hashtag_id
+                ORDER BY cnt DESC
+                LIMIT 6
+            ) ph_cnt
+            JOIN social.hashtags h ON h.id = ph_cnt.hashtag_id
+            ORDER BY ph_cnt.cnt DESC
+        ) h_row
+    ), '[]'::json),
+    'system_health', COALESCE((
+        SELECT json_agg(l_row ORDER BY l_row.time ASC) FROM (
+            SELECT TO_CHAR(created_at, 'HH24:00') AS time,
+                   GREATEST(COALESCE(ROUND(AVG(response_time_ms)), 0)::int, 1) AS avg_ms,
+                   COUNT(id)::int AS req_count
+            FROM (
+                SELECT id, created_at, response_time_ms
+                FROM core.api_request_logs
+                ORDER BY created_at DESC
+                LIMIT 500
+            ) recent_logs
+            GROUP BY time
+            ORDER BY time DESC
+            LIMIT 8
+        ) l_row
+    ), '[]'::json)
+) AS analytics_bundle;
+"""
+
+
+_ANALYTICS_CACHE = {"data": None, "ts": 0.0}
+_ANALYTICS_LOCK = _db_threading.Lock()
+_CACHE_TTL = 180
+
+
 def get_dashboard_analytics(conn=None) -> dict:
-    _own_conn = conn is None
-    if _own_conn:
-        conn = get_conn()
-    texts_with_meta = []
-    top_keywords = []
-    platform_counts = {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0}
-    sentiment_totals = {"positive": 0, "neutral": 0, "negative": 0}
-    timeline_buckets = defaultdict(lambda: {"berita": 0, "keyword": 0, "sosmed": 0})
-
-    if conn:
-        try:
-            with conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT LEFT(COALESCE(a.title, ''), 200) AS title,
-                               LEFT(COALESCE(a.summary, ''), 350) AS body,
-                               TO_CHAR(COALESCE(a.published_at, a.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
-                        FROM news.articles a
-                        ORDER BY a.created_at DESC LIMIT 1500
-                    """)
-                    for r in cur.fetchall():
-                        full_t = f"{r['title']} {r['body']}"
-                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
-                        texts_with_meta.append({"text": full_t, "source": "berita", "time": tb})
-                        timeline_buckets[tb]["berita"] += 1
-                        platform_counts["Berita"] += 1
-
-                    cur.execute("""
-                        SELECT k.keyword, COALESCE(MAX(km.search_volume), 50) AS vol,
-                               TO_CHAR(MAX(k.updated_at), 'YYYY-MM-DD HH24:00') AS t_bucket
-                        FROM keyword.keywords k
-                        LEFT JOIN keyword.keyword_metrics km ON km.keyword_id = k.id
-                        GROUP BY k.id, k.keyword
-                        ORDER BY vol DESC, k.updated_at DESC
-                        LIMIT 300
-                    """)
-                    for idx, r in enumerate(cur.fetchall()):
-                        kw_str = r["keyword"]
-                        vol = int(r["vol"] or 50)
-                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
-                        texts_with_meta.append({"text": kw_str, "source": "keyword", "time": tb})
-                        timeline_buckets[tb]["keyword"] += 1
-                        platform_counts["Keyword & Trend"] += 1
-                        if idx < 12:
-                            top_keywords.append({"keyword": kw_str, "volume": vol})
-
-                    cur.execute("""
-                        SELECT LEFT(COALESCE(p.content, ''), 350) AS content,
-                               p.post_type,
-                               '' AS meta_txt,
-                               TO_CHAR(COALESCE(p.published_at, p.created_at), 'YYYY-MM-DD HH24:00') AS t_bucket
-                        FROM social.posts p
-                        ORDER BY p.created_at DESC LIMIT 1500
-                    """)
-                    for r in cur.fetchall():
-                        full_t = f"{r['content'] or ''} {r['meta_txt'] or ''}"
-                        tb = r["t_bucket"] or datetime.now().strftime("%Y-%m-%d %H:00")
-                        texts_with_meta.append({"text": full_t, "source": "sosmed", "time": tb})
-                        timeline_buckets[tb]["sosmed"] += 1
-                        platform_counts["Social Media"] += 1
-            if _own_conn:
-                conn.close()
-        except Exception:
-            if _own_conn:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-
-    loc_stats = {loc: {"name": loc, "total": 0, "positive": 0, "neutral": 0, "negative": 0, "top_issue": Counter()} for loc in ID_LOCATIONS}
-    person_stats = {p: {"name": p, "mentions": 0, "positive": 0, "negative": 0, "neutral": 0} for p in KNOWN_FIGURES}
-
-    for item in texts_with_meta:
-        txt_lower = item["text"].lower()
-        sent, _ = classify_sentiment(txt_lower)
-        sentiment_totals[sent] = sentiment_totals.get(sent, 0) + 1
-
-        matched_any_loc = False
-        for loc_name, aliases in ID_LOCATIONS.items():
-            if any(a in txt_lower for a in aliases):
-                matched_any_loc = True
-                loc_stats[loc_name]["total"] += 1
-                loc_stats[loc_name][sent] += 1
-                for issue_kw in ["karhutla", "prabowo", "teknologi", "ekonomi", "gempa", "mbg", "ikn", "banjir", "politik"]:
-                    if issue_kw in txt_lower:
-                        loc_stats[loc_name]["top_issue"][issue_kw] += 1
-
-        if not matched_any_loc and any(w in txt_lower for w in ["nasional", "indonesia", "pemerintah", "menteri", "dpr", "presiden"]):
-            loc_stats["DKI Jakarta"]["total"] += 1
-            loc_stats["DKI Jakarta"][sent] += 1
-
-        for person_name, aliases in KNOWN_FIGURES.items():
-            if any(a in txt_lower for a in aliases):
-                person_stats[person_name]["mentions"] += 1
-                person_stats[person_name][sent] += 1
-
-    locations_list = []
-    for loc_name, st in loc_stats.items():
-        if st["total"] > 0:
-            dom_issue = st["top_issue"].most_common(1)[0][0] if st["top_issue"] else "umum"
-            pol_index = round(((st["positive"] - st["negative"]) / max(st["total"], 1)) * 100, 1)
-            locations_list.append({
-                "location": loc_name, "total": st["total"],
-                "positive": st["positive"], "neutral": st["neutral"], "negative": st["negative"],
-                "polarization_index": pol_index, "dominant_issue": dom_issue.upper()
-            })
-    locations_list.sort(key=lambda x: x["total"], reverse=True)
-    people_list = sorted([v for v in person_stats.values() if v["mentions"] > 0], key=lambda x: x["mentions"], reverse=True)
-    sorted_times = sorted(timeline_buckets.keys())[-12:]
-    timeline_list = [
-        {"time": t[-11:], "berita": timeline_buckets[t]["berita"], "keyword": timeline_buckets[t]["keyword"], "sosmed": timeline_buckets[t]["sosmed"]}
-        for t in sorted_times
-    ]
-
-    return {
-        "locations": locations_list[:10],
-        "top_people": people_list[:10],
-        "top_keywords": top_keywords[:10],
-        "timeline": timeline_list,
-        "sentiment_summary": sentiment_totals,
-        "platform_share": platform_counts
-    }
-
-
-# === PATCH ANALYTICS TAMBAHAN (FAST CACHE + FULL 7 CHARTS) ===
-import time as _time
-
-_orig_get_dashboard_analytics = get_dashboard_analytics
-_ANALYTICS_CACHE = {"data": None, "ts": 0}
-_CACHE_TTL = 180  # Cache 180 detik + invalidasi otomatis usai cron
-
-if "get_warehouse_overview" in globals():
-    _orig_get_warehouse_overview = get_warehouse_overview
-    _OVERVIEW_CACHE = {"data": None, "ts": 0}
-    def get_warehouse_overview(*args, **kwargs):
-        now = _time.time()
-        if _OVERVIEW_CACHE["data"] is not None and (now - _OVERVIEW_CACHE["ts"]) < 45:
-            return _OVERVIEW_CACHE["data"]
-        res = _orig_get_warehouse_overview(*args, **kwargs)
-        _OVERVIEW_CACHE["data"] = res
-        _OVERVIEW_CACHE["ts"] = now
-        return res
-
-def get_dashboard_analytics(*args, **kwargs):
-    now = _time.time()
+    """Menghasilkan seluruh 9 payload grafik dalam 1 round-trip SQL teragregasi + cache TTL."""
+    now = _pool_time.time()
     if _ANALYTICS_CACHE["data"] is not None and (now - _ANALYTICS_CACHE["ts"]) < _CACHE_TTL:
         return _ANALYTICS_CACHE["data"]
 
-    existing_conn = args[0] if (args and args[0] is not None) else kwargs.get("conn")
-    own_conn = False
-    conn = existing_conn
-    if conn is None:
-        conn = get_conn()
-        own_conn = True
+    with _ANALYTICS_LOCK:
+        now = _pool_time.time()
+        if _ANALYTICS_CACHE["data"] is not None and (now - _ANALYTICS_CACHE["ts"]) < _CACHE_TTL:
+            return _ANALYTICS_CACHE["data"]
 
-    res = _orig_get_dashboard_analytics(conn=conn)
-    if not isinstance(res, dict):
-        return res
+        own_conn = conn is None
+        if own_conn:
+            conn = get_conn()
 
-    target = res.get("analytics") if isinstance(res.get("analytics"), dict) else res
+        if not conn:
+            return {
+                "locations": [], "top_people": [], "top_keywords": [],
+                "timeline": [], "sentiment_summary": {"positive": 0, "neutral": 0, "negative": 0},
+                "platform_share": {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0},
+                "top_viral": [], "top_hashtags": [], "system_health": [],
+            }
 
-    if conn:
+        loc_payload = json.dumps([{"location": k, "aliases": v} for k, v in ID_LOCATIONS.items()])
+        fig_payload = json.dumps([{"name": k, "aliases": v} for k, v in KNOWN_FIGURES.items()])
+
         try:
             with conn.cursor() as cur:
-                # 1+2+3. Gabungkan Top Viral, Top Hashtags & System Health dalam 1 round-trip SQL
-                cur.execute('''
-                    SELECT
-                        COALESCE((
-                            SELECT json_agg(v) FROM (
-                                SELECT
-                                    LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
-                                    top_pm.engagement
-                                FROM (
-                                    SELECT
-                                        pm.post_id,
-                                        (
-                                            COALESCE(pm.likes_count, 0) +
-                                            COALESCE(pm.comments_count, 0) +
-                                            COALESCE(pm.shares_count, 0) +
-                                            COALESCE(pm.views_count, 0) +
-                                            COALESCE((pm.engagement_rate * 100)::bigint, 0)
-                                        )::bigint AS engagement
-                                    FROM social.post_metrics pm
-                                    ORDER BY engagement DESC
-                                    LIMIT 80
-                                ) top_pm
-                                JOIN social.posts p ON p.id = top_pm.post_id
-                                ORDER BY top_pm.engagement DESC
-                                LIMIT 30
-                            ) v
-                        ), '[]'::json) AS raw_viral,
-                        COALESCE((
-                            SELECT json_agg(h_row) FROM (
-                                SELECT h.name AS tag, COUNT(ph.post_id)::int AS count
-                                FROM social.post_hashtags ph
-                                JOIN social.hashtags h ON h.id = ph.hashtag_id
-                                GROUP BY h.name
-                                ORDER BY count DESC
-                                LIMIT 6
-                            ) h_row
-                        ), '[]'::json) AS top_hashtags,
-                        COALESCE((
-                            SELECT json_agg(l_row) FROM (
-                                SELECT TO_CHAR(created_at, 'HH24:00') AS time,
-                                       GREATEST(COALESCE(ROUND(AVG(response_time_ms)), 0)::int, 1) AS avg_ms,
-                                       COUNT(id)::int AS req_count
-                                FROM (
-                                    SELECT id, created_at, response_time_ms
-                                    FROM core.api_request_logs
-                                    ORDER BY created_at DESC
-                                    LIMIT 500
-                                ) recent_logs
-                                GROUP BY time
-                                ORDER BY time DESC
-                                LIMIT 8
-                            ) l_row
-                        ), '[]'::json) AS system_health
-                ''')
-                bundle = cur.fetchone() or {}
-                raw_viral = bundle.get("raw_viral") or []
-                if isinstance(raw_viral, str):
-                    raw_viral = json.loads(raw_viral)
+                cur.execute(
+                    _ANALYTICS_BUNDLE_SQL,
+                    (loc_payload, fig_payload, POS_CUES, NEG_CUES, NEG_CUES, POS_CUES),
+                )
+                row = cur.fetchone() or {}
+                bundle = row.get("analytics_bundle") or {}
+                if isinstance(bundle, str):
+                    bundle = json.loads(bundle)
+
+                raw_viral = bundle.pop("raw_viral", None) or []
+                raw_viral_fb = bundle.pop("raw_viral_fallback", None) or []
 
                 seen = set()
                 viral_rows = []
@@ -1283,36 +1456,39 @@ def get_dashboard_analytics(*args, **kwargs):
                         break
 
                 if not viral_rows or all(r["engagement"] == 0 for r in viral_rows):
-                    cur.execute('''
-                        SELECT
-                            LEFT(COALESCE(NULLIF(TRIM(p.content), ''), p.external_id, 'Postingan Sosmed'), 60) AS title,
-                            GREATEST(LENGTH(COALESCE(p.content, '')), 30)::bigint AS engagement
-                        FROM social.posts p
-                        ORDER BY p.created_at DESC
-                        LIMIT 20
-                    ''')
                     seen.clear()
                     viral_rows.clear()
-                    for r in cur.fetchall():
-                        t = r["title"]
+                    for r in raw_viral_fb:
+                        t = r.get("title") or "Postingan Sosmed"
                         if t not in seen:
                             seen.add(t)
-                            viral_rows.append({"title": t, "engagement": int(r["engagement"])})
+                            viral_rows.append({"title": t, "engagement": int(r.get("engagement") or 30)})
                         if len(viral_rows) >= 5:
                             break
-                target['top_viral'] = viral_rows
 
-                top_tags = bundle.get("top_hashtags") or []
-                if isinstance(top_tags, str):
-                    top_tags = json.loads(top_tags)
-                target['top_hashtags'] = [dict(r) for r in top_tags]
+                bundle["top_viral"] = viral_rows
+                bundle.setdefault("locations", [])
+                bundle.setdefault("top_people", [])
+                bundle.setdefault("top_keywords", [])
+                bundle.setdefault("timeline", [])
+                bundle.setdefault("sentiment_summary", {"positive": 0, "neutral": 0, "negative": 0})
+                bundle.setdefault("platform_share", {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0})
+                bundle.setdefault("top_hashtags", [])
+                bundle.setdefault("system_health", [])
 
-                logs = bundle.get("system_health") or []
-                if isinstance(logs, str):
-                    logs = json.loads(logs)
-                target['system_health'] = sorted([dict(r) for r in logs], key=lambda x: x['time'])
+                _ANALYTICS_CACHE["data"] = bundle
+                _ANALYTICS_CACHE["ts"] = _pool_time.time()
+                return bundle
         except Exception as e:
-            print("❌ Error patch analytics:", e)
+            print("❌ Error analytics query:", e)
+            if _ANALYTICS_CACHE["data"] is not None:
+                return _ANALYTICS_CACHE["data"]
+            return {
+                "locations": [], "top_people": [], "top_keywords": [],
+                "timeline": [], "sentiment_summary": {"positive": 0, "neutral": 0, "negative": 0},
+                "platform_share": {"Berita": 0, "Keyword & Trend": 0, "Social Media": 0, "LinkedIn": 0},
+                "top_viral": [], "top_hashtags": [], "system_health": [],
+            }
         finally:
             if own_conn:
                 try:
@@ -1320,18 +1496,17 @@ def get_dashboard_analytics(*args, **kwargs):
                 except Exception:
                     pass
 
-    _ANALYTICS_CACHE["data"] = res
-    _ANALYTICS_CACHE["ts"] = _time.time()
-    return res
-
 
 def invalidate_all_caches():
-    if "_ANALYTICS_CACHE" in globals() and isinstance(_ANALYTICS_CACHE, dict):
-        _ANALYTICS_CACHE["data"] = None
-        _ANALYTICS_CACHE["ts"] = 0
-    if "_OVERVIEW_CACHE" in globals() and isinstance(_OVERVIEW_CACHE, dict):
-        _OVERVIEW_CACHE["data"] = None
-        _OVERVIEW_CACHE["ts"] = 0
+    _ANALYTICS_CACHE["data"] = None
+    _ANALYTICS_CACHE["ts"] = 0.0
+    _SUMMARY_STATS_CACHE["data"] = None
+    _SUMMARY_STATS_CACHE["ts"] = 0.0
+    try:
+        import backend.performance as _ddc_perf
+        _ddc_perf.clear_http_cache()
+    except Exception:
+        pass
 
 
 # === UNIVERSAL AUTO INGEST ENGINE ===
@@ -1617,23 +1792,3 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
     c_sent = auto_ingest_to_supabase("analytics", "sentiment_results", sent_items)
 
     return {"raw_data": c_raw, "domain": c_dom, "sentiment": c_sent}
-
-
-# === CACHE get_warehouse_summary_stats (ANTI-TIMEOUT /scheduler/status) ===
-if "get_warehouse_summary_stats" in globals():
-    _orig_get_warehouse_summary_stats = get_warehouse_summary_stats
-    _SUMMARY_STATS_CACHE = {"data": None, "ts": 0}
-    def get_warehouse_summary_stats(*args, **kwargs):
-        now = _time.time()
-        if _SUMMARY_STATS_CACHE["data"] is not None and (now - _SUMMARY_STATS_CACHE["ts"]) < 30:
-            return _SUMMARY_STATS_CACHE["data"]
-        res = _orig_get_warehouse_summary_stats(*args, **kwargs)
-        _SUMMARY_STATS_CACHE["data"] = res
-        _SUMMARY_STATS_CACHE["ts"] = now
-        return res
-
-    _orig_invalidate_all = invalidate_all_caches
-    def invalidate_all_caches():
-        _orig_invalidate_all()
-        _SUMMARY_STATS_CACHE["data"] = None
-        _SUMMARY_STATS_CACHE["ts"] = 0

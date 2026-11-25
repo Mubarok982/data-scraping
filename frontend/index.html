@@ -1,24 +1,26 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDC Scraper Portal — Data Warehouse & Intelligence</title>
+    <title>DDC//TERM — News, Sosmed & Job Hunter Terminal</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <script>
         (function () {
             try {
                 const saved = localStorage.getItem('ddc_theme');
-                if (saved === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
+                if (saved === 'light') {
                     document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
                 }
-            } catch (e) {}
+            } catch (e) {
+                document.documentElement.classList.add('dark');
+            }
         })();
     </script>
 
@@ -29,7 +31,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']
+                        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
                     }
                 }
             }
@@ -39,119 +42,200 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link rel="stylesheet" href="/styles.css?v=20261123_proj_split">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232b2926%22/><text y=%22.9em%22 x=%2214%22 font-size=%2272%22 fill=%22white%22>D</text></svg>">
+    <link rel="stylesheet" href="/styles.css?v=20261125_bb_term">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23000000%22/><rect x=%224%22 y=%224%22 width=%2292%22 height=%2292%22 fill=%22none%22 stroke=%22%23ff8c00%22 stroke-width=%228%22/><text y=%22.76em%22 x=%2214%22 font-family=%22monospace%22 font-weight=%22bold%22 font-size=%2258%22 fill=%22%23ff8c00%22>D%3E</text></svg>">
 </head>
 
-<body data-page="dashboard" class="bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
+<body data-page="dashboard" class="min-h-screen antialiased selection:bg-amber-500/30 selection:text-amber-200">
+
+<!-- Mobile Sidebar Overlay -->
 <div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
-     class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"></div>
+     class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px] lg:hidden"></div>
 
+<!-- LEFT SIDEBAR NAVBAR -->
 <aside id="ddc-sidebar"
-       class="fixed inset-y-0 left-0 z-50 w-[16.5rem] bg-white dark:bg-[#14171F] border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
-
-    <div class="p-4 overflow-y-auto space-y-6">
-        
-        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
+       class="fixed inset-y-0 left-0 z-50 w-56 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-150">
+    <div class="p-2.5 overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-[var(--bb-border)]">
             <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
-               class="flex items-center gap-2.5 no-underline group">
-                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs">
-                    <i data-lucide="layers" class="w-4 h-4"></i>
-                </span>
-                <div>
-                    <div class="font-semibold text-sm text-slate-900 dark:text-white leading-tight tracking-tight">DDC Portal</div>
-                    <div class="text-[11px] text-slate-500 dark:text-zinc-400">Data Warehouse</div>
-                </div>
+               class="flex items-center gap-1.5 no-underline">
+                <span class="px-1.5 py-0.5 bg-[var(--bb-amber-soft)] border border-[var(--bb-amber)] text-[var(--bb-amber-bright)] font-mono font-bold text-[11px] tracking-wider">DDC//TERM</span>
             </a>
             <button type="button"
                     onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()"
                     title="Lipat Sidebar"
-                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+                    class="bb-btn !py-0.5 !px-1.5 !text-[10px]">◀</button>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Workspace</div>
+            <button type="button" onclick="bbExecuteCommand('QUAD')" class="ddc-sb-item w-full text-left" data-ddc-tab="quad">
+                <span class="truncate">⊞ 4-Pane Launchpad</span>
+                <span class="text-[9px] text-[var(--bb-green)]">QUAD</span>
             </button>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                Data &amp; Arsip
-            </div>
-            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="database" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">Database Supabase</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Live</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Data &amp; Arsip</div>
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-sb-item">
+                <span class="truncate">Database Supabase</span>
+                <span class="text-[9px] text-[var(--bb-green)]">F2</span>
             </a>
-            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="archive" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">Bank Data (CSV)</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">CSV</span>
+            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-sb-item">
+                <span class="truncate">Bank Data (CSV)</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F3</span>
             </a>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                Scraper Manual
-            </div>
-            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="trending-up" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">1. Keyword &amp; Trend</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">KW</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Scraper Manual</div>
+            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-sb-item">
+                <span class="truncate">1. Keyword &amp; Trend</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F4</span>
             </a>
-            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="newspaper" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">2. Portal Berita</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">News</span>
+            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-sb-item">
+                <span class="truncate">2. Portal Berita</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F5</span>
             </a>
-            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="share-2" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">3. Social Media</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">Social</span>
+            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-sb-item">
+                <span class="truncate">3. Social Media</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F6</span>
             </a>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Project &amp; Lead Hunter
-            </div>
-            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="briefcase" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">4. Pencarian Project</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Fit</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-green)]">Job Hunter</div>
+            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-sb-item">
+                <span class="truncate">4. Pencarian Project</span>
+                <span class="text-[9px] text-[var(--bb-amber)]">F7</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Analitik</div>
+            <a href="/analytics" class="ddc-sb-item">
+                <span class="truncate">Global Analytics</span>
+                <span class="text-[9px] text-[var(--bb-cyan)]">F8</span>
             </a>
         </div>
     </div>
 
-    <div class="p-3.5 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
-        <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
+    <div class="p-2.5 border-t border-[var(--bb-border)] font-mono text-[10px] space-y-1.5">
+        <div class="flex items-center justify-between text-[var(--bb-text-muted)]">
             <span class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Cron 8 Jam (WIB)</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-green)]"></span>
+                <span>CRON 8H (WIB)</span>
             </span>
-            <a href="/docs" target="_blank" class="text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium inline-flex items-center gap-1 no-underline">
-                <span>API</span>
-                <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
-            </a>
+            <button type="button" onclick="triggerCronNow()" class="text-[var(--bb-amber)] hover:underline">[F9 RUN]</button>
         </div>
     </div>
 </aside>
 
+<!-- =========================================================================
+     TOP SYSTEM BAR (BLOOMBERG TERMINAL CHROME)
+     ========================================================================= -->
+<header class="sticky top-0 z-40 border-b border-[var(--bb-border)] bg-[var(--bb-bg)]">
+    <!-- Row 1: Sidebar Toggle, Telemetry Pulse, Workspace Screens, Actions -->
+    <div class="px-2.5 py-1 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-bg-elev)]">
+        <div class="flex items-center gap-2 min-w-0">
+            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Sidebar"
+                    class="lg:hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰</button>
+            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
+                    class="hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰ NAV</button>
+
+            <span class="font-mono text-[10px] text-[var(--bb-text-muted)] tracking-wider truncate">
+                NEWS · SOSMED · JOB_HUNTER
+            </span>
+
+            <span class="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 border border-[var(--bb-green)]/40 bg-[var(--bb-green-soft)] text-[var(--bb-green)] font-mono text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-green)]"></span>
+                SUPA:LIVE
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                API:<span id="bb-api-latency" class="text-[var(--bb-cyan)]">--ms</span>
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                CRON_NEXT:<span id="bb-cron-countdown" class="text-[var(--bb-amber)]">--:--:--</span>
+            </span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <!-- Workspace Screen Switcher -->
+            <div class="hidden md:flex items-center gap-1 mr-1" title="Ganti tata letak layar kerja">
+                <span class="font-mono text-[10px] text-[var(--bb-text-dim)] mr-0.5">SCR:</span>
+                <button type="button" id="bb-scr-1" onclick="bbSetScreen('intel')" class="bb-scr-btn bb-scr-active">1:INTEL</button>
+                <button type="button" id="bb-scr-2" onclick="bbSetScreen('ops')" class="bb-scr-btn">2:SCRAPE</button>
+                <button type="button" id="bb-scr-4" onclick="bbSetScreen('grid')" class="bb-scr-btn">4:GRID</button>
+                <button type="button" id="bb-scr-5" onclick="bbSetScreen('quad')" class="bb-scr-btn">5:QUAD</button>
+            </div>
+
+            <span id="bb-wib-clock" class="font-mono text-[10px] px-1.5 py-0.5 border border-[var(--bb-border)] bg-[var(--bb-panel)] text-[var(--bb-amber)]">
+                --:--:-- WIB
+            </span>
+
+            <button type="button" onclick="bbToggleHelpModal(true)" title="Daftar Perintah & Shortcut (?)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                ? HELP
+            </button>
+
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terminal" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="sun" class="w-3 h-3 hidden dark:inline text-amber-400"></i>
+                <i data-lucide="moon" class="w-3 h-3 inline dark:hidden"></i>
+                <span class="hidden sm:inline">THEME</span>
+            </button>
+
+            <button type="button" onclick="forceReloadAll()" title="Refresh Data & Grafik" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                <span class="hidden sm:inline">REFRESH</span>
+            </button>
+
+            <a href="/docs" target="_blank" class="bb-btn bb-btn-amber !py-0.5 !px-2 !text-[10px]">
+                API /DOCS ↗
+            </a>
+        </div>
+    </div>
+
+    <!-- Row 2: Bloomberg Command Line (CMD <GO>) + Green Action Keys -->
+    <div class="px-2.5 py-1.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-panel)]">
+        <div class="relative flex items-center gap-1.5 flex-1 min-w-0 max-w-2xl">
+            <span class="font-mono text-[11px] font-bold text-[var(--bb-amber)] shrink-0 select-none">CMD&gt;</span>
+            <div class="relative flex-1 min-w-0">
+                <input id="bb-cmd-input" type="text" autocomplete="off" spellcheck="false"
+                       placeholder="Ketik langsung di mana saja: NW PRABOWO | IG #KARHUTLA | JOB FLUTTER | QUAD | MENU"
+                       class="bb-input !py-1 !px-2 !text-[11px] uppercase placeholder:normal-case placeholder:text-[var(--bb-text-dim)]">
+                <div id="bb-cmd-ac" class="hidden absolute left-0 right-0 top-full mt-0.5 z-50 max-h-64 overflow-y-auto"></div>
+            </div>
+            <button type="button" id="bb-cmd-go" onclick="bbRunCommandFromInput()" class="bb-key-action !py-1 !px-2.5 !text-[11px] shrink-0">
+                &lt;GO&gt; ↵
+            </button>
+        </div>
+
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 lg:pb-0">
+            <button type="button" id="bb-btn-back" onclick="bbNavBack()" disabled title="Kembali ke state sebelumnya (Alt+←)" class="bb-key-action">&lt;BACK&gt;</button>
+            <button type="button" id="bb-btn-fwd" onclick="bbNavForward()" disabled title="Maju ke state berikutnya (Alt+→)" class="bb-key-action">&lt;FWD&gt;</button>
+            <button type="button" onclick="bbToggleMenuModal(true)" title="Direktori Fungsi Terminal (MENU <GO>)" class="bb-key-action">&lt;MENU&gt;</button>
+            <button type="button" onclick="bbSetScreen('quad')" title="4-Pane Launchpad: News + Sosmed + Job + Watchlist" class="bb-key-action">&lt;QUAD&gt;</button>
+            <span class="text-[var(--bb-border-strong)] mx-0.5">|</span>
+            <button type="button" onclick="bbCycleActiveLinkGroup()" id="bb-global-link-btn" class="bb-link-pill" title="Color-Coded Link Group (Sinkronkan topik antar panel)">
+                <span class="bb-link-dot bg-[var(--bb-amber)]"></span>
+                <span>LINK:AMBER</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Row 3: Live Scrolling Scraper & Intelligence Ticker Tape -->
+    <div class="bb-ticker-wrap">
+        <div class="bb-ticker-label">
+            <span>LIVE_FEED</span>
+        </div>
+        <div class="bb-ticker-track-viewport">
+            <div id="bb-ticker-track" class="bb-ticker-track">
+                <span class="bb-tick-item text-[var(--bb-text-muted)]">MEMUAT STREAM BERITA, SOSMED &amp; JOB HUNTER...</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Hidden legacy tab triggers (compatibility with app.js handlers) -->
 <div class="hidden" aria-hidden="true">
     <button type="button" onclick="switchTab('supabase')" id="tab-supabase"></button>
     <button type="button" onclick="switchTab('bank')" id="tab-bank"></button>
@@ -161,657 +245,795 @@
     <button type="button" onclick="switchTab('project')" id="tab-project"></button>
 </div>
 
-<div class="max-w-[1680px] mx-auto px-4 sm:px-6 pt-4 pb-1">
-    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
-        <div class="flex items-center gap-3 min-w-0">
-            
-            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Menu"
-                    class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="menu" class="w-4 h-4"></i>
-            </button>
-            
-            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
-                    class="hidden items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="panel-left-open" class="w-4 h-4"></i>
-            </button>
+<!-- =========================================================================
+     TERMINAL HEADER CONTEXT & 4 KPI TELEMETRY STRIP
+     ========================================================================= -->
+<div class="px-2.5 pt-2 pb-1">
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[var(--bb-border)]">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="px-1.5 py-0.5 bg-[var(--bb-amber-soft)] border border-[var(--bb-amber)] text-[var(--bb-amber)] font-mono text-[10px] font-bold">ACTIVE_VIEW</span>
+            <h1 id="ddc-page-title" class="font-mono text-xs sm:text-sm font-bold text-[var(--bb-text)] tracking-tight truncate uppercase">
+                Database Supabase (ELT)
+            </h1>
+            <span class="hidden md:inline text-[var(--bb-text-dim)]">|</span>
+            <p id="ddc-page-desc" class="hidden md:inline font-mono text-[11px] text-[var(--bb-text-muted)] truncate">
+                Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam.
+            </p>
+        </div>
+        <div class="font-mono text-[10px] text-[var(--bb-text-muted)] flex items-center gap-2">
+            <span>SHORTCUTS: <kbd class="px-1 border border-[var(--bb-border-strong)] text-[var(--bb-amber)]">/</kbd> CMD</span>
+            <span class="hidden sm:inline"><kbd class="px-1 border border-[var(--bb-border-strong)] text-[var(--bb-amber)]">J/K</kbd> ROW</span>
+            <span class="hidden sm:inline"><kbd class="px-1 border border-[var(--bb-border-strong)] text-[var(--bb-amber)]">ENTER</kbd> INSPECT</span>
+            <span class="hidden sm:inline"><kbd class="px-1 border border-[var(--bb-border-strong)] text-[var(--bb-amber)]">ESC</kbd> CLOSE</span>
+        </div>
+    </div>
 
-            <div class="min-w-0">
-                <h1 id="ddc-page-title" class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight truncate">
-                    Database Supabase (ELT)
-                </h1>
-                <p id="ddc-page-desc" class="text-xs text-slate-500 dark:text-zinc-400 truncate">
-                    Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam.
-                </p>
+    <!-- 4 Terminal Telemetry KPI Cells -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-1.5 mt-1.5">
+        <div class="bb-kpi-cell">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>RAW_PAYLOAD</span>
+                <span class="text-[var(--bb-cyan)]">scraper.raw_data</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="kpi-raw" class="font-mono text-lg font-bold text-[var(--bb-text)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-green)]">ELT ●</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Supabase Live
-            </span>
+        <div class="bb-kpi-cell">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>NEWS_WIRE</span>
+                <span class="text-[var(--bb-green)]">news.articles</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="kpi-news" class="font-mono text-lg font-bold text-[var(--bb-green)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-text-muted)]">PORTAL ID</span>
+            </div>
+        </div>
 
-            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terang / Gelap"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
-                <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
-                <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
-                <span class="hidden sm:inline dark:hidden">Mode Gelap</span>
-                <span class="hidden dark:sm:inline">Mode Terang</span>
-            </button>
+        <div class="bb-kpi-cell">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>KW_&_TRENDS</span>
+                <span class="text-[var(--bb-amber)]">keyword + trend</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="kpi-kw" class="font-mono text-lg font-bold text-[var(--bb-amber)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-amber)]">INDEX ▲</span>
+            </div>
+        </div>
 
-            <button type="button" onclick="forceReloadAll()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh</span>
-            </button>
-
-            <a href="/docs" target="_blank"
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 shadow-2xs transition no-underline">
-                <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Swagger API</span>
-            </a>
+        <div class="bb-kpi-cell">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                <span>SOSMED_&_SENT</span>
+                <span class="text-[var(--bb-cyan)]">social + analytics</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="kpi-social" class="font-mono text-lg font-bold text-[var(--bb-cyan)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-text-muted)]">IG/TT/FB/X/LI</span>
+            </div>
         </div>
     </div>
 </div>
 
-<main class="max-w-[1680px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+<!-- =========================================================================
+     MAIN 3-COLUMN MULTI-PANE TERMINAL WORKSPACE
+     ========================================================================= -->
+<main id="bb-single-workspace" class="px-2.5 py-1.5 grid grid-cols-1 xl:grid-cols-12 gap-1.5 items-start">
 
-    <aside class="xl:col-span-3 space-y-5">
-
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                    <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
-                        Parameter &amp; Filter Data
-                    </span>
-                </div>
-                <button type="button" onclick="resetSearchFilter()"
-                        class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition">
-                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-                    <span>Reset</span>
+    <!-- LEFT PANE: [P0] PARAMETER & SCRAPER CONSOLE + [P5] LIVE LOG + GEO POLARIZATION -->
+    <aside id="bb-left-col" class="xl:col-span-3 space-y-1.5">
+        <!-- [P0] Parameter & Scraper Console -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P0] SCRAPER &amp; QUERY CONSOLE</span>
+                <button type="button" onclick="resetSearchFilter()" class="text-[10px] text-[var(--bb-red)] hover:underline font-mono">
+                    [RESET]
                 </button>
             </div>
-
-            <div id="form-supabase" class="space-y-3.5">
-                <div>
-                    <label for="sb-cat" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Tabel Skema Domain</label>
-                    <select id="sb-cat" onchange="onDomainChange()" class="ddc-field">
-                        <option value="berita">news.articles (Berita + Sentimen)</option>
-                        <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
-                        <option value="instagram">social.posts (Instagram)</option>
-                        <option value="facebook">social.posts (Facebook)</option>
-                        <option value="tiktok">social.posts (TikTok)</option>
-                        <option value="twitter">social.posts (Twitter / X)</option>
-                        <option value="linkedin">social.accounts (LinkedIn)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="sb-news-cat" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Klasifikasi Kategori &amp; Tag Isu</label>
-                    <select id="sb-news-cat" onchange="applyClientFilters()" class="ddc-field">
-                        <option value="">-- Semua Kategori & Tag --</option>
-                        <optgroup label="Pemerintahan & Kebijakan">
-                            <option value="politik">Politik & Pemerintahan</option>
-                            <option value="kebijakan">Kebijakan Publik & Regulasi</option>
-                            <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
-                            <option value="ikn">Ibu Kota Nusantara (IKN)</option>
-                            <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
-                            <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
-                        </optgroup>
-                        <optgroup label="Ekonomi & Infrastruktur">
-                            <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
-                            <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
-                            <option value="energi">Energi Hijau & Transisi Energi</option>
-                            <option value="infrastruktur">Infrastruktur & Transportasi</option>
-                        </optgroup>
-                        <optgroup label="Sains, Alam & Masyarakat">
-                            <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
-                            <option value="teknologi">Teknologi, AI & Digitalisasi</option>
-                            <option value="kesehatan">Kesehatan & Medis</option>
-                            <option value="pendidikan">Pendidikan, Kampus & Riset</option>
-                            <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
-                        </optgroup>
-                        <optgroup label="Tren & Gaya Hidup">
-                            <option value="olahraga">Olahraga & Timnas</option>
-                            <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
-                    <div class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5">
-                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
-                            <span>3. Lokasi Wilayah</span>
-                        </span>
-                        <span class="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">Provinsi &rarr; Kab/Kota</span>
-                    </div>
+            <div class="bb-panel-body space-y-2.5">
+                <!-- FORM: SUPABASE -->
+                <div id="form-supabase" class="space-y-2.5">
                     <div>
-                        <label class="block text-[11px] text-slate-500 dark:text-zinc-400 mb-1">Pilih Provinsi</label>
-                        <select id="sb-prov" onchange="onProvinceChange()" class="ddc-field">
-                            <option value="">-- Semua Provinsi --</option>
+                        <label for="sb-cat" class="bb-label">1. Domain Skema</label>
+                        <select id="sb-cat" autocomplete="off" onchange="onDomainChange()" class="ddc-field">
+                            <option value="berita" selected>news.articles (Berita + Sentimen)</option>
+                            <option value="keyword_trending">keyword.keywords (Keyword & Volume)</option>
+                            <option value="instagram">social.posts (Instagram)</option>
+                            <option value="facebook">social.posts (Facebook)</option>
+                            <option value="tiktok">social.posts (TikTok)</option>
+                            <option value="twitter">social.posts (Twitter / X)</option>
+                            <option value="linkedin">social.accounts (LinkedIn)</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-500 dark:text-zinc-400 mb-1">Pilih Kabupaten / Kota</label>
-                        <select id="sb-kab" onchange="applyClientFilters()" disabled class="ddc-field">
-                            <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
-                        </select>
-                    </div>
-                </div>
 
-                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
-                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                            <span>4. Rentang Waktu</span>
-                        </span>
-                        <select id="sb-time-preset" onchange="onTimePresetChange()"
-                                class="rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-[#14171F] px-2 py-1 text-[10px] text-slate-700 dark:text-zinc-300 outline-none">
-                            <option value="all">Semua Waktu</option>
-                            <option value="1d">24 Jam Terakhir</option>
-                            <option value="3d">3 Hari Terakhir</option>
-                            <option value="7d">7 Hari Terakhir</option>
-                            <option value="30d">30 Hari Terakhir</option>
-                            <option value="custom">Pilih Tanggal</option>
+                    <div>
+                        <label for="sb-news-cat" class="bb-label">2. Klasifikasi Isu &amp; Kategori</label>
+                        <select id="sb-news-cat" autocomplete="off" onchange="applyClientFilters()" class="ddc-field">
+                            <option value="" selected>-- Semua Kategori & Tag --</option>
+                            <optgroup label="Pemerintahan & Kebijakan">
+                                <option value="politik">Politik & Pemerintahan</option>
+                                <option value="kebijakan">Kebijakan Publik & Regulasi</option>
+                                <option value="mbg">Program Makan Bergizi Gratis (MBG)</option>
+                                <option value="ikn">Ibu Kota Nusantara (IKN)</option>
+                                <option value="hukum">Hukum, Korupsi & Kriminalitas</option>
+                                <option value="keamanan">Pertahanan, TNI/Polri & Keamanan</option>
+                            </optgroup>
+                            <optgroup label="Ekonomi & Infrastruktur">
+                                <option value="ekonomi">Ekonomi, Bisnis & Investasi</option>
+                                <option value="inflasi">Keuangan, Pajak & Daya Beli</option>
+                                <option value="energi">Energi Hijau & Transisi Energi</option>
+                                <option value="infrastruktur">Infrastruktur & Transportasi</option>
+                            </optgroup>
+                            <optgroup label="Sains, Alam & Masyarakat">
+                                <option value="lingkungan">Bencana Alam, Iklim & Karhutla</option>
+                                <option value="teknologi">Teknologi, AI & Digitalisasi</option>
+                                <option value="kesehatan">Kesehatan & Medis</option>
+                                <option value="pendidikan">Pendidikan, Kampus & Riset</option>
+                                <option value="sosial">Sosial & Kesejahteraan Rakyat</option>
+                            </optgroup>
+                            <optgroup label="Tren & Gaya Hidup">
+                                <option value="olahraga">Olahraga & Timnas</option>
+                                <option value="hiburan">Hiburan, Seni & Viral Sosmed</option>
+                            </optgroup>
                         </select>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-zinc-400 mb-1">Dari Tanggal</label>
-                            <input id="sb-date-from" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1.5 !px-2 !text-[11px] tabular-nums">
+
+                    <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-2">
+                        <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-cyan)]">
+                            <span>3. GEO FILTER (PROV → KAB)</span>
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-zinc-400 mb-1">Sampai Tanggal</label>
-                            <input id="sb-date-to" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1.5 !px-2 !text-[11px] tabular-nums">
+                            <select id="sb-prov" autocomplete="off" onchange="onProvinceChange()" class="ddc-field">
+                                <option value="" selected>-- Semua Provinsi --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="sb-kab" autocomplete="off" onchange="applyClientFilters()" disabled class="ddc-field">
+                                <option value="" selected>-- Pilih Provinsi Dahulu --</option>
+                            </select>
                         </div>
                     </div>
+
+                    <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-[10px] text-[var(--bb-amber)]">4. TIME WINDOW</span>
+                            <select id="sb-time-preset" autocomplete="off" onchange="onTimePresetChange()"
+                                    class="border border-[var(--bb-border-strong)] bg-[var(--bb-panel)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--bb-text)] outline-none">
+                                <option value="all" selected>ALL_TIME</option>
+                                <option value="1d">24H</option>
+                                <option value="3d">3D</option>
+                                <option value="7d">7D</option>
+                                <option value="30d">30D</option>
+                                <option value="custom">CUSTOM</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <div>
+                                <label class="bb-label">Dari</label>
+                                <input id="sb-date-from" autocomplete="off" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1 !px-1.5 !text-[10px]">
+                            </div>
+                            <div>
+                                <label class="bb-label">Sampai</label>
+                                <input id="sb-date-to" autocomplete="off" type="date" onchange="onCustomDateChange()" class="ddc-field !py-1 !px-1.5 !text-[10px]">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1.5">
+                        <label for="sb-search" class="font-mono text-[10px] text-[var(--bb-green)] block">5. KEYWORD / #TAGAR</label>
+                        <input id="sb-search" autocomplete="off" type="text" oninput="applyClientFilters()"
+                               onkeydown="if(event.key==='Enter') executeAction(true)"
+                               placeholder="Tokoh, isu, atau #tagar..."
+                               class="ddc-field">
+                    </div>
+
+                    <div>
+                        <label for="sb-limit" class="bb-label">6. Row Limit</label>
+                        <input id="sb-limit" autocomplete="off" type="number" value="200" min="1" onchange="applyClientFilters()" class="ddc-field">
+                    </div>
                 </div>
 
-                <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0F1117]/70 border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
-                    <div class="flex items-center justify-between gap-2">
-                        <label for="sb-search" class="text-[11px] font-semibold text-slate-700 dark:text-zinc-300 inline-flex items-center gap-1.5">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
-                            <span>5. Kata Kunci &amp; Teks</span>
-                        </label>
-                        <select id="sb-text-mode" onchange="applyClientFilters()"
-                                class="rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-[#14171F] px-2 py-1 text-[10px] text-slate-700 dark:text-zinc-300 outline-none">
-                            <option value="all">Semua Kolom</option>
-                            <option value="hashtag">Khusus Hashtag (#)</option>
-                            <option value="exact">Frasa Spesifik</option>
+                <!-- FORM: BANK DATA CSV -->
+                <div id="form-bank" class="hidden space-y-2.5">
+                    <div>
+                        <label class="bb-label">1. Kategori Platform</label>
+                        <select id="bd-cat" onchange="onBankFilterChange()" class="ddc-field">
+                            <option value="berita">Berita</option>
+                            <option value="keyword_trending">Keyword & Trending</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="semua">Semua Kategori</option>
                         </select>
                     </div>
-                    <input id="sb-search" type="text" oninput="applyClientFilters()"
-                           onkeydown="if(event.key==='Enter') executeAction(true)"
-                           placeholder="Ketik kata kunci, tokoh, isu, atau #tagar..."
-                           class="ddc-field">
-                    <div class="flex flex-wrap gap-1.5 pt-0.5">
-                        <button type="button" onclick="setQuickKeyword('karhutla')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">karhutla</button>
-                        <button type="button" onclick="setQuickKeyword('mbg')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">mbg</button>
-                        <button type="button" onclick="setQuickKeyword('#ai')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">#ai</button>
-                        <button type="button" onclick="setQuickKeyword('ikn')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">ikn</button>
-                        <button type="button" onclick="setQuickKeyword('banjir')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">banjir</button>
-                        <button type="button" onclick="setQuickKeyword('investasi')" class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transition">investasi</button>
+                    <div>
+                        <label class="bb-label">2. Filter Engine / Tool</label>
+                        <select id="bd-tool" onchange="onBankFilterChange()" class="ddc-field">
+                            <option value="semua">Semua Tool</option>
+                            <option value="apify">Apify</option>
+                            <option value="diffbot">Diffbot</option>
+                            <option value="newsdata">Newsdata</option>
+                            <option value="brightdata">Bright Data</option>
+                            <option value="kombine">Kombine</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="bd-schema" value="semua">
+                    <div>
+                        <label class="bb-label">3. Pilih File CSV</label>
+                        <select id="bd-file" onchange="executeAction()" class="ddc-field">
+                            <option value="semua">-- Semua File --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="bb-label">4. Cari Isi Tabel</label>
+                        <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="ddc-field">
+                    </div>
+                    <div>
+                        <label class="bb-label">5. Batas Baris</label>
+                        <input id="bd-limit" type="number" value="200" min="1" class="ddc-field">
                     </div>
                 </div>
 
-                <div>
-                    <label for="sb-limit" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">6. Batas Baris Tampilan</label>
-                    <input id="sb-limit" type="number" value="200" min="1" onchange="applyClientFilters()" class="ddc-field tabular-nums">
-                </div>
-            </div>
-
-            <div id="form-bank" class="hidden space-y-3.5">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Kategori Platform</label>
-                    <select id="bd-cat" onchange="onBankFilterChange()" class="ddc-field">
-                        <option value="berita">Berita</option>
-                        <option value="keyword_trending">Keyword & Trending</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="tiktok">TikTok</option>
-                        <option value="twitter">Twitter / X</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="semua">Semua Kategori</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Filter Engine / Tool</label>
-                    <select id="bd-tool" onchange="onBankFilterChange()" class="ddc-field">
-                        <option value="semua">Semua Tool</option>
-                        <option value="apify">Apify</option>
-                        <option value="diffbot">Diffbot</option>
-                        <option value="newsdata">Newsdata</option>
-                        <option value="brightdata">Bright Data</option>
-                        <option value="kombine">Kombine</option>
-                    </select>
-                </div>
-                <input type="hidden" id="bd-schema" value="semua">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Pilih File CSV</label>
-                    <select id="bd-file" onchange="executeAction()" class="ddc-field">
-                        <option value="semua">-- Semua File --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Cari Isi Tabel</label>
-                    <input id="bd-search" type="text" onkeydown="if(event.key==='Enter') executeAction()" placeholder="Ketik kata kunci..." class="ddc-field">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">5. Batas Baris</label>
-                    <input id="bd-limit" type="number" value="200" min="1" class="ddc-field tabular-nums">
-                </div>
-            </div>
-
-            <div id="form-keyword" class="hidden space-y-3.5">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Mode Pencarian</label>
-                    <select id="kw-mode" class="ddc-field">
-                        <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
-                        <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Keyword / Kategori</label>
-                    <input id="kw-input" type="text" value="karhutla" class="ddc-field">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Data</label>
-                    <input id="kw-limit" type="number" value="30" min="1" class="ddc-field tabular-nums">
-                </div>
-            </div>
-
-            <div id="form-berita" class="hidden space-y-3.5">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Engine Berita</label>
-                    <select id="br-engine" class="ddc-field">
-                        <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
-                        <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
-                        <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
-                        <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Topik Berita / Lokasi / Tokoh</label>
-                    <input id="br-input" type="text" value="prabowo" class="ddc-field">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Artikel</label>
-                    <input id="br-limit" type="number" value="15" min="1" class="ddc-field tabular-nums">
-                </div>
-            </div>
-
-            <div id="form-sosmed" class="hidden space-y-3.5">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Platform Sosmed</label>
-                    <select id="sm-platform" onchange="toggleSosmedOptions()" class="ddc-field">
-                        <option value="instagram">Instagram</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="tiktok">TikTok</option>
-                        <option value="twitter">Twitter / X</option>
-                        <option value="linkedin">LinkedIn (Bright Data)</option>
-                    </select>
-                </div>
-                <div id="sm-engine-box">
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Engine</label>
-                    <select id="sm-engine" class="ddc-field">
-                        <option value="apify">Apify Actor</option>
-                        <option value="diffbot">Diffbot Analyze</option>
-                    </select>
-                </div>
-                <div id="sm-mode-box">
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Format Kolom</label>
-                    <select id="sm-mode" class="ddc-field">
-                        <option value="bersih">Standar Bersih (9 Kolom)</option>
-                        <option value="full">Full Kolom Asli (29/39 Kolom)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Keyword / Hashtag / URL</label>
-                    <input id="sm-input" type="text" value="kebakaranhutan" class="ddc-field">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Jumlah Data</label>
-                    <input id="sm-limit" type="number" value="15" min="1" class="ddc-field tabular-nums">
-                </div>
-            </div>
-
-            <button type="button" onclick="executeAction(true)" id="btn-run"
-                    class="mt-4 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition">
-                Muat Tabel Supabase
-            </button>
-
-            <div id="scraper-progress-box" class="hidden mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0F1117] border border-emerald-200 dark:border-emerald-800/60 space-y-2">
-                <div class="flex items-center justify-between text-[11px]">
-                    <span id="scraper-progress-label" class="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
-                        Scraper &amp; Simpan DB Berjalan...
-                    </span>
-                    <span id="scraper-elapsed-timer" class="font-mono tabular-nums text-xs font-semibold text-amber-700 dark:text-amber-300 shrink-0 ml-2">
-                        00:00
-                    </span>
-                </div>
-                <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div id="scraper-progress-bar"
-                         class="h-full w-0 bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-300">
+                <!-- FORM: KEYWORD & TREND -->
+                <div id="form-keyword" class="hidden space-y-2.5">
+                    <div>
+                        <label class="bb-label">Mode Pencarian</label>
+                        <select id="kw-mode" class="ddc-field">
+                            <option value="/api/v1/keyword/search">Keyword Search (Related)</option>
+                            <option value="/api/v1/keyword/trending">Trending Topic (Rising)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="bb-label">Keyword / Kategori</label>
+                        <input id="kw-input" type="text" value="karhutla" class="ddc-field">
+                    </div>
+                    <div>
+                        <label class="bb-label">Jumlah Data</label>
+                        <input id="kw-limit" type="number" value="30" min="1" class="ddc-field">
                     </div>
                 </div>
-                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400">
-                    <span id="scraper-progress-sub" class="truncate">Menghubungkan ke endpoint scraper...</span>
-                    <span id="scraper-progress-pct" class="font-mono tabular-nums text-slate-700 dark:text-zinc-200 ml-2">0%</span>
+
+                <!-- FORM: PORTAL BERITA -->
+                <div id="form-berita" class="hidden space-y-2.5">
+                    <div>
+                        <label class="bb-label">Engine Berita</label>
+                        <select id="br-engine" class="ddc-field">
+                            <option value="/api/v1/berita/kombine">Kombine (Newsdata + Diffbot)</option>
+                            <option value="/api/v1/berita/newsdata">Newsdata.io (Cepat)</option>
+                            <option value="/api/v1/berita/diffbot">Diffbot Article AI (Sentimen)</option>
+                            <option value="/api/v1/berita/brightdata">Bright Data Berita</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="bb-label">Topik Berita / Lokasi / Tokoh</label>
+                        <input id="br-input" type="text" value="prabowo" class="ddc-field">
+                    </div>
+                    <div>
+                        <label class="bb-label">Jumlah Artikel</label>
+                        <input id="br-limit" type="number" value="15" min="1" class="ddc-field">
+                    </div>
+                </div>
+
+                <!-- FORM: SOCIAL MEDIA -->
+                <div id="form-sosmed" class="hidden space-y-2.5">
+                    <div>
+                        <label class="bb-label">Platform Sosmed</label>
+                        <select id="sm-platform" onchange="toggleSosmedOptions()" class="ddc-field">
+                            <option value="instagram">Instagram</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="linkedin">LinkedIn (Bright Data)</option>
+                        </select>
+                    </div>
+                    <div id="sm-engine-box">
+                        <label class="bb-label">Engine</label>
+                        <select id="sm-engine" class="ddc-field">
+                            <option value="apify">Apify Actor</option>
+                            <option value="diffbot">Diffbot Analyze</option>
+                        </select>
+                    </div>
+                    <div id="sm-mode-box">
+                        <label class="bb-label">Format Kolom</label>
+                        <select id="sm-mode" class="ddc-field">
+                            <option value="bersih">Standar Bersih (9 Kolom)</option>
+                            <option value="full">Full Kolom Asli (29/39 Kolom)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="bb-label">Keyword / Hashtag / URL</label>
+                        <input id="sm-input" type="text" value="kebakaranhutan" class="ddc-field">
+                    </div>
+                    <div>
+                        <label class="bb-label">Jumlah Data</label>
+                        <input id="sm-limit" type="number" value="15" min="1" class="ddc-field">
+                    </div>
+                </div>
+
+                <button type="button" onclick="executeAction(true)" id="btn-run"
+                        class="bb-btn bb-btn-amber w-full !py-2">
+                    EXECUTE QUERY &lt;GO&gt;
+                </button>
+
+                <!-- Scraper Realtime Progress -->
+                <div id="scraper-progress-box" class="hidden p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-green)] space-y-1.5">
+                    <div class="flex items-center justify-between font-mono text-[10px]">
+                        <span id="scraper-progress-label" class="text-[var(--bb-green)] font-semibold truncate">
+                            SCRAPER RUNNING...
+                        </span>
+                        <span id="scraper-elapsed-timer" class="font-mono text-[var(--bb-amber)] font-bold shrink-0 ml-2">
+                            00:00
+                        </span>
+                    </div>
+                    <div class="w-full h-1.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] overflow-hidden">
+                        <div id="scraper-progress-bar" class="h-full w-0 bg-[var(--bb-green)] transition-all duration-300"></div>
+                    </div>
+                    <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                        <span id="scraper-progress-sub" class="truncate">Connecting to scraper API...</span>
+                        <span id="scraper-progress-pct" class="text-[var(--bb-text)] ml-2">0%</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex items-center gap-2 mb-3">
-                <i data-lucide="map" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
-                    Ringkasan Polarisasi Wilayah
-                </span>
+        <!-- [P5] Live Terminal HTTP & Scraper Log -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P5] LIVE TERMINAL LOG</span>
+                <button type="button" onclick="bbClearTerminalLog()" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[CLR]</button>
             </div>
-            <div id="loc-badges" class="space-y-2 text-xs">
-                <div class="text-slate-400 dark:text-zinc-500 text-xs">Memuat analisis wilayah...</div>
+            <div class="bb-panel-body !p-1.5">
+                <div id="bb-terminal-log">
+                    <div class="text-[var(--bb-text-muted)]">[BOOT] DDC//TERM siap. Tekan <span class="text-[var(--bb-amber)]">/</span> untuk CMD Bar.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [P4] Ringkasan Polarisasi Wilayah -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P4] GEO POLARIZATION</span>
+                <span class="bb-panel-sub">KLIK FILTER</span>
+            </div>
+            <div class="bb-panel-body">
+                <div id="loc-badges" class="space-y-1.5 text-[11px] font-mono">
+                    <div class="text-[var(--bb-text-muted)]">Memuat analisis wilayah...</div>
+                </div>
             </div>
         </div>
     </aside>
 
-    <section class="xl:col-span-6 space-y-5">
+    <!-- CENTER WORKSPACE: [P1] ANALYTICS MATRIX + [P2] DATA EXPLORER GRID -->
+    <section id="bb-center-col" class="xl:col-span-6 space-y-1.5 min-w-0">
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Total Raw Data</span>
-                    <span class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-                        <i data-lucide="package" class="w-3.5 h-3.5"></i>
-                    </span>
-                </div>
-                <div id="kpi-raw" class="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-2">0</div>
-                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">scraper.raw_data</div>
-            </div>
+        <div id="reactive-banner" class="hidden" style="display:none !important" aria-hidden="true">
+            <span id="reactive-banner-text"></span>
+        </div>
 
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Artikel Berita</span>
-                    <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                        <i data-lucide="newspaper" class="w-3.5 h-3.5"></i>
-                    </span>
+        <!-- [P1] 7-Chart Matrix -->
+        <div id="bb-charts-container">
+            <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span id="title-chart-loc" class="truncate">GEO POLARIZATION (WILAYAH)</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartLocations"></canvas></div>
+                    </div>
                 </div>
-                <div id="kpi-news" class="text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400 mt-2">0</div>
-                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">news.articles</div>
-            </div>
 
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Keyword &amp; Tren</span>
-                    <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-                        <i data-lucide="flame" class="w-3.5 h-3.5"></i>
-                    </span>
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">TOP FIGURES / TOKOH TRENDING</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartPeople"></canvas></div>
+                    </div>
                 </div>
-                <div id="kpi-kw" class="text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-400 mt-2">0</div>
-                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">keyword + trend</div>
-            </div>
 
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Sosmed &amp; Sentimen</span>
-                    <span class="p-1.5 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400">
-                        <i data-lucide="message-square-heart" class="w-3.5 h-3.5"></i>
-                    </span>
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">TOP VIRAL / ENGAGEMENT</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartViral"></canvas></div>
+                    </div>
                 </div>
-                <div id="kpi-social" class="text-2xl font-bold tabular-nums text-violet-700 dark:text-violet-400 mt-2">0</div>
-                <div class="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">social + analytics</div>
+
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">TOP HASHTAGS (#TAGAR SOSMED)</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartHashtags"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">TOP KEYWORDS &amp; RISING QUERIES</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartKeywords"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">INGEST TIMELINE (BERITA / KW / SOSMED)</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-48"><canvas id="chartTimeline"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 bb-panel">
+                    <div class="bb-panel-header">
+                        <span class="truncate">SYSTEM TELEMETRY &amp; SCRAPER LATENCY (MS)</span>
+                        <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                    </div>
+                    <div class="bb-panel-body">
+                        <div class="bb-chart-wrap h-44"><canvas id="chartSystem"></canvas></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="reactive-banner"
-             class="hidden bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs" style="display:none !important" aria-hidden="true">
-            <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                <span id="reactive-banner-text" class="text-indigo-800 dark:text-indigo-200 font-medium">Mode Grafik Dinamis Aktif</span>
-            </div>
-            <button type="button" onclick="resetSearchFilter()"
-                    class="px-2.5 py-1 bg-white hover:bg-indigo-100/70 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/60 dark:hover:bg-indigo-800/70 dark:text-indigo-100 dark:border-indigo-700 rounded-lg text-[11px] font-medium transition">
-                Kembali ke Grafik Global
-            </button>
-        </div>
-
-        <div id="default-charts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 id="title-chart-loc" class="text-xs font-semibold text-slate-900 dark:text-white">Polarisasi Lokasi (Sebaran Wilayah)</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Sentimen Positif / Netral / Negatif per wilayah</p>
-                </div>
-                <div class="h-56"><canvas id="chartLocations"></canvas></div>
-            </div>
-
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Tokoh Paling Sering Disebut</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Frekuensi kemunculan tokoh pada data terpilih</p>
-                </div>
-                <div class="h-56"><canvas id="chartPeople"></canvas></div>
-            </div>
-
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Konten &amp; Postingan Paling Menonjol</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Peringkat engagement tertinggi pada data terpilih</p>
-                </div>
-                <div class="h-56"><canvas id="chartViral"></canvas></div>
-            </div>
-
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Hashtag &amp; Tagar Populer</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Tagar paling sering muncul pada data terpilih</p>
-                </div>
-                <div class="h-56"><canvas id="chartHashtags"></canvas></div>
-            </div>
-
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Keyword &amp; Topik Trending</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Volume kueri tertinggi pada data terpilih</p>
-                </div>
-                <div class="h-56"><canvas id="chartKeywords"></canvas></div>
-            </div>
-
-            <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Tren Waktu &amp; Aktivitas Ingesti</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Distribusi waktu publikasi sesuai rentang filter</p>
-                </div>
-                <div class="h-56"><canvas id="chartTimeline"></canvas></div>
-            </div>
-
-            <div class="md:col-span-2 ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="mb-3">
-                    <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Kesehatan Sistem &amp; Trafik API</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400">Beban request server scraper dan kecepatan respons (ms)</p>
-                </div>
-                <div class="h-56"><canvas id="chartSystem"></canvas></div>
-            </div>
-        </div>
-
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex flex-wrap justify-between items-center gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-zinc-800">
-                <div>
-                    <h2 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="table-2" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                        <span>Data Explorer</span>
-                        <span class="text-[11px] font-medium tabular-nums px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 rounded-full">
-                            <span id="row-count">0</span> baris
-                        </span>
-                    </h2>
-                    <p id="status-text" class="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+        <!-- [P2] High-Density Data Explorer Grid -->
+        <div class="bb-panel">
+            <div class="bb-panel-header flex-wrap">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span>[P2] DATA EXPLORER GRID</span>
+                    <span class="px-1.5 py-0.5 bg-[var(--bb-amber-soft)] border border-[var(--bb-amber)] text-[var(--bb-amber)] text-[10px]">
+                        <span id="row-count">0</span> ROWS
+                    </span>
+                    <span id="status-text" class="bb-panel-sub truncate max-w-[280px] sm:max-w-[380px]">
                         Siap memuat atau mengekstrak data.
-                    </p>
+                    </span>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="resetSearchFilter()"
-                            class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[11px] font-medium rounded-lg transition">
-                        Reset Filter
-                    </button>
-                    <a id="btn-download" href="#"
-                       class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition no-underline">
-                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                        <span>Download CSV</span>
+                <div class="flex items-center gap-1.5">
+                    <a id="btn-download" href="#" class="hidden bb-btn bb-btn-green !py-0.5 !px-2 !text-[10px]">
+                        ↓ CSV
                     </a>
+                    <button type="button" onclick="bbToggleMaximize(this)" title="Maximize/Restore [M]" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[460px] border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#0F1117]">
-                <table class="w-full text-left text-xs text-slate-700 dark:text-zinc-300 tabular-nums">
-                    <thead id="table-head" class="bg-slate-50 dark:bg-[#161a24] text-slate-500 dark:text-zinc-400 uppercase text-[11px] font-semibold sticky top-0 z-10"></thead>
-                    <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-zinc-800/70">
-                        <tr><td class="p-8 text-center text-slate-400 dark:text-zinc-500">Memuat data...</td></tr>
-                    </tbody>
-                </table>
+            <div class="bb-panel-body !p-0">
+                <div class="bb-table-scroll overflow-x-auto max-h-[430px] bg-[var(--bb-bg)]">
+                    <table class="w-full text-left tabular-nums border-collapse">
+                        <thead id="table-head" class="sticky top-0 z-10 uppercase"></thead>
+                        <tbody id="table-body">
+                            <tr><td class="p-6 text-center text-[var(--bb-text-muted)] font-mono text-xs">MEMUAT DATA WAREHOUSE...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
 
-    <aside class="xl:col-span-3 space-y-5">
-
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex items-center justify-between mb-3.5">
-                <span class="inline-flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
-                    <i data-lucide="clock" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                    <span>Cron Scheduler (8 Jam)</span>
-                </span>
-                <span id="cron-badge"
-                      class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-                    ACTIVE
-                </span>
+    <!-- RIGHT PANE: [P3] CRON SCHEDULER + SENTIMENT DONUT + 9-SCHEMA SUPABASE -->
+    <aside id="bb-right-col" class="xl:col-span-3 space-y-1.5">
+        <!-- [P3] Cron Scheduler (8 Jam WIB) -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P3] CRON ENGINE (8H WIB)</span>
+                <span id="cron-badge" class="px-1.5 py-0.5 text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700">ACTIVE</span>
             </div>
-
-            <div class="bg-slate-50/90 dark:bg-[#0F1117] border border-slate-200/70 dark:border-zinc-800 rounded-xl p-3.5 space-y-2 text-xs">
-                <div class="flex justify-between">
-                    <span class="text-slate-500 dark:text-zinc-400">Jadwal WIB</span>
-                    <span class="font-semibold text-slate-900 dark:text-white tabular-nums">08:00 • 16:00 • 00:00</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-500 dark:text-zinc-400">Target / Siklus</span>
-                    <span class="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">1.000 Baris</span>
-                </div>
-                <div class="flex justify-between gap-2">
-                    <span class="text-slate-500 dark:text-zinc-400 shrink-0">Next Run</span>
-                    <span id="cron-next" class="font-mono tabular-nums text-[11px] text-indigo-700 dark:text-indigo-300 truncate">-</span>
-                </div>
-                <div class="flex justify-between gap-2">
-                    <span class="text-slate-500 dark:text-zinc-400 shrink-0">Last Run</span>
-                    <span id="cron-last" class="font-mono tabular-nums text-[11px] text-slate-700 dark:text-zinc-300 truncate">-</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-500 dark:text-zinc-400">Status</span>
-                    <span id="cron-status" class="font-semibold text-amber-700 dark:text-amber-300">idle</span>
-                </div>
-
-                <div class="pt-3 mt-2 border-t border-slate-200/80 dark:border-zinc-800 space-y-2.5">
-                    <div>
-                        <div class="flex justify-between items-center text-[10px] mb-1">
-                            <span id="cron-prog-label" class="text-slate-500 dark:text-zinc-400">Capaian Batch</span>
-                            <span id="cron-prog-pct" class="font-mono tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">0 / 1.000 (0%)</span>
-                        </div>
-                        <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                            <div id="cron-prog-bar" class="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
+            <div class="bb-panel-body space-y-2 font-mono text-[11px]">
+                <div class="bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] p-2 space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-[var(--bb-text-muted)]">SCHEDULE_WIB</span>
+                        <span class="text-[var(--bb-text)] font-bold">08:00 • 16:00 • 00:00</span>
                     </div>
-                    <div>
-                        <div class="flex justify-between items-center text-[10px] mb-1">
-                            <span class="text-slate-500 dark:text-zinc-400">Siklus Waktu (8 Jam)</span>
-                            <span id="cron-cycle-pct" class="font-mono tabular-nums text-indigo-700 dark:text-indigo-300">0%</span>
+                    <div class="flex justify-between">
+                        <span class="text-[var(--bb-text-muted)]">BATCH_TARGET</span>
+                        <span class="text-[var(--bb-green)] font-bold">1,000 ROWS</span>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-[var(--bb-text-muted)] shrink-0">NEXT_RUN</span>
+                        <span id="cron-next" class="text-[var(--bb-cyan)] truncate">-</span>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-[var(--bb-text-muted)] shrink-0">LAST_RUN</span>
+                        <span id="cron-last" class="text-[var(--bb-text)] truncate">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[var(--bb-text-muted)]">STATUS</span>
+                        <span id="cron-status" class="text-[var(--bb-amber)] font-bold">idle</span>
+                    </div>
+
+                    <div class="pt-2 mt-1 border-t border-[var(--bb-border)] space-y-1.5">
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-0.5">
+                                <span id="cron-prog-label" class="text-[var(--bb-text-muted)]">BATCH_PROGRESS</span>
+                                <span id="cron-prog-pct" class="text-[var(--bb-green)] font-bold">0 / 1.000 (0%)</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] overflow-hidden">
+                                <div id="cron-prog-bar" class="h-full bg-[var(--bb-green)] transition-all duration-500" style="width: 0%"></div>
+                            </div>
                         </div>
-                        <div class="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                            <div id="cron-cycle-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-0.5">
+                                <span class="text-[var(--bb-text-muted)]">CYCLE_8H</span>
+                                <span id="cron-cycle-pct" class="text-[var(--bb-cyan)]">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] overflow-hidden">
+                                <div id="cron-cycle-bar" class="h-full bg-[var(--bb-cyan)] transition-all duration-500" style="width: 0%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="mt-3.5 space-y-2">
-                <button type="button" onclick="triggerCronNow()" id="btn-cron"
-                        class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center gap-1.5">
-                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                    <span>Trigger Batch 1.000 Baris</span>
-                </button>
-                <button type="button" onclick="syncCsvToSupabase()" id="btn-sync"
-                        class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700 font-medium text-xs rounded-xl transition inline-flex items-center justify-center gap-1.5">
-                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                    <span>Sync Semua CSV ke Supabase</span>
-                </button>
+                <div class="grid grid-cols-1 gap-1.5">
+                    <button type="button" onclick="triggerCronNow()" id="btn-cron" class="bb-btn bb-btn-amber w-full">
+                        ⚡ TRIGGER BATCH 1,000 ROWS
+                    </button>
+                    <button type="button" onclick="syncCsvToSupabase()" id="btn-sync" class="bb-btn w-full">
+                        ↻ SYNC ALL CSV → SUPABASE
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex items-center gap-2 mb-3">
-                <i data-lucide="pie-chart" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
-                    Polarisasi Sentimen &amp; Platform
-                </span>
+        <!-- Sentiment Polarity Donut -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>SENTIMENT POLARITY</span>
+                <span class="bb-panel-sub">DIFFBOT AI</span>
             </div>
-            <div class="h-44"><canvas id="chartSentiment"></canvas></div>
+            <div class="bb-panel-body">
+                <div class="h-40"><canvas id="chartSentiment"></canvas></div>
+            </div>
         </div>
 
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs text-xs">
-            <div class="flex items-center justify-between mb-3">
-                <span class="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white tracking-tight">
-                    <i data-lucide="hard-drive" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                    <span>7 Skema Supabase</span>
-                </span>
-                <button type="button" onclick="forceReloadAll()" title="Muat ulang statistik skema"
-                        class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
-                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                </button>
+        <!-- 9-Schema Supabase Telemetry -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>SUPABASE 9-SCHEMA</span>
+                <button type="button" onclick="forceReloadAll()" title="Refresh Schema Counts" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[↻]</button>
             </div>
-
-            <div class="space-y-1.5 tabular-nums">
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">1. core.sources</span>
-                    <span id="st-sources" class="font-semibold text-slate-900 dark:text-white">0</span>
+            <div class="bb-panel-body !p-1.5 font-mono text-[11px] space-y-1">
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">1. core.sources</span>
+                    <span id="st-sources" class="font-bold text-[var(--bb-text)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">2. scraper.jobs</span>
-                    <span id="st-jobs" class="font-semibold text-slate-900 dark:text-white">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">2. scraper.jobs</span>
+                    <span id="st-jobs" class="font-bold text-[var(--bb-text)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">3. scraper.raw_data</span>
-                    <span id="st-raw" class="font-semibold text-indigo-700 dark:text-indigo-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">3. scraper.raw_data</span>
+                    <span id="st-raw" class="font-bold text-[var(--bb-cyan)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">4. news.articles</span>
-                    <span id="st-news" class="font-semibold text-emerald-700 dark:text-emerald-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">4. news.articles</span>
+                    <span id="st-news" class="font-bold text-[var(--bb-green)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">5. keyword.keywords</span>
-                    <span id="st-keywords" class="font-semibold text-amber-700 dark:text-amber-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">5. keyword.keywords</span>
+                    <span id="st-keywords" class="font-bold text-[var(--bb-amber)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">6. trend.snapshots</span>
-                    <span id="st-trends" class="font-semibold text-amber-600 dark:text-amber-300">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">6. trend.snapshots</span>
+                    <span id="st-trends" class="font-bold text-[var(--bb-amber-bright)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">7. social.accounts</span>
-                    <span id="st-accounts" class="font-semibold text-violet-700 dark:text-violet-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">7. social.accounts</span>
+                    <span id="st-accounts" class="font-bold text-[var(--bb-cyan)]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">8. social.posts</span>
-                    <span id="st-posts" class="font-semibold text-pink-700 dark:text-pink-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">8. social.posts</span>
+                    <span id="st-posts" class="font-bold text-[#b58aa5]">0</span>
                 </div>
-                <div class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-slate-50/80 dark:bg-[#0F1117] border border-slate-100 dark:border-zinc-800/70">
-                    <span class="text-slate-600 dark:text-zinc-400 font-mono text-[11px]">9. analytics.sentiment</span>
-                    <span id="st-sentiment" class="font-semibold text-cyan-700 dark:text-cyan-400">0</span>
+                <div class="flex justify-between px-2 py-1 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <span class="text-[var(--bb-text-muted)]">9. analytics.sentiment</span>
+                    <span id="st-sentiment" class="font-bold text-[var(--bb-green)]">0</span>
                 </div>
             </div>
         </div>
     </aside>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
-<script src="/app.js?v=20261123_proj_split"></script>
+<!-- =========================================================================
+     QUADRANT 4-PANE LAUNCHPAD (NEWS + SOSMED + JOB HUNTER + WATCHLIST)
+     ========================================================================= -->
+<section id="bb-quad-workspace" class="px-2.5 py-1.5 grid grid-cols-1 lg:grid-cols-2 gap-1.5 items-stretch">
+    <!-- Q1: NEWS WIRE -->
+    <div class="bb-panel flex flex-col">
+        <div class="bb-panel-header flex-wrap gap-1.5">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[var(--bb-green)]">[Q1] NEWS_WIRE</span>
+                <button type="button" onclick="bbCycleQuadLink('q1')" id="bb-q1-link" class="bb-link-pill" title="Color Link Group">
+                    <span class="bb-link-dot bg-[var(--bb-amber)]"></span><span>AMBER</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-1">
+                <input id="bb-q1-input" type="text" placeholder="Filter / Scrape berita..."
+                       onkeydown="if(event.key==='Enter') bbQuadRun('q1', false)"
+                       class="bb-input !w-36 !py-0.5 !px-1.5 !text-[10px]">
+                <button type="button" onclick="bbQuadRun('q1', false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">FILTER</button>
+                <button type="button" onclick="bbQuadRun('q1', true)" class="bb-key-action !py-0.5 !px-1.5 !text-[10px]">SCRAPE</button>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+        </div>
+        <div id="bb-q1-body" class="bb-panel-body !p-0 overflow-y-auto h-[265px] font-mono text-[11px] bg-[var(--bb-bg)]">
+            <div class="p-4 text-[var(--bb-text-muted)]">Memuat stream berita...</div>
+        </div>
+    </div>
 
+    <!-- Q2: SOSMED STREAM -->
+    <div class="bb-panel flex flex-col">
+        <div class="bb-panel-header flex-wrap gap-1.5">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[var(--bb-cyan)]">[Q2] SOSMED_STREAM</span>
+                <button type="button" onclick="bbCycleQuadLink('q2')" id="bb-q2-link" class="bb-link-pill" title="Color Link Group">
+                    <span class="bb-link-dot bg-[var(--bb-amber)]"></span><span>AMBER</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-1">
+                <select id="bb-q2-platform" onchange="bbQuadRun('q2', false)" class="bb-input !w-24 !py-0.5 !px-1 !text-[10px]">
+                    <option value="instagram">IG</option>
+                    <option value="tiktok">TIKTOK</option>
+                    <option value="facebook">FB</option>
+                    <option value="twitter">X/TW</option>
+                    <option value="linkedin">LINKEDIN</option>
+                </select>
+                <input id="bb-q2-input" type="text" placeholder="Filter / #tagar..."
+                       onkeydown="if(event.key==='Enter') bbQuadRun('q2', false)"
+                       class="bb-input !w-32 !py-0.5 !px-1.5 !text-[10px]">
+                <button type="button" onclick="bbQuadRun('q2', false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">FILTER</button>
+                <button type="button" onclick="bbQuadRun('q2', true)" class="bb-key-action !py-0.5 !px-1.5 !text-[10px]">SCRAPE</button>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+        </div>
+        <div id="bb-q2-body" class="bb-panel-body !p-0 overflow-y-auto h-[265px] font-mono text-[11px] bg-[var(--bb-bg)]">
+            <div class="p-4 text-[var(--bb-text-muted)]">Memuat stream social media...</div>
+        </div>
+    </div>
+
+    <!-- Q3: JOB HUNTER (GEEKGARDEN FIT) -->
+    <div class="bb-panel flex flex-col">
+        <div class="bb-panel-header flex-wrap gap-1.5">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[var(--bb-amber-bright)]">[Q3] JOB_HUNTER (FIT)</span>
+                <button type="button" onclick="bbCycleQuadLink('q3')" id="bb-q3-link" class="bb-link-pill" title="Color Link Group">
+                    <span class="bb-link-dot bg-[var(--bb-amber)]"></span><span>AMBER</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-1">
+                <input id="bb-q3-input" type="text" placeholder="Stack / project (flutter, erp)..."
+                       onkeydown="if(event.key==='Enter') bbQuadRun('q3', false)"
+                       class="bb-input !w-36 !py-0.5 !px-1.5 !text-[10px]">
+                <button type="button" onclick="bbQuadRun('q3', false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">FILTER</button>
+                <button type="button" onclick="bbQuadRun('q3', true)" class="bb-key-action !py-0.5 !px-1.5 !text-[10px]">HUNT</button>
+                <a href="/dashboard/project" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">FULL ↗</a>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+        </div>
+        <div id="bb-q3-body" class="bb-panel-body !p-0 overflow-y-auto h-[265px] font-mono text-[11px] bg-[var(--bb-bg)]">
+            <div class="p-4 text-[var(--bb-text-muted)]">Memuat peluang project Geekgarden...</div>
+        </div>
+    </div>
+
+    <!-- Q4: MONITOR WATCHLIST & TOPIC BROADCASTER -->
+    <div class="bb-panel flex flex-col">
+        <div class="bb-panel-header flex-wrap gap-1.5">
+            <div class="flex items-center gap-1.5">
+                <span>[Q4] WATCHLIST &amp; TOPIC LINKING</span>
+                <span class="bb-panel-sub">KLIK TOPIK = SYNC Q1+Q2+Q3</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <input id="bb-wl-add" type="text" placeholder="+ Pin topik/stack..."
+                       onkeydown="if(event.key==='Enter') bbAddWatchlistTerm(this.value)"
+                       class="bb-input !w-32 !py-0.5 !px-1.5 !text-[10px]">
+                <button type="button" onclick="bbAddWatchlistTerm(document.getElementById('bb-wl-add').value)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">+ PIN</button>
+                <button type="button" onclick="bbRefreshQuadAll()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">↻ SYNC</button>
+                <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+            </div>
+        </div>
+        <div id="bb-q4-body" class="bb-panel-body overflow-y-auto h-[265px] font-mono text-[11px] bg-[var(--bb-bg)] space-y-1.5">
+            <div class="text-[var(--bb-text-muted)]">Memuat Watchlist Monitor...</div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================================
+     [P6] ROW DETAIL INSPECTOR DRAWER (NEWS / SOSMED / JOB HUNTER PAYLOAD)
+     ========================================================================= -->
+<aside id="bb-inspector-drawer" class="hidden fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] flex flex-col">
+    <div class="bb-panel-header !py-2">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="px-1.5 py-0.5 bg-[var(--bb-amber)] text-black text-[10px] font-bold">INSPECT</span>
+            <span id="bb-inspector-title" class="truncate text-[var(--bb-text)]">ROW DETAIL</span>
+        </div>
+        <button type="button" onclick="bbCloseInspector()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+    </div>
+
+    <div class="px-3 py-1.5 border-b border-[var(--bb-border)] bg-[var(--bb-bg-elev)] flex items-center justify-between gap-2 font-mono text-[10px]">
+        <div class="flex items-center gap-1">
+            <button type="button" id="bb-insp-tab-read" onclick="bbSetInspectorTab('read')" class="bb-scr-btn bb-scr-active">READABLE</button>
+            <button type="button" id="bb-insp-tab-json" onclick="bbSetInspectorTab('json')" class="bb-scr-btn">RAW_JSON</button>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button type="button" onclick="bbCopyInspectorJson()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">COPY JSON</button>
+            <a id="bb-inspector-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden bb-btn bb-btn-amber !py-0.5 !px-1.5 !text-[10px]">OPEN URL ↗</a>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3">
+        <div id="bb-inspector-actions" class="flex flex-wrap items-center gap-1.5 pb-2 border-b border-[var(--bb-border)] font-mono text-[10px]">
+            <button type="button" onclick="bbInspectorBroadcast('quad')" class="bb-key-action">⇄ BROADCAST TO QUAD</button>
+            <button type="button" onclick="bbInspectorBroadcast('news')" class="bb-key-sector">SCRAPE NEWS</button>
+            <button type="button" onclick="bbInspectorBroadcast('sosmed')" class="bb-key-sector">SCRAPE SOSMED</button>
+            <button type="button" onclick="bbInspectorBroadcast('job')" class="bb-key-sector">HUNT JOB</button>
+            <button type="button" onclick="bbInspectorBroadcast('watchlist')" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">+ WATCHLIST</button>
+        </div>
+        <div id="bb-inspector-meta" class="grid grid-cols-2 gap-1.5 font-mono text-[10px]"></div>
+        <div id="bb-inspector-readable" class="space-y-2.5 text-xs leading-relaxed"></div>
+        <pre id="bb-inspector-json" class="hidden font-mono text-[10px] leading-relaxed p-2.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] text-[var(--bb-cyan)] overflow-x-auto whitespace-pre-wrap break-all"></pre>
+    </div>
+</aside>
+
+<!-- BLOOMBERG MENU DIRECTORY MODAL (MENU <GO>) -->
+<div id="bb-menu-modal" onclick="if(event.target===this) bbToggleMenuModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-3xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — BLOOMBERG FUNCTION MENU (&lt;MENU&gt; DIRECTORY)</span>
+            <button type="button" onclick="bbToggleMenuModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]" id="bb-menu-grid"></div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     COMMAND & KEYBOARD SHORTCUT REFERENCE MODAL
+     ========================================================================= -->
+<div id="bb-help-modal" onclick="if(event.target===this) bbToggleHelpModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-2xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — COMMAND &amp; SHORTCUT REFERENCE</span>
+            <button type="button" onclick="bbToggleHelpModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body space-y-3 font-mono text-[11px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1">
+                    <div class="text-[var(--bb-amber)] font-bold mb-1">COMMAND LINE (CMD &gt; ... GO)</div>
+                    <div><span class="text-[var(--bb-cyan)]">SUPA [DOMAIN] [KW]</span> — Load Supabase (e.g. <span class="text-[var(--bb-text-muted)]">SUPA BERITA IKN</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">BANK [CAT] [KW]</span> — Filter Bank CSV (e.g. <span class="text-[var(--bb-text-muted)]">BANK IG APIFY</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">NEWS [ENG] [TOPIK]</span> — Scrape Berita (e.g. <span class="text-[var(--bb-text-muted)]">NEWS KOMBINE PRABOWO</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">SOC [PF] [KW]</span> — Scrape Sosmed (e.g. <span class="text-[var(--bb-text-muted)]">SOC IG #KARHUTLA</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">KW [KEYWORD]</span> — Scrape Keyword Search</div>
+                    <div><span class="text-[var(--bb-cyan)]">TREND [KATEGORI]</span> — Scrape Rising Trends</div>
+                    <div><span class="text-[var(--bb-cyan)]">JOB [KEYWORD]</span> — Buka/Cari Job Hunter (e.g. <span class="text-[var(--bb-text-muted)]">JOB FLUTTER</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">ANL</span> / <span class="text-[var(--bb-cyan)]">CRON RUN</span> / <span class="text-[var(--bb-cyan)]">SYNC</span> / <span class="text-[var(--bb-cyan)]">DOCS</span></div>
+                </div>
+                <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1">
+                    <div class="text-[var(--bb-amber)] font-bold mb-1">KEYBOARD SHORTCUTS</div>
+                    <div><span class="text-[var(--bb-green)]">/</span> atau <span class="text-[var(--bb-green)]">Ctrl+K</span> — Fokus Command Bar</div>
+                    <div><span class="text-[var(--bb-green)]">Alt+1..4</span> — Ganti Workspace Screen (SCR 1–4)</div>
+                    <div><span class="text-[var(--bb-green)]">F2..F8</span> — Pindah Modul (Supa/Bank/KW/News/Sosmed/Job/Anl)</div>
+                    <div><span class="text-[var(--bb-green)]">J / K</span> atau <span class="text-[var(--bb-green)]">↑ / ↓</span> — Navigasi Baris Tabel</div>
+                    <div><span class="text-[var(--bb-green)]">Enter</span> — Buka Row Detail Inspector (Full Text &amp; JSON)</div>
+                    <div><span class="text-[var(--bb-green)]">Esc</span> — Tutup Inspector / Help / Un-maximize Panel</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js?v=20261125_bb_term"></script>
 </body>
 </html>

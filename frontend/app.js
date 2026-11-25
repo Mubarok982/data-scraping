@@ -4,6 +4,10 @@
         (document.body && document.body.dataset && document.body.dataset.page === "project") ||
         /^\/dashboard\/project\/?$/i.test(window.location.pathname || "");
 
+    const isStandaloneAnalytics = () =>
+        (document.body && document.body.dataset && document.body.dataset.page === "analytics") ||
+        /^\/analytics\/?$/i.test(window.location.pathname || "");
+
     if (window.fetch && !window.fetch.__ddcStandaloneGuard) {
         const _nativeFetch = window.fetch.bind(window);
         window.fetch = async function (input, init) {
@@ -24,6 +28,13 @@
                     url = url.replace(/limit=5000\b/i, "limit=500");
                     input = typeof input === "string" ? url : new Request(url, input);
                 }
+            } else if (isStandaloneAnalytics()) {
+                if (/\/api\/v1\/(warehouse\/records|bank-data\/)/i.test(url)) {
+                    return new Response(JSON.stringify({ status: "ok", data: [], records: [], files: [] }), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" }
+                    });
+                }
             }
             return _nativeFetch(input, init);
         };
@@ -43,9 +54,9 @@ let currentTab = 'supabase';
         let _cronSimProgress = 0;
         let _cronUiTimer = null;
 
-        Chart.defaults.color = '#9ca3af';
-        Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
-        Chart.defaults.font.size = 11;
+        Chart.defaults.color = '#8b949e';
+        Chart.defaults.font.family = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace";
+        Chart.defaults.font.size = 10;
 
         const PROV_KAB_DATA = {
             "DKI Jakarta": ["Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara", "Kepulauan Seribu"],
@@ -405,29 +416,17 @@ let currentTab = 'supabase';
             ['supabase', 'bank', 'keyword', 'berita', 'sosmed', 'project'].forEach(t => {
                 const el = document.getElementById('form-' + t);
                 if (el) el.classList.add('hidden');
-                const tabBtn = document.getElementById('tab-' + t);
-                if (tabBtn) {
-                    const isActive = (t === tab);
-                    tabBtn.className = isActive
-                        ? "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow ring-1 ring-purple-400/50 transition flex items-center justify-between"
-                        : "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-[#1a1f33] text-gray-300 hover:text-white hover:bg-[#202740] border border-gray-800 transition flex items-center justify-between";
-                    const dot = tabBtn.querySelector("span.w-1\\.5");
-                    if (dot) dot.className = isActive ? "w-1.5 h-1.5 rounded-full bg-purple-200" : "w-1.5 h-1.5 rounded-full bg-gray-600";
-                    const badges = tabBtn.querySelectorAll("span");
-                    const badge = badges.length > 1 ? badges[badges.length - 1] : null;
-                    if (badge) badge.className = isActive ? "text-[10px] bg-purple-900/90 text-purple-100 px-2 py-0.5 rounded" : "text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded";
-                }
             });
             const activeEl = document.getElementById('form-' + tab);
             if (activeEl) activeEl.classList.remove('hidden');
-            const activeTabBtn = document.getElementById('tab-' + tab);
-            if (activeTabBtn) activeTabBtn.className = "w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs bg-purple-600 text-white shadow transition flex items-center justify-between";
 
             const runBtn = document.getElementById('btn-run');
-            if (tab === 'supabase') runBtn.innerText = "🗄️ Muat Tabel Supabase";
-            else if (tab === 'bank') runBtn.innerText = "📂 Terapkan Filter CSV";
-            else if (tab === 'project') runBtn.innerText = "🎯 Cari Project & Cek Confidence";
-            else runBtn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
+            if (runBtn) {
+                if (tab === 'supabase') runBtn.innerText = "EXECUTE SUPABASE QUERY <GO>";
+                else if (tab === 'bank') runBtn.innerText = "FILTER CSV VAULT <GO>";
+                else if (tab === 'project') runBtn.innerText = "🎯 HUNT PROJECT & SCORE <GO>";
+                else runBtn.innerText = "▶ RUN SCRAPER & SAVE DB <GO>";
+            }
 
             if (tab === 'supabase' || tab === 'bank') executeAction(false);
         }
@@ -531,6 +530,7 @@ let currentTab = 'supabase';
                 banner.classList.add('hidden');
             }
 
+            const gridCol = document.documentElement.classList.contains('dark') ? 'rgba(52, 63, 82, 0.45)' : 'rgba(182, 174, 155, 0.45)';
             const ctxLoc = document.getElementById('chartLocations').getContext('2d');
             if (chartLoc) chartLoc.destroy();
             chartLoc = new Chart(ctxLoc, {
@@ -538,14 +538,14 @@ let currentTab = 'supabase';
                 data: {
                     labels: locs.map(x => x.location),
                     datasets: [
-                        { label: 'Positif', data: locs.map(x => x.positive), backgroundColor: '#10b981' },
-                        { label: 'Netral', data: locs.map(x => x.neutral), backgroundColor: '#6366f1' },
-                        { label: 'Negatif', data: locs.map(x => x.negative), backgroundColor: '#ef4444' }
+                        { label: 'Positif', data: locs.map(x => x.positive), backgroundColor: 'rgba(90, 168, 130, 0.78)' },
+                        { label: 'Netral', data: locs.map(x => x.neutral), backgroundColor: 'rgba(107, 163, 190, 0.78)' },
+                        { label: 'Negatif', data: locs.map(x => x.negative), backgroundColor: 'rgba(201, 107, 120, 0.78)' }
                     ]
                 },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    scales: { x: { stacked: true, grid: { color: '#1f2937' } }, y: { stacked: true, grid: { display: false } } },
+                    scales: { x: { stacked: true, grid: { color: gridCol } }, y: { stacked: true, grid: { display: false } } },
                     plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
                     onClick: (_, elements) => { if (elements.length > 0) filterByTerm(locs[elements[0].index].location); }
                 }
@@ -555,20 +555,20 @@ let currentTab = 'supabase';
             if (locs.length > 0) {
                 badgeBox.innerHTML = locs.slice(0, 6).map(l => {
                     const isNeg = l.negative > l.positive;
-                    const pillClass = isNeg ? 'bg-red-950/80 text-red-300 border-red-800' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
-                    const labelPol = isNeg ? 'Polarisasi Isu Kritis' : 'Dominan Positif/Netral';
+                    const pillClass = isNeg ? 'bg-[#2b191d] text-[#d4848f] border-[#5e3139]' : 'bg-[#162922] text-[#7cc4a0] border-[#2e5745]';
+                    const labelPol = isNeg ? 'Isu Kritis' : 'Positif/Netral';
                     return `
-                        <div onclick="filterByTerm('${l.location}')" class="cursor-pointer p-2 rounded-xl bg-[#0b0d14] hover:bg-[#1a2036] border border-gray-800/80 flex items-center justify-between transition">
+                        <div onclick="filterByTerm('${l.location}')" class="cursor-pointer p-2 bg-[var(--bb-bg-elev)] hover:bg-[var(--bb-panel-hover)] border border-[var(--bb-border)] flex items-center justify-between transition">
                             <div>
-                                <div class="font-semibold text-gray-200">${l.location} <span class="text-[10px] text-indigo-400">(${l.total})</span></div>
-                                <div class="text-[10px] text-gray-400">Isu: <span class="text-amber-300 font-medium">${l.dominant_issue || 'UMUM'}</span></div>
+                                <div class="font-semibold text-[var(--bb-text)]">${l.location} <span class="text-[10px] text-[var(--bb-cyan)]">(${l.total})</span></div>
+                                <div class="text-[10px] text-[var(--bb-text-muted)]">Isu: <span class="text-[var(--bb-amber)] font-medium">${l.dominant_issue || 'UMUM'}</span></div>
                             </div>
-                            <span class="px-2 py-0.5 text-[10px] rounded border ${pillClass}">${labelPol}</span>
+                            <span class="px-1.5 py-0.5 text-[10px] border ${pillClass}">${labelPol}</span>
                         </div>
                     `;
                 }).join('');
             } else {
-                badgeBox.innerHTML = '<div class="text-gray-500 text-xs">Tidak ada sebaran wilayah spesifik pada filter ini.</div>';
+                badgeBox.innerHTML = '<div class="text-[var(--bb-text-muted)] text-xs">Tidak ada sebaran wilayah spesifik pada filter ini.</div>';
             }
 
             const ctxPpl = document.getElementById('chartPeople').getContext('2d');
@@ -577,11 +577,11 @@ let currentTab = 'supabase';
                 type: 'bar',
                 data: {
                     labels: ppl.map(x => x.name),
-                    datasets: [{ label: 'Total Mentions', data: ppl.map(x => x.mentions), backgroundColor: '#a855f7', borderRadius: 5 }]
+                    datasets: [{ label: 'Total Mentions', data: ppl.map(x => x.mentions), backgroundColor: 'rgba(141, 132, 184, 0.78)', borderRadius: 2 }]
                 },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
+                    scales: { x: { grid: { color: gridCol } }, y: { grid: { display: false } } },
                     plugins: { legend: { display: false } },
                     onClick: (_, elements) => { if (elements.length > 0) filterByTerm(ppl[elements[0].index].name); }
                 }
@@ -685,8 +685,8 @@ let currentTab = 'supabase';
                             datasets: [{
                                 label: 'Skor Interaksi / Dampak',
                                 data: top5.map(x => x.engagement),
-                                backgroundColor: '#ec4899',
-                                borderRadius: 5,
+                                backgroundColor: 'rgba(181, 131, 156, 0.78)',
+                                borderRadius: 2,
                                 minBarLength: 16
                             }]
                         },
@@ -698,7 +698,7 @@ let currentTab = 'supabase';
                             scales: {
                                 x: {
                                     type: useLogScale ? 'logarithmic' : 'linear',
-                                    grid: { color: '#1f2937' },
+                                    grid: { color: gridCol },
                                     beginAtZero: !useLogScale,
                                     ticks: {
                                         maxRotation: 0,
@@ -726,31 +726,30 @@ let currentTab = 'supabase';
                 };
 
                 const initialIdItems = normalizeItems(rawViralList);
-                if (initialIdItems.filter(x => x.hasRealEng).length >= 5) {
+                if (initialIdItems.length > 0) {
                     drawViral(initialIdItems);
                     return;
                 }
 
-                const mergeAndDraw = (extraRows) => {
-                    const merged = normalizeItems([...initialIdItems, ...(Array.isArray(extraRows) ? extraRows : [])]);
-                    drawViral(merged);
-                };
+                // Jika hasil filter tidak memiliki konten viral, langsung gambar kosong (jangan tembak API lambat berulang kali)
+                if (isFiltered) {
+                    const rawFallback = (Array.isArray(rawViralList) ? rawViralList : [])
+                        .slice(0, 5)
+                        .map((item, idx) => ({
+                            title: String(item.judul || item.title || item.caption || item.text || item.teks || '').trim() || `Item #${idx + 1}`,
+                            engagement: Math.round(extractEngagement(item)) || 100
+                        }))
+                        .filter(x => x.title);
+                    drawViral(rawFallback);
+                    return;
+                }
 
                 if (Array.isArray(window.__idViralBackupRows) && window.__idViralBackupRows.length > 0) {
-                    mergeAndDraw(window.__idViralBackupRows);
+                    drawViral(normalizeItems(window.__idViralBackupRows));
                     return;
                 }
 
                 drawViral(initialIdItems);
-                Promise.all([
-                    fetch('/api/v1/warehouse/records?category=sosmed&search_query=&limit=200').then(r => r.ok ? r.json() : null).catch(() => null),
-                    fetch('/api/v1/warehouse/records?category=berita&search_query=&limit=30').then(r => r.ok ? r.json() : null).catch(() => null)
-                ]).then(([socRes, newsRes]) => {
-                    const extract = (d) => Array.isArray(d) ? d : ((d && (d.data || d.records || d.items)) || []);
-                    const combined = [...extract(socRes), ...extract(newsRes)];
-                    window.__idViralBackupRows = combined;
-                    mergeAndDraw(combined);
-                }).catch(() => {});
             })((() => { try { return (typeof viral !== 'undefined' && Array.isArray(viral) && viral.length) ? viral : ((typeof viralDisplay !== 'undefined' && Array.isArray(viralDisplay)) ? viralDisplay : []); } catch (e) { return []; } })());
 
             const ctxHash = document.getElementById('chartHashtags').getContext('2d');
@@ -759,11 +758,11 @@ let currentTab = 'supabase';
                 type: 'bar',
                 data: {
                     labels: hashtags.map(x => x.tag),
-                    datasets: [{ label: 'Frekuensi Tagar', data: hashtags.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 5 }]
+                    datasets: [{ label: 'Frekuensi Tagar', data: hashtags.map(x => x.count), backgroundColor: 'rgba(107, 163, 190, 0.78)', borderRadius: 2 }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { display: false } }, y: { grid: { color: '#1f2937' } } },
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: gridCol } } },
                     plugins: { legend: { display: false } },
                     onClick: (_, elements) => { if (elements.length > 0) filterByTerm(hashtags[elements[0].index].tag); }
                 }
@@ -775,11 +774,11 @@ let currentTab = 'supabase';
                 type: 'bar',
                 data: {
                     labels: kws.map(x => x.keyword.length > 22 ? x.keyword.substring(0, 22) + '...' : x.keyword),
-                    datasets: [{ label: 'Indeks Volume / Frekuensi', data: kws.map(x => x.volume), backgroundColor: '#f59e0b', borderRadius: 5 }]
+                    datasets: [{ label: 'Indeks Volume / Frekuensi', data: kws.map(x => x.volume), backgroundColor: 'rgba(201, 139, 75, 0.78)', borderRadius: 2 }]
                 },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { display: false } } },
+                    scales: { x: { grid: { color: gridCol } }, y: { grid: { display: false } } },
                     plugins: { legend: { display: false } },
                     onClick: (_, elements) => { if (elements.length > 0) filterByTerm(kws[elements[0].index].keyword); }
                 }
@@ -792,14 +791,14 @@ let currentTab = 'supabase';
                 data: {
                     labels: tl.map(x => x.time),
                     datasets: [
-                        { label: 'Berita', data: tl.map(x => x.berita || 0), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.35 },
-                        { label: 'Keyword/Tren', data: tl.map(x => x.keyword || 0), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.35 },
-                        { label: 'Sosmed', data: tl.map(x => x.sosmed || 0), borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', fill: true, tension: 0.35 }
+                        { label: 'Berita', data: tl.map(x => x.berita || 0), borderColor: '#5aa882', backgroundColor: 'rgba(90, 168, 130, 0.12)', fill: true, tension: 0.3 },
+                        { label: 'Keyword/Tren', data: tl.map(x => x.keyword || 0), borderColor: '#c98b4b', backgroundColor: 'rgba(201, 139, 75, 0.10)', fill: true, tension: 0.3 },
+                        { label: 'Sosmed', data: tl.map(x => x.sosmed || 0), borderColor: '#6ba3be', backgroundColor: 'rgba(107, 163, 190, 0.10)', fill: true, tension: 0.3 }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: { x: { grid: { color: '#1f2937' } }, y: { grid: { color: '#1f2937' }, beginAtZero: true } },
+                    scales: { x: { grid: { color: gridCol } }, y: { grid: { color: gridCol }, beginAtZero: true } },
                     plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
                 }
             });
@@ -811,16 +810,16 @@ let currentTab = 'supabase';
                 data: {
                     labels: sysHealth.map(x => x.time),
                     datasets: [
-                        { type: 'bar', label: 'Total API Request', data: sysHealth.map(x => x.req_count), backgroundColor: '#4f46e5', yAxisID: 'y', borderRadius: 4 },
-                        { type: 'line', label: 'Rata-rata Waktu Respons (ms)', data: sysHealth.map(x => x.avg_ms), borderColor: '#f43f5e', backgroundColor: '#f43f5e', borderWidth: 3, tension: 0.3, yAxisID: 'y1' }
+                        { type: 'bar', label: 'Total API Request', data: sysHealth.map(x => x.req_count), backgroundColor: 'rgba(107, 163, 190, 0.65)', yAxisID: 'y', borderRadius: 2 },
+                        { type: 'line', label: 'Rata-rata Waktu Respons (ms)', data: sysHealth.map(x => x.avg_ms), borderColor: '#c96b78', backgroundColor: '#c96b78', borderWidth: 2, tension: 0.25, yAxisID: 'y1' }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Total Kueri', color: '#9ca3af' }, grid: { color: '#1f2937' } },
-                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Kecepatan Server (ms)', color: '#9ca3af' }, grid: { drawOnChartArea: false } }
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Total Kueri', color: '#8a95a5' }, grid: { color: gridCol } },
+                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Kecepatan Server (ms)', color: '#8a95a5' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } }
                 }
@@ -832,7 +831,7 @@ let currentTab = 'supabase';
                 type: 'doughnut',
                 data: {
                     labels: ['Positif / Optimis', 'Netral / Informatif', 'Negatif / Kritis'],
-                    datasets: [{ data: [sent.positive || 0, sent.neutral || 0, sent.negative || 0], backgroundColor: ['#10b981', '#6366f1', '#ef4444'], borderWidth: 0 }]
+                    datasets: [{ data: [sent.positive || 0, sent.neutral || 0, sent.negative || 0], backgroundColor: ['rgba(90, 168, 130, 0.85)', 'rgba(107, 163, 190, 0.85)', 'rgba(201, 107, 120, 0.85)'], borderWidth: 0 }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false, cutout: '62%',
@@ -1241,14 +1240,34 @@ let currentTab = 'supabase';
             ].filter(Boolean);
 
             const status = document.getElementById('status-text');
+            const hasActiveFilter = Boolean(newsCat || prov || kab || dateFrom || dateTo || q || cat !== 'berita');
+
+            if (hasActiveFilter && filtered.length === 0) {
+                status.innerText = `⚠ 0 baris cocok untuk filter ini (${cat}) — grafik menampilkan data global (klik RESET untuk muat ulang).`;
+                const locTitle = document.getElementById('title-chart-loc');
+                if (locTitle) locTitle.innerText = 'GEO POLARIZATION (WILAYAH)';
+                if (BASE_ANALYTICS) {
+                    renderChartsFromObject(BASE_ANALYTICS, false);
+                } else {
+                    loadAnalyticsCharts(false);
+                }
+                return;
+            }
+
             status.innerText = `✅ Menampilkan ${displayed.length} dari ${filtered.length} baris cocok (${cat})${activeLabels.length ? ' • Filter [' + activeLabels.join(', ') + ']' : ''}.`;
 
-            const hasActiveFilter = Boolean(newsCat || prov || kab || dateFrom || dateTo || q || cat !== 'berita');
             if (hasActiveFilter) {
                 const reactiveAn = buildReactiveAnalyticsFromRows(filtered, prov, cat);
+                if (cat === 'keyword_trending' && BASE_ANALYTICS && !prov && !newsCat && !q) {
+                    if (!reactiveAn.locations?.length) reactiveAn.locations = BASE_ANALYTICS.locations || [];
+                    if (!reactiveAn.top_people?.length) reactiveAn.top_people = BASE_ANALYTICS.top_people || [];
+                    if (!reactiveAn.top_hashtags?.length) reactiveAn.top_hashtags = BASE_ANALYTICS.top_hashtags || [];
+                    if (!reactiveAn.top_viral?.length) reactiveAn.top_viral = BASE_ANALYTICS.top_viral || [];
+                }
                 renderChartsFromObject(reactiveAn, true, `[${activeLabels.join(' • ')}] (${filtered.length} baris)`);
             } else if (BASE_ANALYTICS) {
-                document.getElementById('title-chart-loc').innerText = '🗺️ Polarisasi Lokasi (Sebaran Tren Wilayah)';
+                const locTitle = document.getElementById('title-chart-loc');
+                if (locTitle) locTitle.innerText = 'GEO POLARIZATION (WILAYAH)';
                 renderChartsFromObject(BASE_ANALYTICS, false);
             }
         }
@@ -1380,10 +1399,10 @@ let currentTab = 'supabase';
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    if (currentTab === 'supabase') btn.innerText = "🗄️ Muat Tabel Supabase";
-                    else if (currentTab === 'bank') btn.innerText = "📂 Terapkan Filter CSV";
-                    else if (currentTab === 'project') btn.innerText = "🎯 Cari Project & Cek Confidence";
-                    else btn.innerText = "🚀 Jalankan Scraper & Simpan ke DB";
+                    if (currentTab === 'supabase') btn.innerText = "EXECUTE SUPABASE QUERY <GO>";
+                    else if (currentTab === 'bank') btn.innerText = "FILTER CSV VAULT <GO>";
+                    else if (currentTab === 'project') btn.innerText = "🎯 HUNT PROJECT & SCORE <GO>";
+                    else btn.innerText = "▶ RUN SCRAPER & SAVE DB <GO>";
                 }
             }
         }
@@ -1433,52 +1452,118 @@ let currentTab = 'supabase';
             await executeAction(false);
         }
 
-        function renderTable(rows) {
+        function _bbEsc(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function renderTable(rows, skipRawStore = false) {
             const thead = document.getElementById('table-head');
             const tbody = document.getElementById('table-body');
+            if (!thead || !tbody) return;
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            if (!rows.length) {
-                tbody.innerHTML = '<tr><td class="p-8 text-center text-gray-500">Data tidak ditemukan untuk kombinasi filter ini.</td></tr>';
+            if (!skipRawStore) {
+                window.__BB_RAW_TABLE_ROWS = Array.isArray(rows) ? [...rows] : [];
+                const qf = document.getElementById('bb-table-quickfilter');
+                if (qf && qf.value.trim()) {
+                    const term = qf.value.trim().toLowerCase();
+                    rows = window.__BB_RAW_TABLE_ROWS.filter(r =>
+                        Object.values(r || {}).join(' ').toLowerCase().includes(term)
+                    );
+                }
+            }
+            window.__BB_CURRENT_ROWS = Array.isArray(rows) ? rows : [];
+            window.__BB_SELECTED_ROW_IDX = -1;
+
+            if (!rows || !rows.length) {
+                tbody.innerHTML = '<tr><td class="p-6 text-center text-[var(--bb-text-muted)] font-mono text-xs">NO MATCHING RECORDS FOR THIS FILTER.</td></tr>';
                 return;
             }
 
             const colSet = new Set();
-            rows.forEach(r => Object.keys(r).forEach(k => colSet.add(k)));
+            rows.forEach(r => Object.keys(r || {}).forEach(k => colSet.add(k)));
             const cols = Array.from(colSet);
+            const sortState = window.__BB_SORT_STATE || { col: null, asc: true };
 
-            thead.innerHTML = '<tr>' + cols.map(c => `<th class="px-3.5 py-2.5 border-b border-gray-800 whitespace-nowrap">${c}</th>`).join('') + '</tr>';
+            thead.innerHTML = '<tr>' + cols.map(c => {
+                const arrow = sortState.col === c ? (sortState.asc ? ' ▲' : ' ▼') : '';
+                return `<th onclick="bbSortTableByColumn('${_bbEsc(c)}')" title="Klik untuk urutkan">${_bbEsc(c)}${arrow}</th>`;
+            }).join('') + '</tr>';
 
-            rows.forEach(r => {
+            rows.forEach((r, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-[#1a2036] transition";
+                tr.dataset.rowIdx = String(idx);
+                tr.onclick = (ev) => {
+                    if (ev.target && ev.target.closest('a')) return;
+                    if (typeof window.bbSelectTableRow === 'function') window.bbSelectTableRow(idx, true);
+                };
                 tr.innerHTML = cols.map(c => {
                     let val = r[c] !== null && r[c] !== undefined ? String(r[c]) : '';
                     if (val.startsWith('http')) {
-                        return `<td class="px-3.5 py-2 whitespace-nowrap"><a href="${val}" target="_blank" class="text-indigo-400 hover:underline">🔗 Buka Link</a></td>`;
+                        return `<td class="whitespace-nowrap"><a href="${_bbEsc(val)}" target="_blank" rel="noopener noreferrer" class="hover:underline">↗ LINK</a></td>`;
                     }
                     if (c === 'confidence_status') {
                         const low = val.toLowerCase();
-                        let cls = 'bg-gray-800 text-gray-300 border-gray-700';
+                        let cls = 'bg-slate-800 text-slate-300 border-slate-700';
                         if (low.includes('fix')) cls = 'bg-emerald-950/90 text-emerald-300 border-emerald-700';
                         else if (low.includes('fifty')) cls = 'bg-amber-950/90 text-amber-300 border-amber-700';
                         else if (low.includes('tidak')) cls = 'bg-rose-950/90 text-rose-300 border-rose-700';
-                        return `<td class="px-3.5 py-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cls}">${val}</span></td>`;
+                        return `<td class="whitespace-nowrap"><span class="px-1.5 py-0.5 text-[10px] font-semibold border ${cls}">${_bbEsc(val)}</span></td>`;
                     }
                     if (c === 'confidence_score' && val !== '') {
-                        return `<td class="px-3.5 py-2 whitespace-nowrap font-mono font-bold text-indigo-300">${val}%</td>`;
+                        return `<td class="whitespace-nowrap font-mono font-bold text-[var(--bb-cyan)]">${_bbEsc(val)}%</td>`;
+                    }
+                    if (c === 'sentimen_diffbot' || c === 'sentiment') {
+                        const num = Number(val);
+                        const low = val.toLowerCase();
+                        let sCls = 'text-[var(--bb-text-muted)]';
+                        if (low.includes('pos') || (!isNaN(num) && num > 0.1)) sCls = 'text-[var(--bb-green)] font-bold';
+                        else if (low.includes('neg') || (!isNaN(num) && num < -0.1)) sCls = 'text-[var(--bb-red)] font-bold';
+                        return `<td class="whitespace-nowrap font-mono ${sCls}">${_bbEsc(val)}</td>`;
                     }
                     if (val.length > 85) val = val.substring(0, 85) + '...';
-                    return `<td class="px-3.5 py-2 whitespace-nowrap">${val}</td>`;
+                    return `<td class="whitespace-nowrap">${_bbEsc(val)}</td>`;
                 }).join('');
                 tbody.appendChild(tr);
             });
         }
 
-        initProvinceDropdown();
-        window.addEventListener('DOMContentLoaded', () => {
+        function _bbPageType() {
+            const p = (document.body && document.body.dataset && document.body.dataset.page) || '';
+            if (p) return p;
+            const path = (window.location.pathname || '').toLowerCase();
+            if (/^\/dashboard\/project\/?$/.test(path)) return 'project';
+            if (/^\/analytics\/?$/.test(path)) return 'analytics';
+            return 'dashboard';
+        }
+
+        if (_bbPageType() === 'dashboard') {
             initProvinceDropdown();
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const pg = _bbPageType();
+            if (pg !== 'dashboard') return;
+            // Pastikan filter form tidak terbawa dari bfcache/autofill browser saat reload
+            const resetIds = {
+                'sb-cat': 'berita',
+                'sb-news-cat': '',
+                'sb-prov': '',
+                'sb-time-preset': 'all',
+                'sb-date-from': '',
+                'sb-date-to': '',
+                'sb-search': ''
+            };
+            Object.entries(resetIds).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            });
+            initProvinceDropdown();
+            onProvinceChange();
             refreshTelemetry();
             loadAnalyticsCharts(false);
             executeAction(false);
@@ -2044,14 +2129,14 @@ window.addEventListener('DOMContentLoaded', () => {
         sosmed:   { charts: ["chartViral", "chartHashtags", "chartKeywords", "chartPeople", "chartTimeline"], showSentiment: true }
     };
 
-    const ACTIVE_SB = ["bg-slate-900", "text-white", "dark:bg-zinc-800", "dark:text-white", "font-semibold", "shadow-2xs"];
-    const INACTIVE_SB = ["text-slate-600", "dark:text-zinc-400", "hover:bg-slate-100", "dark:hover:bg-zinc-800/70", "font-medium"];
+    const ACTIVE_SB = ["bb-fkey-active"];
+    const INACTIVE_SB = [];
 
     function getThemeColors() {
         const isDark = document.documentElement.classList.contains("dark");
         return {
-            text: isDark ? "#a8acb8" : "#5c5852",
-            grid: isDark ? "rgba(75, 82, 99, 0.32)" : "rgba(214, 208, 198, 0.72)"
+            text: isDark ? "#8b949e" : "#5a544a",
+            grid: isDark ? "rgba(30, 38, 54, 0.85)" : "rgba(182, 174, 155, 0.55)"
         };
     }
 
@@ -2060,7 +2145,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const colors = getThemeColors();
         Chart.defaults.color = colors.text;
         Chart.defaults.borderColor = colors.grid;
-        Chart.defaults.font.family = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
+        Chart.defaults.font.family = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace";
+        Chart.defaults.font.size = 10;
 
         const instances = Chart.instances ? Object.values(Chart.instances) : [];
         instances.forEach((chart) => {
@@ -2151,7 +2237,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const collapsed = document.body.classList.contains("ddc-sb-collapsed");
         if (reopenBtn) {
             reopenBtn.classList.toggle("hidden", !collapsed);
-            reopenBtn.classList.toggle("lg:inline-flex", collapsed);
+            reopenBtn.classList.toggle("inline-flex", collapsed);
         }
         setTimeout(() => {
             if (typeof Chart !== "undefined" && Chart.instances) {
@@ -2159,7 +2245,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
                 });
             }
-        }, 220);
+        }, 200);
     };
 
     function getTabFromUrl() {
@@ -2173,8 +2259,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function updateSidebarUI(tab) {
         const activeTab = PAGE_META[tab] ? tab : "supabase";
+        const inQuad = document.body.classList.contains("bb-scr-quad");
         document.querySelectorAll(".ddc-sb-item").forEach((el) => {
-            const isAct = el.getAttribute("data-ddc-tab") === activeTab;
+            const tabAttr = el.getAttribute("data-ddc-tab");
+            const isAct = inQuad ? (tabAttr === "quad") : (tabAttr === activeTab);
             ACTIVE_SB.forEach((c) => el.classList.toggle(c, isAct));
             INACTIVE_SB.forEach((c) => el.classList.toggle(c, !isAct));
         });
@@ -2243,6 +2331,9 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         if (ev) ev.preventDefault();
+        if (document.body.classList.contains("bb-scr-quad") && typeof window.bbSetScreen === "function") {
+            window.bbSetScreen("intel");
+        }
         if (window.location.pathname !== targetPath) {
             try { window.history.pushState({ tab: target }, "", targetPath); } catch (e) {}
         }
@@ -2477,47 +2568,58 @@ window.addEventListener('DOMContentLoaded', () => {
         const statusEl = document.getElementById("status-text");
         if (!thead || !tbody) return;
 
-        if (rowCount) rowCount.textContent = String(filtered.length);
+        let list = Array.isArray(filtered) ? [...filtered] : [];
+        const qf = document.getElementById("bb-table-quickfilter");
+        if (qf && qf.value.trim()) {
+            const term = qf.value.trim().toLowerCase();
+            list = list.filter((r) => Object.values(r || {}).join(" ").toLowerCase().includes(term));
+        }
+
+        const slice = list.slice(0, 200);
+        window.__BB_RAW_TABLE_ROWS = list;
+        window.__BB_CURRENT_ROWS = slice;
+        window.__BB_SELECTED_ROW_IDX = -1;
+
+        if (rowCount) rowCount.textContent = String(list.length);
         if (statusEl) {
-            statusEl.textContent = filtered.length
-                ? `Menampilkan ${filtered.length} dari ${projectRowsCache.length} peluang project (threshold Fix ≥ 80%).`
+            statusEl.textContent = list.length
+                ? `Menampilkan ${slice.length} dari ${projectRowsCache.length} peluang project (Fix ≥ 80%).`
                 : "Tidak ada project yang cocok dengan filter saat ini.";
         }
 
         thead.innerHTML = `
             <tr>
-                <th class="px-3.5 py-2.5">Project</th>
-                <th class="px-3.5 py-2.5">Sumber</th>
-                <th class="px-3.5 py-2.5">Layanan</th>
-                <th class="px-3.5 py-2.5">Confidence</th>
-                <th class="px-3.5 py-2.5">Budget</th>
-                <th class="px-3.5 py-2.5">Tanggal</th>
+                <th>Project</th>
+                <th>Sumber</th>
+                <th>Layanan</th>
+                <th>Confidence</th>
+                <th>Budget</th>
+                <th>Tanggal</th>
             </tr>
         `;
 
-        if (!filtered.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-zinc-500">Tidak ada data project untuk filter ini.</td></tr>';
+        if (!slice.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-[var(--bb-text-muted)] font-mono text-xs">TIDAK ADA DATA PROJECT UNTUK FILTER INI.</td></tr>';
             return;
         }
 
-        const slice = filtered.slice(0, 200);
-        tbody.innerHTML = slice.map((r) => {
+        tbody.innerHTML = slice.map((r, idx) => {
             const sc = normalizeScore(r);
             const stKey = normalizeStatusKey(r);
             const stLabel = statusLabelFromKey(stKey);
             const badgeCls = stKey === "fix bisa masuk"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                ? "bg-emerald-950/90 text-emerald-300 border-emerald-700"
                 : stKey === "fifty-fifty"
-                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
-                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800";
+                ? "bg-amber-950/90 text-amber-300 border-amber-700"
+                : "bg-rose-950/90 text-rose-300 border-rose-700";
 
             const title = escHtml(r.title || "(Tanpa Judul)");
             const url = r.url && /^https?:\/\//i.test(String(r.url)) ? String(r.url) : "";
             const titleHtml = url
-                ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">${title}</a>`
-                : `<span class="font-semibold text-slate-900 dark:text-white">${title}</span>`;
+                ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="font-semibold hover:underline">${title}</a>`
+                : `<span class="font-semibold text-[var(--bb-text)]">${title}</span>`;
 
-            const reason = r.fit_reason ? `<div class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 line-clamp-1">${escHtml(r.fit_reason)}</div>` : "";
+            const reason = r.fit_reason ? `<div class="text-[10px] text-[var(--bb-text-muted)] mt-0.5 line-clamp-1">${escHtml(r.fit_reason)}</div>` : "";
             const src = escHtml(r.source_platform || r.platform || "-");
             const svc = escHtml(r.project_service_type || r.matched_services || "-");
             const budget = escHtml(r.budget || "-");
@@ -2525,17 +2627,17 @@ window.addEventListener('DOMContentLoaded', () => {
             const dt = dtMatch ? dtMatch[0] : "-";
 
             return `
-                <tr class="hover:bg-slate-50 dark:hover:bg-zinc-900/40 transition">
-                    <td class="px-3.5 py-2.5 max-w-[280px]">${titleHtml}${reason}</td>
-                    <td class="px-3.5 py-2.5 whitespace-nowrap">${src}</td>
-                    <td class="px-3.5 py-2.5 max-w-[180px] truncate" title="${svc}">${svc}</td>
-                    <td class="px-3.5 py-2.5 whitespace-nowrap">
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeCls}">
+                <tr data-row-idx="${idx}" onclick="if(!event.target.closest('a') && window.bbSelectTableRow) window.bbSelectTableRow(${idx}, true)">
+                    <td class="max-w-[280px]">${titleHtml}${reason}</td>
+                    <td class="whitespace-nowrap">${src}</td>
+                    <td class="max-w-[180px] truncate" title="${svc}">${svc}</td>
+                    <td class="whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold border ${badgeCls}">
                             ${stLabel} · ${sc}%
                         </span>
                     </td>
-                    <td class="px-3.5 py-2.5 whitespace-nowrap">${budget}</td>
-                    <td class="px-3.5 py-2.5 whitespace-nowrap font-mono text-[11px]">${dt}</td>
+                    <td class="whitespace-nowrap">${budget}</td>
+                    <td class="whitespace-nowrap font-mono text-[10px]">${dt}</td>
                 </tr>
             `;
         }).join("");
@@ -2571,7 +2673,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     labels: ["Fix Bisa Masuk (≥80%)", "Fifty-Fifty (40-79%)", "Tidak Bisa (<40%)"],
                     datasets: [{
                         data: [fix, fifty, no],
-                        backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(245, 158, 11, 0.85)", "rgba(244, 63, 94, 0.82)"],
+                        backgroundColor: ["rgba(90, 168, 130, 0.82)", "rgba(201, 139, 75, 0.82)", "rgba(201, 107, 120, 0.80)"],
                         borderWidth: 0
                     }]
                 },
@@ -2604,8 +2706,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: "Jumlah Lead",
                         data: topSrc.length ? topSrc.map((x) => x[1]) : [0],
-                        backgroundColor: "rgba(99, 102, 241, 0.82)",
-                        borderRadius: 6
+                        backgroundColor: "rgba(107, 163, 190, 0.78)",
+                        borderRadius: 2
                     }]
                 },
                 options: {
@@ -2633,8 +2735,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: "Jumlah Project",
                         data: topSvc.length ? topSvc.map((x) => x[1]) : [0],
-                        backgroundColor: "rgba(16, 185, 129, 0.80)",
-                        borderRadius: 6
+                        backgroundColor: "rgba(90, 168, 130, 0.78)",
+                        borderRadius: 2
                     }]
                 },
                 options: {
@@ -2664,9 +2766,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         label: "Skor Confidence (%)",
                         data: topProj.length ? topProj.map((r) => normalizeScore(r)) : [0],
                         backgroundColor: topProj.length
-                            ? topProj.map((r) => normalizeScore(r) >= 80 ? "rgba(16, 185, 129, 0.88)" : normalizeScore(r) >= 40 ? "rgba(245, 158, 11, 0.85)" : "rgba(244, 63, 94, 0.80)")
-                            : ["rgba(148, 163, 184, 0.5)"],
-                        borderRadius: 6
+                            ? topProj.map((r) => normalizeScore(r) >= 80 ? "rgba(90, 168, 130, 0.82)" : normalizeScore(r) >= 40 ? "rgba(201, 139, 75, 0.82)" : "rgba(201, 107, 120, 0.80)")
+                            : ["rgba(138, 149, 165, 0.45)"],
+                        borderRadius: 2
                     }]
                 },
                 options: {
@@ -2713,8 +2815,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: "Jumlah Project",
                         data: topSkills.length ? topSkills.map((x) => x[1]) : [0],
-                        backgroundColor: "rgba(99, 102, 241, 0.80)",
-                        borderRadius: 6
+                        backgroundColor: "rgba(141, 132, 184, 0.78)",
+                        borderRadius: 2
                     }]
                 },
                 options: {
@@ -2747,13 +2849,13 @@ window.addEventListener('DOMContentLoaded', () => {
                         label: "Jumlah Project",
                         data: buckets,
                         backgroundColor: [
-                            "rgba(244, 63, 94, 0.72)",
-                            "rgba(244, 63, 94, 0.85)",
-                            "rgba(245, 158, 11, 0.76)",
-                            "rgba(245, 158, 11, 0.90)",
-                            "rgba(16, 185, 129, 0.88)"
+                            "rgba(201, 107, 120, 0.70)",
+                            "rgba(201, 107, 120, 0.84)",
+                            "rgba(201, 139, 75, 0.72)",
+                            "rgba(201, 139, 75, 0.86)",
+                            "rgba(90, 168, 130, 0.84)"
                         ],
-                        borderRadius: 6
+                        borderRadius: 2
                     }]
                 },
                 options: {
@@ -2792,20 +2894,20 @@ window.addEventListener('DOMContentLoaded', () => {
                         {
                             label: "Total Lead",
                             data: sortedDates.length ? sortedDates.map(([, v]) => v.total) : [0],
-                            borderColor: "rgba(99, 102, 241, 0.9)",
-                            backgroundColor: "rgba(99, 102, 241, 0.14)",
+                            borderColor: "#6ba3be",
+                            backgroundColor: "rgba(107, 163, 190, 0.12)",
                             fill: true,
-                            tension: 0.35,
-                            pointRadius: 3
+                            tension: 0.3,
+                            pointRadius: 2.5
                         },
                         {
                             label: "Fix ≥ 80%",
                             data: sortedDates.length ? sortedDates.map(([, v]) => v.fit) : [0],
-                            borderColor: "rgba(16, 185, 129, 0.95)",
-                            backgroundColor: "rgba(16, 185, 129, 0.12)",
+                            borderColor: "#5aa882",
+                            backgroundColor: "rgba(90, 168, 130, 0.10)",
                             fill: false,
-                            tension: 0.35,
-                            pointRadius: 3
+                            tension: 0.3,
+                            pointRadius: 2.5
                         }
                     ]
                 },
@@ -2885,6 +2987,10 @@ window.addEventListener('DOMContentLoaded', () => {
         window.fetch.__ddcProjResultSniffer = true;
     }
 
+    const isAnalyticsStandalone = () =>
+        (document.body && document.body.dataset && document.body.dataset.page === "analytics") ||
+        /^\/analytics\/?$/i.test(window.location.pathname || "");
+
     let resizeTimer = null;
     function bootUnifiedShell() {
         if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -2902,9 +3008,19 @@ window.addEventListener('DOMContentLoaded', () => {
             }, 140);
         });
 
+        if (isAnalyticsStandalone()) {
+            if (typeof window.bbLoadAnalyticsPage === "function") {
+                window.bbLoadAnalyticsPage();
+                setInterval(window.bbLoadAnalyticsPage, 30000);
+            }
+            if (typeof window.bbInitTerminalEngine === "function") {
+                window.bbInitTerminalEngine();
+            }
+            return;
+        }
+
         if (isProjectStandalone()) {
             updateSidebarUI("project");
-            // Pastikan state tab internal app.js berada di 'project' agar tombol executeAction(true) bekerja
             if (typeof window.switchTab === "function") {
                 try { window.switchTab("project"); } catch (e) {}
             }
@@ -2914,6 +3030,9 @@ window.addEventListener('DOMContentLoaded', () => {
             window.resetSearchFilter = window.ddcResetProjectFilters;
             window.forceReloadAll = loadProjectStandaloneData;
             loadProjectStandaloneData();
+            if (typeof window.bbInitTerminalEngine === "function") {
+                window.bbInitTerminalEngine();
+            }
             return;
         }
 
@@ -2974,6 +3093,9 @@ window.addEventListener('DOMContentLoaded', () => {
             applyChartsForTab(tab);
         });
 
+        if (typeof window.bbInitTerminalEngine === "function") {
+            window.bbInitTerminalEngine();
+        }
         setTimeout(() => { applyChartTheme(); ensureSocialKeywordChart(); }, 900);
         setTimeout(() => { applyChartTheme(); ensureSocialKeywordChart(); }, 2200);
     }
@@ -2983,4 +3105,1390 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         setTimeout(bootUnifiedShell, 40);
     }
+})();
+
+
+/* ============================================================================
+   DDC//TERM — BLOOMBERG TERMINAL ENGINE
+   (Command Line CMD <GO>, Ticker Tape, Row Inspector, Live Log, Shortcuts)
+   ============================================================================ */
+(function () {
+    const CMD_PRESETS = [
+        { cmd: "QUAD", desc: "4-Pane Launchpad: News + Sosmed + Job Hunter + Watchlist" },
+        { cmd: "MENU", desc: "Buka Direktori Fungsi Terminal (<MENU>)" },
+        { cmd: "WATC", desc: "Buka Watchlist & Topic Broadcaster" },
+        { cmd: "NW prabowo", desc: "Scrape Berita Kombine (Newsdata + Diffbot)" },
+        { cmd: "NWS ekonomi", desc: "Scrape Berita Cepat via Newsdata.io" },
+        { cmd: "NWD ikn", desc: "Scrape Berita Full + Sentimen Diffbot AI" },
+        { cmd: "IG #karhutla", desc: "Scrape Instagram Hashtag / Keyword" },
+        { cmd: "TT mbg", desc: "Scrape TikTok Hashtag / Konten" },
+        { cmd: "FB kompascom", desc: "Scrape Facebook Page / Keyword" },
+        { cmd: "TW prabowo", desc: "Scrape Twitter / X" },
+        { cmd: "LI backend developer", desc: "Scrape Profil LinkedIn" },
+        { cmd: "KW karhutla", desc: "Scrape Keyword Related Queries" },
+        { cmd: "TRD teknologi", desc: "Scrape Google Trends Rising" },
+        { cmd: "JOB flutter", desc: "Cari Peluang Project & Geekgarden Fit" },
+        { cmd: "JOB erp", desc: "Cari Peluang Project ERP / Custom Software" },
+        { cmd: "SUPA BERITA", desc: "Buka Supabase News Articles" },
+        { cmd: "SUPA INSTAGRAM", desc: "Buka Supabase Social Posts (IG)" },
+        { cmd: "BANK BERITA", desc: "Buka Bank Data CSV Kategori Berita" },
+        { cmd: "ANL", desc: "Buka Global Analytics Matrix" },
+        { cmd: "CRON RUN", desc: "Trigger Batch Cron 1.000 Baris" },
+        { cmd: "SYNC", desc: "Sync Semua CSV ke Supabase" },
+        { cmd: "CLR", desc: "Bersihkan HTTP Cache & Reload" },
+        { cmd: "DOCS", desc: "Buka Swagger OpenAPI (/docs)" },
+        { cmd: "HELP", desc: "Tampilkan Panduan Command & Shortcut" }
+    ];
+
+    const cmdHistory = [];
+    let cmdHistIdx = -1;
+    let acActiveIdx = -1;
+    let currentInspJson = "";
+    let currentInspRow = null;
+    let analyticsCharts = {};
+
+    // Bloomberg Navigation History Stack (<BACK> / <FWD>)
+    const navStack = [];
+    let navIdx = -1;
+    let navReplaying = false;
+
+    // Color-Coded Link Groups (AMBER -> CYAN -> NONE)
+    const LINK_GROUPS = ["AMBER", "CYAN", "NONE"];
+    let globalLinkGroup = "AMBER";
+    const quadLinks = { q1: "AMBER", q2: "AMBER", q3: "AMBER" };
+    const quadCache = { q1: [], q2: [], q3: [] };
+    let quadBooted = false;
+
+    const DEFAULT_WATCHLIST = ["prabowo", "karhutla", "mbg", "flutter", "erp"];
+    function getWatchlist() {
+        try {
+            const raw = localStorage.getItem("ddc_bb_watchlist");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            }
+        } catch (e) {}
+        return [...DEFAULT_WATCHLIST];
+    }
+    function saveWatchlist(list) {
+        try { localStorage.setItem("ddc_bb_watchlist", JSON.stringify(list)); } catch (e) {}
+    }
+
+    function updateNavButtons() {
+        const bBtn = document.getElementById("bb-btn-back");
+        const fBtn = document.getElementById("bb-btn-fwd");
+        if (bBtn) bBtn.disabled = navIdx <= 0;
+        if (fBtn) fBtn.disabled = navIdx < 0 || navIdx >= navStack.length - 1;
+    }
+
+    function pushNavState(cmd) {
+        if (navReplaying || !cmd) return;
+        const clean = String(cmd).trim();
+        if (!clean) return;
+        if (navStack[navIdx] === clean) return;
+        navStack.splice(navIdx + 1);
+        navStack.push(clean);
+        if (navStack.length > 40) navStack.shift();
+        navIdx = navStack.length - 1;
+        updateNavButtons();
+    }
+
+    window.bbNavBack = function () {
+        if (navIdx <= 0) return;
+        navIdx--;
+        navReplaying = true;
+        try { window.bbExecuteCommand(navStack[navIdx]); } finally { navReplaying = false; }
+        updateNavButtons();
+    };
+
+    window.bbNavForward = function () {
+        if (navIdx >= navStack.length - 1) return;
+        navIdx++;
+        navReplaying = true;
+        try { window.bbExecuteCommand(navStack[navIdx]); } finally { navReplaying = false; }
+        updateNavButtons();
+    };
+
+    function esc(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function getWibNow() {
+        const now = new Date();
+        const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utcMs + (7 * 3600000));
+    }
+
+    function pad2(n) {
+        return String(n).padStart(2, "0");
+    }
+
+    // 1. LIVE WIB CLOCK & 8-HOUR CRON COUNTDOWN
+    function tickClockAndCron() {
+        const wib = getWibNow();
+        const hh = wib.getHours();
+        const mm = wib.getMinutes();
+        const ss = wib.getSeconds();
+
+        const clockEl = document.getElementById("bb-wib-clock");
+        if (clockEl) {
+            clockEl.textContent = `${pad2(hh)}:${pad2(mm)}:${pad2(ss)} WIB`;
+        }
+
+        const cdEl = document.getElementById("bb-cron-countdown");
+        if (cdEl) {
+            const elapsedSec = ((hh % 8) * 3600) + (mm * 60) + ss;
+            const rem = Math.max(0, (8 * 3600) - elapsedSec);
+            const rh = Math.floor(rem / 3600);
+            const rm = Math.floor((rem % 3600) / 60);
+            const rs = rem % 60;
+            cdEl.textContent = `${pad2(rh)}:${pad2(rm)}:${pad2(rs)}`;
+        }
+    }
+
+    // 2. LIVE TERMINAL LOG + API LATENCY INTERCEPTOR
+    window.bbLogTerminal = function (msg, level = "info") {
+        const box = document.getElementById("bb-terminal-log");
+        if (!box) return;
+        const wib = getWibNow();
+        const ts = `${pad2(wib.getHours())}:${pad2(wib.getMinutes())}:${pad2(wib.getSeconds())}`;
+        let cls = "text-[var(--bb-text-muted)]";
+        if (level === "ok") cls = "text-[var(--bb-green)]";
+        else if (level === "warn") cls = "text-[var(--bb-amber)]";
+        else if (level === "err") cls = "text-[var(--bb-red)]";
+        else if (level === "cmd") cls = "text-[var(--bb-cyan)]";
+
+        const line = document.createElement("div");
+        line.className = `${cls} truncate`;
+        line.title = msg;
+        line.textContent = `[${ts}] ${msg}`;
+        box.appendChild(line);
+
+        while (box.children.length > 80) {
+            box.removeChild(box.firstChild);
+        }
+        box.scrollTop = box.scrollHeight;
+    };
+
+    window.bbClearTerminalLog = function () {
+        const box = document.getElementById("bb-terminal-log");
+        if (box) box.innerHTML = `<div class="text-[var(--bb-text-muted)]">[CLR] Log dibersihkan.</div>`;
+    };
+
+    if (window.fetch && !window.fetch.__bbTelemetryWrapped) {
+        const prevFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            const url = typeof input === "string" ? input : (input && input.url) || "";
+            const method = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
+            const isApi = url.includes("/api/v1/");
+            const t0 = performance.now();
+            try {
+                const res = await prevFetch(input, init);
+                if (isApi) {
+                    const ms = Math.round(performance.now() - t0);
+                    const latEl = document.getElementById("bb-api-latency");
+                    if (latEl) latEl.textContent = `${ms}ms`;
+                    const shortUrl = url.replace(window.location.origin, "").split("?")[0];
+                    window.bbLogTerminal(`${method} ${shortUrl} -> ${res.status} (${ms}ms)`, res.ok ? "ok" : "err");
+                }
+                return res;
+            } catch (err) {
+                if (isApi) {
+                    const shortUrl = url.replace(window.location.origin, "").split("?")[0];
+                    window.bbLogTerminal(`${method} ${shortUrl} -> ERR (${err.message || err})`, "err");
+                }
+                throw err;
+            }
+        };
+        window.fetch.__bbTelemetryWrapped = true;
+    }
+
+    // 3. WORKSPACE SCREEN SWITCHER, MENU DIRECTORY & PANEL MAXIMIZE
+    window.bbSetScreen = function (mode) {
+        document.body.classList.remove("bb-scr-intel", "bb-scr-ops", "bb-scr-grid", "bb-scr-quad");
+        if (mode === "ops") document.body.classList.add("bb-scr-ops");
+        else if (mode === "grid") document.body.classList.add("bb-scr-grid");
+        else if (mode === "quad") document.body.classList.add("bb-scr-quad");
+        else document.body.classList.add("bb-scr-intel");
+
+        const map = { intel: "bb-scr-1", ops: "bb-scr-2", grid: "bb-scr-4", quad: "bb-scr-5" };
+        Object.entries(map).forEach(([k, id]) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle("bb-scr-active", k === mode);
+        });
+
+        const inQuad = (mode === "quad");
+        document.querySelectorAll(".ddc-sb-item").forEach((el) => {
+            const tabAttr = el.getAttribute("data-ddc-tab");
+            if (!tabAttr) return;
+            el.classList.toggle("bb-fkey-active", inQuad ? tabAttr === "quad" : tabAttr === currentTab);
+        });
+
+        if (mode === "quad" && typeof window.bbRefreshQuadAll === "function" && !quadBooted) {
+            quadBooted = true;
+            window.bbRefreshQuadAll();
+        }
+
+        setTimeout(() => {
+            if (typeof Chart !== "undefined" && Chart.instances) {
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
+                });
+            }
+        }, 80);
+    };
+
+    window.bbToggleMenuModal = function (open) {
+        const modal = document.getElementById("bb-menu-modal");
+        if (!modal) return;
+        const shouldOpen = typeof open === "boolean" ? open : modal.classList.contains("hidden");
+        if (shouldOpen && typeof window.bbRenderMenuModal === "function") {
+            window.bbRenderMenuModal();
+        }
+        modal.classList.toggle("hidden", !shouldOpen);
+    };
+
+    window.bbToggleMaximize = function (btn) {
+        const panel = btn ? btn.closest(".bb-panel") : null;
+        if (!panel) return;
+        const wasMax = panel.classList.contains("bb-maximized");
+        document.querySelectorAll(".bb-panel.bb-maximized").forEach((p) => p.classList.remove("bb-maximized"));
+        if (!wasMax) panel.classList.add("bb-maximized");
+
+        setTimeout(() => {
+            if (typeof Chart !== "undefined" && Chart.instances) {
+                Object.values(Chart.instances).forEach((ch) => {
+                    try { if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize(); } catch (e) {}
+                });
+            }
+        }, 60);
+    };
+
+    window.bbToggleHelpModal = function (open) {
+        const modal = document.getElementById("bb-help-modal");
+        if (!modal) return;
+        const shouldOpen = typeof open === "boolean" ? open : modal.classList.contains("hidden");
+        modal.classList.toggle("hidden", !shouldOpen);
+    };
+
+    // 4. TABLE QUICK FILTER, SORT & ROW DETAIL INSPECTOR
+    window.bbQuickFilterTable = function (term) {
+        const base = window.__BB_RAW_TABLE_ROWS;
+        if (!Array.isArray(base)) return;
+        const q = String(term || "").trim().toLowerCase();
+        const filtered = q
+            ? base.filter((r) => Object.values(r || {}).join(" ").toLowerCase().includes(q))
+            : base;
+
+        const rc = document.getElementById("row-count");
+        if (rc) rc.textContent = String(filtered.length);
+
+        const isProj = (document.body?.dataset?.page === "project");
+        if (isProj) {
+            const tbody = document.getElementById("table-body");
+            if (!tbody) return;
+            window.__BB_CURRENT_ROWS = filtered.slice(0, 200);
+            const slice = window.__BB_CURRENT_ROWS;
+            if (!slice.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-[var(--bb-text-muted)] font-mono text-xs">TIDAK ADA DATA PROJECT YANG COCOK.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = slice.map((r, idx) => {
+                const sc = Number(r.confidence_score) || 0;
+                const st = sc >= 80 ? "Fix Bisa Masuk" : sc >= 40 ? "Fifty-Fifty" : "Tidak Bisa";
+                const badgeCls = sc >= 80
+                    ? "bg-emerald-950/90 text-emerald-300 border-emerald-700"
+                    : sc >= 40
+                    ? "bg-amber-950/90 text-amber-300 border-amber-700"
+                    : "bg-rose-950/90 text-rose-300 border-rose-700";
+                const dtMatch = String(r.published_at || r.created_at || "").match(/\d{4}-\d{2}-\d{2}/);
+                return `
+                    <tr data-row-idx="${idx}" onclick="if(!event.target.closest('a') && window.bbSelectTableRow) window.bbSelectTableRow(${idx}, true)">
+                        <td class="max-w-[280px] font-semibold">${esc(r.title || "-")}</td>
+                        <td class="whitespace-nowrap">${esc(r.source_platform || r.platform || "-")}</td>
+                        <td class="max-w-[180px] truncate">${esc(r.project_service_type || r.matched_services || "-")}</td>
+                        <td class="whitespace-nowrap"><span class="px-1.5 py-0.5 text-[10px] font-semibold border ${badgeCls}">${st} · ${sc}%</span></td>
+                        <td class="whitespace-nowrap">${esc(r.budget || "-")}</td>
+                        <td class="whitespace-nowrap font-mono text-[10px]">${dtMatch ? dtMatch[0] : "-"}</td>
+                    </tr>
+                `;
+            }).join("");
+            return;
+        }
+
+        if (typeof window.renderTable === "function") {
+            window.renderTable(filtered, true);
+        }
+    };
+
+    window.bbSortTableByColumn = function (col) {
+        const rows = window.__BB_CURRENT_ROWS;
+        if (!Array.isArray(rows) || !rows.length) return;
+        const prev = window.__BB_SORT_STATE || { col: null, asc: true };
+        const asc = prev.col === col ? !prev.asc : true;
+        window.__BB_SORT_STATE = { col, asc };
+
+        const sorted = [...rows].sort((a, b) => {
+            const va = a?.[col] ?? "";
+            const vb = b?.[col] ?? "";
+            const na = Number(String(va).replace(/[^\d.-]/g, ""));
+            const nb = Number(String(vb).replace(/[^\d.-]/g, ""));
+            if (va !== "" && vb !== "" && !isNaN(na) && !isNaN(nb) && /^\s*-?[\d.,]+%?\s*$/.test(String(va)) && /^\s*-?[\d.,]+%?\s*$/.test(String(vb))) {
+                return asc ? na - nb : nb - na;
+            }
+            return asc
+                ? String(va).localeCompare(String(vb), "id")
+                : String(vb).localeCompare(String(va), "id");
+        });
+
+        if (typeof window.renderTable === "function") {
+            window.renderTable(sorted, true);
+        }
+    };
+
+    window.bbSelectTableRow = function (idx, openInsp = false) {
+        const rows = window.__BB_CURRENT_ROWS || [];
+        if (idx < 0 || idx >= rows.length) return;
+        window.__BB_SELECTED_ROW_IDX = idx;
+
+        document.querySelectorAll("#table-body tr.bb-row-selected").forEach((el) => el.classList.remove("bb-row-selected"));
+        const tr = document.querySelector(`#table-body tr[data-row-idx="${idx}"]`);
+        if (tr) {
+            tr.classList.add("bb-row-selected");
+            tr.scrollIntoView({ block: "nearest" });
+        }
+
+        if (openInsp) {
+            window.bbOpenInspector(idx);
+        }
+    };
+
+    window.bbOpenInspector = function (idx) {
+        const rows = window.__BB_CURRENT_ROWS || [];
+        const row = rows[idx];
+        if (!row) return;
+        window.bbOpenRawInspectorRow(row, `ROW #${idx + 1}`);
+    };
+
+    window.bbOpenRawInspectorRow = function (row, fallbackLabel = "DETAIL") {
+        const drawer = document.getElementById("bb-inspector-drawer");
+        if (!row || !drawer) return;
+        currentInspRow = row;
+
+        const titleEl = document.getElementById("bb-inspector-title");
+        const metaEl = document.getElementById("bb-inspector-meta");
+        const readEl = document.getElementById("bb-inspector-readable");
+        const jsonEl = document.getElementById("bb-inspector-json");
+        const linkEl = document.getElementById("bb-inspector-link");
+
+        const headline = row.title || row.judul || row.Query || row.keyword || row.Nama || row.username || fallbackLabel;
+        if (titleEl) titleEl.textContent = String(headline).slice(0, 80);
+
+        const url = row.url || row.link || row.Link || row.Link_Profil || "";
+        if (linkEl) {
+            if (url && /^https?:\/\//i.test(String(url))) {
+                linkEl.href = String(url);
+                linkEl.classList.remove("hidden");
+            } else {
+                linkEl.classList.add("hidden");
+            }
+        }
+
+        const metaPairs = [
+            ["PLATFORM", row.source_platform || row.platform || row.Platform || "-"],
+            ["TOOL / ENGINE", row.tool || row.Tool || "-"],
+            ["TANGGAL", row.published_at || row.tanggal || row.Tanggal || row.waktu_scrape || row.created_at || "-"],
+            ["AUTHOR / USER", row.username || row.Username || row.penulis || row["Penulis berita"] || row.author || row.Nama || "-"],
+            ["SENTIMEN / FIT", row.confidence_status ? `${row.confidence_status} (${row.confidence_score ?? 0}%)` : (row.sentimen_diffbot ?? row.sentiment ?? "-")],
+            ["BUDGET / VOL", row.budget || row.Values || row.formattedvalue || row.Likes || row.likes || "-"]
+        ];
+        if (metaEl) {
+            metaEl.innerHTML = metaPairs.map(([k, v]) => `
+                <div class="p-1.5 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                    <div class="text-[9px] text-[var(--bb-text-muted)]">${esc(k)}</div>
+                    <div class="text-[11px] text-[var(--bb-text)] font-semibold truncate" title="${esc(v)}">${esc(v)}</div>
+                </div>
+            `).join("");
+        }
+
+        const bodyFields = [
+            ["HEADLINE / JUDUL", row.title || row.judul || row.Judul || row.Query],
+            ["ISI BERITA / TEKS", row.isi_berita || row.Isi_Berita || row.teks || row.Teks || row.text || row.caption || row.content],
+            ["GEEKGARDEN FIT REASON", row.fit_reason],
+            ["MATCHED SERVICES", row.project_service_type || row.matched_services],
+            ["SKILLS / TECH STACK", row.skills || row.Skill]
+        ].filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== "");
+
+        if (readEl) {
+            readEl.innerHTML = bodyFields.length
+                ? bodyFields.map(([lbl, val]) => `
+                    <div class="p-2.5 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)]">
+                        <div class="font-mono text-[10px] font-bold text-[var(--bb-amber)] mb-1">${esc(lbl)}</div>
+                        <div class="text-xs text-[var(--bb-text)] whitespace-pre-wrap break-words leading-relaxed">${esc(val)}</div>
+                    </div>
+                `).join("")
+                : `<div class="p-3 text-[var(--bb-text-muted)] font-mono text-xs">Lihat tab RAW_JSON untuk seluruh atribut payload.</div>`;
+        }
+
+        currentInspJson = JSON.stringify(row, null, 2);
+        if (jsonEl) jsonEl.textContent = currentInspJson;
+
+        window.bbSetInspectorTab("read");
+        drawer.classList.remove("hidden");
+    };
+
+    window.bbCloseInspector = function () {
+        const drawer = document.getElementById("bb-inspector-drawer");
+        if (drawer) drawer.classList.add("hidden");
+    };
+
+    window.bbSetInspectorTab = function (tab) {
+        const readEl = document.getElementById("bb-inspector-readable");
+        const jsonEl = document.getElementById("bb-inspector-json");
+        const btnR = document.getElementById("bb-insp-tab-read");
+        const btnJ = document.getElementById("bb-insp-tab-json");
+        const isJson = tab === "json";
+        if (readEl) readEl.classList.toggle("hidden", isJson);
+        if (jsonEl) jsonEl.classList.toggle("hidden", !isJson);
+        if (btnR) btnR.classList.toggle("bb-scr-active", !isJson);
+        if (btnJ) btnJ.classList.toggle("bb-scr-active", isJson);
+    };
+
+    window.bbCopyInspectorJson = function () {
+        if (!currentInspJson) return;
+        navigator.clipboard?.writeText(currentInspJson).then(() => {
+            window.bbLogTerminal("JSON payload disalin ke clipboard.", "ok");
+        }).catch(() => {});
+    };
+
+    // 5. LIVE TICKER TAPE (BERITA, SOSMED & JOB HUNTER)
+    async function bbRefreshTicker() {
+        const track = document.getElementById("bb-ticker-track");
+        if (!track) return;
+
+        const items = [];
+        try {
+            const page = document.body?.dataset?.page || "dashboard";
+
+            if (page !== "project") {
+                const an = BASE_ANALYTICS || (await fetch("/api/v1/warehouse/analytics").then(r => r.ok ? r.json() : null).catch(() => null))?.analytics;
+                if (an) {
+                    const sent = an.sentiment_summary || {};
+                    const totS = (sent.positive || 0) + (sent.neutral || 0) + (sent.negative || 0);
+                    if (totS > 0) {
+                        const posPct = Math.round(((sent.positive || 0) / totS) * 100);
+                        items.push({ tag: "SENTIMENT", label: `POS ${posPct}%`, delta: `▲ ${sent.positive || 0}`, cls: "text-[var(--bb-green)]", cmd: "SUPA BERITA" });
+                    }
+                    (an.top_keywords || []).slice(0, 4).forEach((k) => {
+                        items.push({ tag: "KW", label: String(k.keyword || "").toUpperCase(), delta: `▲ ${k.volume || 0}`, cls: "text-[var(--bb-amber)]", cmd: `SUPA BERITA ${k.keyword}` });
+                    });
+                    (an.top_people || []).slice(0, 3).forEach((p) => {
+                        items.push({ tag: "TOKOH", label: String(p.name || "").toUpperCase(), delta: `${p.mentions || 0}x`, cls: "text-[var(--bb-cyan)]", cmd: `SUPA BERITA ${p.name}` });
+                    });
+                    (an.top_hashtags || []).slice(0, 3).forEach((h) => {
+                        items.push({ tag: "SOSMED", label: String(h.tag || "").toUpperCase(), delta: `${h.count || 0}`, cls: "text-[#b58aa5]", cmd: `SUPA INSTAGRAM ${h.tag}` });
+                    });
+                }
+            }
+
+            if (page === "project" || items.length < 10) {
+                const projData = (page === "project" && Array.isArray(window.__BB_RAW_TABLE_ROWS) && window.__BB_RAW_TABLE_ROWS.length)
+                    ? window.__BB_RAW_TABLE_ROWS
+                    : ((await fetch("/api/v1/project/records?limit=20").then(r => r.ok ? r.json() : null).catch(() => null))?.data || []);
+
+                projData
+                    .filter((r) => Number(r.confidence_score) >= 75)
+                    .slice(0, 4)
+                    .forEach((p) => {
+                        const t = String(p.title || "PROJECT").slice(0, 26).toUpperCase();
+                        items.push({
+                            tag: "JOB_FIT",
+                            label: t,
+                            delta: `${p.confidence_score || 0}% ▲`,
+                            cls: "text-[var(--bb-green)]",
+                            cmd: `JOB ${String(p.title || "").split(/\s+/).slice(0, 2).join(" ")}`
+                        });
+                    });
+            }
+        } catch (e) {}
+
+        if (!items.length) {
+            items.push(
+                { tag: "NEWS", label: "KOMBINE READY", delta: "● LIVE", cls: "text-[var(--bb-green)]", cmd: "NEWS KOMBINE prabowo" },
+                { tag: "SOSMED", label: "IG / TIKTOK / FB / X", delta: "● READY", cls: "text-[var(--bb-cyan)]", cmd: "SOC IG #karhutla" },
+                { tag: "JOB_FIT", label: "GEEKGARDEN MATCHER", delta: "≥80%", cls: "text-[var(--bb-amber)]", cmd: "JOB flutter" }
+            );
+        }
+
+        const html = items.map((it) => `
+            <span class="bb-tick-item" onclick="bbExecuteCommand('${esc(it.cmd)}')" title="Klik untuk jalankan: ${esc(it.cmd)}">
+                <span class="text-[var(--bb-text-dim)]">[${esc(it.tag)}]</span>
+                <span class="text-[var(--bb-text)] font-semibold">${esc(it.label)}</span>
+                <span class="${it.cls} font-bold">${esc(it.delta)}</span>
+            </span>
+        `).join("");
+
+        // Duplikat untuk loop marquee mulus
+        track.innerHTML = html + html;
+    }
+
+    // 6. BLOOMBERG COMMAND PARSER (CMD <GO>) + FULL MNEMONICS
+    window.bbExecuteCommand = function (rawInput) {
+        const raw = String(rawInput || "").trim();
+        if (!raw) return;
+
+        window.bbLogTerminal(`CMD> ${raw}`, "cmd");
+        if (cmdHistory[0] !== raw) cmdHistory.unshift(raw);
+        if (cmdHistory.length > 30) cmdHistory.pop();
+        cmdHistIdx = -1;
+
+        const ac = document.getElementById("bb-cmd-ac");
+        if (ac) ac.classList.add("hidden");
+
+        const parts = raw.split(/\s+/);
+        const head = parts[0].toUpperCase();
+        const rest = parts.slice(1).join(" ").trim();
+        const page = document.body?.dataset?.page || "dashboard";
+
+        if (head === "HELP" || head === "?") {
+            window.bbToggleHelpModal(true);
+            return;
+        }
+        if (head === "MENU") {
+            window.bbToggleMenuModal(true);
+            return;
+        }
+        if (head === "BACK") {
+            window.bbNavBack();
+            return;
+        }
+        if (head === "FWD" || head === "FORWARD") {
+            window.bbNavForward();
+            return;
+        }
+        if (head === "DOCS" || head === "API") {
+            window.open("/docs", "_blank");
+            return;
+        }
+        if (head === "ANL" || head === "ANALYTICS") {
+            window.location.href = "/analytics";
+            return;
+        }
+        if (head === "CLR" || head === "CLEAR") {
+            fetch("/api/v1/system/clear-cache", { method: "POST" }).then(() => {
+                window.bbLogTerminal("Cache dibersihkan.", "ok");
+                if (typeof window.forceReloadAll === "function") window.forceReloadAll();
+            }).catch(() => {});
+            return;
+        }
+        if (head === "QUAD" || head === "WATC" || head === "MON" || head === "WATCHLIST") {
+            if (page !== "dashboard") {
+                try { sessionStorage.setItem("ddc_pending_cmd", raw); } catch (e) {}
+                window.location.href = "/dashboard/supabase";
+                return;
+            }
+            pushNavState(raw);
+            window.bbSetScreen("quad");
+            if (rest) {
+                window.bbBroadcastTopic(rest, globalLinkGroup);
+            } else if (head === "WATC" || head === "MON" || head === "WATCHLIST") {
+                const wlInp = document.getElementById("bb-wl-add");
+                if (wlInp) wlInp.focus();
+            }
+            return;
+        }
+        if (head === "JOB" || head === "FIT" || head === "PROJ" || head === "PROJECT") {
+            if (page !== "project") {
+                try { sessionStorage.setItem("ddc_pending_cmd", raw); } catch (e) {}
+                window.location.href = "/dashboard/project";
+                return;
+            }
+            pushNavState(raw);
+            if (rest) {
+                const inp = document.getElementById("proj-input");
+                if (inp) inp.value = rest;
+                if (typeof window.executeAction === "function") window.executeAction(true);
+            } else if (typeof window.ddcReloadProjectPage === "function") {
+                window.ddcReloadProjectPage();
+            }
+            return;
+        }
+
+        // Command untuk halaman dashboard utama (index.html)
+        if (page !== "dashboard") {
+            try { sessionStorage.setItem("ddc_pending_cmd", raw); } catch (e) {}
+            let target = "/dashboard/supabase";
+            if (head === "BANK" || head === "CSV") target = "/dashboard/bank";
+            else if (head === "KW" || head === "TRD" || head === "TREND") target = "/dashboard/keyword";
+            else if (["NW", "NWS", "NWD", "NWB", "NEWS", "BERITA"].includes(head)) target = "/dashboard/berita";
+            else if (["SOC", "SOSMED", "IG", "TT", "FB", "TW", "LI"].includes(head)) target = "/dashboard/sosmed";
+            window.location.href = target;
+            return;
+        }
+
+        // Keluar dari mode QUAD saat membuka tab spesifik
+        if (document.body.classList.contains("bb-scr-quad")) {
+            window.bbSetScreen("intel");
+        }
+        pushNavState(raw);
+
+        if (head === "CRON") {
+            if (typeof window.triggerCronNow === "function") window.triggerCronNow();
+            return;
+        }
+        if (head === "SYNC") {
+            if (typeof window.syncCsvToSupabase === "function") window.syncCsvToSupabase();
+            return;
+        }
+
+        if (head === "SUPA" || head === "DB") {
+            if (typeof window.ddcGoPage === "function") window.ddcGoPage("supabase");
+            const catEl = document.getElementById("sb-cat");
+            const searchEl = document.getElementById("sb-search");
+            const arg1 = (parts[1] || "").toLowerCase();
+            const domainAlias = {
+                berita: "berita", news: "berita",
+                ig: "instagram", instagram: "instagram",
+                fb: "facebook", facebook: "facebook",
+                tt: "tiktok", tiktok: "tiktok",
+                tw: "twitter", x: "twitter", twitter: "twitter",
+                li: "linkedin", linkedin: "linkedin",
+                kw: "keyword_trending", keyword: "keyword_trending"
+            };
+            let queryTail = rest;
+            if (domainAlias[arg1] && catEl) {
+                catEl.value = domainAlias[arg1];
+                queryTail = parts.slice(2).join(" ").trim();
+                if (searchEl) searchEl.value = queryTail;
+                if (typeof window.onDomainChange === "function") window.onDomainChange();
+            } else {
+                if (searchEl) searchEl.value = queryTail;
+                if (typeof window.applyClientFilters === "function") window.applyClientFilters();
+            }
+            return;
+        }
+
+        if (head === "BANK" || head === "CSV") {
+            if (typeof window.ddcGoPage === "function") window.ddcGoPage("bank");
+            const catEl = document.getElementById("bd-cat");
+            const toolEl = document.getElementById("bd-tool");
+            const searchEl = document.getElementById("bd-search");
+            const arg1 = (parts[1] || "").toLowerCase();
+            const catAlias = {
+                berita: "berita", news: "berita",
+                ig: "instagram", instagram: "instagram",
+                fb: "facebook", facebook: "facebook",
+                tt: "tiktok", tiktok: "tiktok",
+                tw: "twitter", twitter: "twitter",
+                li: "linkedin", linkedin: "linkedin",
+                kw: "keyword_trending", keyword: "keyword_trending",
+                all: "semua", semua: "semua"
+            };
+            if (catAlias[arg1] && catEl) {
+                catEl.value = catAlias[arg1];
+                const arg2 = (parts[2] || "").toLowerCase();
+                if (["apify", "diffbot", "newsdata", "brightdata", "kombine"].includes(arg2) && toolEl) {
+                    toolEl.value = arg2;
+                    if (searchEl) searchEl.value = parts.slice(3).join(" ").trim();
+                } else if (searchEl) {
+                    searchEl.value = parts.slice(2).join(" ").trim();
+                }
+            } else if (searchEl) {
+                searchEl.value = rest;
+            }
+            if (typeof window.onBankFilterChange === "function") window.onBankFilterChange();
+            return;
+        }
+
+        if (head === "KW" || head === "TRD" || head === "TREND") {
+            if (typeof window.ddcGoPage === "function") window.ddcGoPage("keyword");
+            const modeEl = document.getElementById("kw-mode");
+            const inpEl = document.getElementById("kw-input");
+            if (modeEl) modeEl.value = (head === "TRD" || head === "TREND") ? "/api/v1/keyword/trending" : "/api/v1/keyword/search";
+            if (inpEl && rest) inpEl.value = rest;
+            if (rest && typeof window.executeAction === "function") window.executeAction(true);
+            return;
+        }
+
+        if (["NW", "NWS", "NWD", "NWB", "NEWS", "BERITA"].includes(head)) {
+            if (typeof window.ddcGoPage === "function") window.ddcGoPage("berita");
+            const engEl = document.getElementById("br-engine");
+            const inpEl = document.getElementById("br-input");
+            const engMap = {
+                kombine: "/api/v1/berita/kombine",
+                newsdata: "/api/v1/berita/newsdata",
+                diffbot: "/api/v1/berita/diffbot",
+                brightdata: "/api/v1/berita/brightdata"
+            };
+            let topic = rest;
+            if (head === "NWS" && engEl) engEl.value = engMap.newsdata;
+            else if (head === "NWD" && engEl) engEl.value = engMap.diffbot;
+            else if (head === "NWB" && engEl) engEl.value = engMap.brightdata;
+            else if (head === "NW" && engEl) engEl.value = engMap.kombine;
+            else {
+                const arg1 = (parts[1] || "").toLowerCase();
+                if (engMap[arg1] && engEl) {
+                    engEl.value = engMap[arg1];
+                    topic = parts.slice(2).join(" ").trim();
+                }
+            }
+            if (inpEl && topic) inpEl.value = topic;
+            if (topic && typeof window.executeAction === "function") window.executeAction(true);
+            return;
+        }
+
+        if (["SOC", "SOSMED", "IG", "TT", "FB", "TW", "LI"].includes(head)) {
+            if (typeof window.ddcGoPage === "function") window.ddcGoPage("sosmed");
+            const pfEl = document.getElementById("sm-platform");
+            const inpEl = document.getElementById("sm-input");
+            const pfMap = {
+                ig: "instagram", instagram: "instagram",
+                fb: "facebook", facebook: "facebook",
+                tt: "tiktok", tiktok: "tiktok",
+                tw: "twitter", x: "twitter", twitter: "twitter",
+                li: "linkedin", linkedin: "linkedin"
+            };
+            let q = rest;
+            if (pfMap[head.toLowerCase()] && pfEl) {
+                pfEl.value = pfMap[head.toLowerCase()];
+                if (typeof window.toggleSosmedOptions === "function") window.toggleSosmedOptions();
+            } else {
+                const arg1 = (parts[1] || "").toLowerCase();
+                if (pfMap[arg1] && pfEl) {
+                    pfEl.value = pfMap[arg1];
+                    if (typeof window.toggleSosmedOptions === "function") window.toggleSosmedOptions();
+                    q = parts.slice(2).join(" ").trim();
+                }
+            }
+            if (inpEl && q) inpEl.value = q;
+            if (q && typeof window.executeAction === "function") window.executeAction(true);
+            return;
+        }
+
+        // Fallback: anggap teks bebas sebagai quick search di Supabase
+        if (typeof window.ddcGoPage === "function") window.ddcGoPage("supabase");
+        const searchEl = document.getElementById("sb-search");
+        if (searchEl) searchEl.value = raw;
+        if (typeof window.applyClientFilters === "function") window.applyClientFilters();
+    };
+
+    window.bbRunCommandFromInput = function () {
+        const inp = document.getElementById("bb-cmd-input");
+        if (!inp) return;
+        window.bbExecuteCommand(inp.value);
+    };
+
+    // 7. ANALYTICS PAGE CONTROLLER (/analytics)
+    window.bbLoadAnalyticsPage = async function () {
+        if (document.body?.dataset?.page !== "analytics") return;
+        try {
+            const [resSt, resAn] = await Promise.all([
+                fetch("/api/v1/scheduler/status").then(r => r.ok ? r.json() : {}),
+                fetch("/api/v1/warehouse/analytics").then(r => r.ok ? r.json() : {})
+            ]);
+            const wh = (resSt.supabase_warehouse || {}).counts || {};
+            const sc = resSt.scheduler || {};
+            const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? 0; };
+
+            setTxt("st-news", wh.news_articles);
+            setTxt("st-keywords", wh.keywords);
+            setTxt("st-trends", wh.trend_snapshots);
+            setTxt("st-posts", wh.social_posts);
+            setTxt("st-raw", wh.raw_data);
+            setTxt("cron-next", sc.next_run_wib || "-");
+            setTxt("cron-status", (sc.last_execution || {}).status || "idle");
+
+            setTxt("kpi-raw", wh.raw_data || 0);
+            setTxt("kpi-news", wh.news_articles || 0);
+            setTxt("kpi-kw", (wh.keywords || 0) + (wh.trend_snapshots || 0));
+            setTxt("kpi-social", (wh.social_posts || 0) + (wh.social_accounts || 0));
+
+            const an = resAn.analytics || {};
+            BASE_ANALYTICS = an;
+            const gridCol = document.documentElement.classList.contains("dark") ? "rgba(52, 63, 82, 0.45)" : "rgba(182, 174, 155, 0.45)";
+            const mountAn = (id, cfg) => {
+                const c = document.getElementById(id);
+                if (!c || typeof Chart === "undefined") return;
+                if (analyticsCharts[id]) { try { analyticsCharts[id].destroy(); } catch (e) {} }
+                analyticsCharts[id] = new Chart(c.getContext("2d"), cfg);
+            };
+
+            const locs = an.locations || [];
+            mountAn("chartLoc", {
+                type: "bar",
+                data: {
+                    labels: locs.map(x => x.location),
+                    datasets: [
+                        { label: "Positif", data: locs.map(x => x.positive), backgroundColor: "rgba(90, 168, 130, 0.78)" },
+                        { label: "Netral", data: locs.map(x => x.neutral), backgroundColor: "rgba(107, 163, 190, 0.78)" },
+                        { label: "Negatif", data: locs.map(x => x.negative), backgroundColor: "rgba(201, 107, 120, 0.78)" }
+                    ]
+                },
+                options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { color: gridCol } }, y: { stacked: true, grid: { display: false } } } }
+            });
+
+            const ppl = an.top_people || [];
+            mountAn("chartPpl", {
+                type: "bar",
+                data: { labels: ppl.map(x => x.name), datasets: [{ label: "Mentions", data: ppl.map(x => x.mentions), backgroundColor: "rgba(141, 132, 184, 0.78)" }] },
+                options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridCol } }, y: { grid: { display: false } } } }
+            });
+
+            const kws = an.top_keywords || [];
+            mountAn("chartKw", {
+                type: "bar",
+                data: { labels: kws.map(x => String(x.keyword || "").substring(0, 22)), datasets: [{ label: "Volume", data: kws.map(x => x.volume), backgroundColor: "rgba(201, 139, 75, 0.78)" }] },
+                options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridCol } }, y: { grid: { display: false } } } }
+            });
+
+            const tl = an.timeline || [];
+            mountAn("chartTime", {
+                type: "line",
+                data: {
+                    labels: tl.map(x => x.time),
+                    datasets: [
+                        { label: "Berita", data: tl.map(x => x.berita), borderColor: "#5aa882", tension: 0.25 },
+                        { label: "Keyword", data: tl.map(x => x.keyword), borderColor: "#c98b4b", tension: 0.25 },
+                        { label: "Sosmed", data: tl.map(x => x.sosmed), borderColor: "#6ba3be", tension: 0.25 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridCol } }, y: { grid: { color: gridCol } } } }
+            });
+
+            const s = an.sentiment_summary || {};
+            mountAn("chartSent", {
+                type: "doughnut",
+                data: { labels: ["Positif", "Netral", "Negatif"], datasets: [{ data: [s.positive || 0, s.neutral || 0, s.negative || 0], backgroundColor: ["rgba(90, 168, 130, 0.85)", "rgba(107, 163, 190, 0.85)", "rgba(201, 107, 120, 0.85)"], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: "64%", plugins: { legend: { position: "right" } } }
+            });
+
+            const ps = an.platform_share || {};
+            mountAn("chartPlat", {
+                type: "polarArea",
+                data: { labels: Object.keys(ps), datasets: [{ data: Object.values(ps), backgroundColor: ["rgba(90, 168, 130, 0.70)", "rgba(201, 139, 75, 0.70)", "rgba(107, 163, 190, 0.70)", "rgba(181, 131, 156, 0.70)"], borderWidth: 1, borderColor: "#262e3d" }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridCol }, ticks: { display: false } } }, plugins: { legend: { position: "right" } } }
+            });
+
+            bbRefreshTicker();
+        } catch (e) {
+            window.bbLogTerminal("Analytics load err: " + (e.message || e), "err");
+        }
+    };
+
+    window.bbSyncAnalyticsCsv = async function () {
+        const btn = document.getElementById("btn-sync");
+        if (btn) { btn.disabled = true; btn.textContent = "⏳ SYNCING..."; }
+        try {
+            await fetch("/api/v1/warehouse/sync-csv", { method: "POST" });
+            await window.bbLoadAnalyticsPage();
+        } catch (e) {
+            window.bbLogTerminal("Sync error: " + e.message, "err");
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "↻ SYNC ALL CSV → SUPABASE"; }
+        }
+    };
+
+    // 8. INIT TERMINAL ENGINE (AUTOCOMPLETE, KEYBOARD SHORTCUTS, TICKER, CLOCK)
+    window.bbInitTerminalEngine = function () {
+        if (window.__BB_ENGINE_BOOTED) return;
+        window.__BB_ENGINE_BOOTED = true;
+
+        tickClockAndCron();
+        setInterval(tickClockAndCron, 1000);
+        setTimeout(bbRefreshTicker, 800);
+        setInterval(bbRefreshTicker, 60000);
+
+        const cmdInput = document.getElementById("bb-cmd-input");
+        const acBox = document.getElementById("bb-cmd-ac");
+
+        const renderAc = (val) => {
+            if (!acBox) return;
+            const q = String(val || "").trim().toLowerCase();
+            if (!q) { acBox.classList.add("hidden"); return; }
+            const matches = CMD_PRESETS.filter(p => p.cmd.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)).slice(0, 8);
+            if (!matches.length) { acBox.classList.add("hidden"); return; }
+            acActiveIdx = -1;
+            acBox.innerHTML = matches.map((m, i) => `
+                <div class="bb-ac-item" data-cmd="${esc(m.cmd)}" data-idx="${i}">
+                    <span class="text-[var(--bb-amber)] font-bold">${esc(m.cmd)}</span>
+                    <span class="text-[var(--bb-text-muted)] text-[10px] truncate">${esc(m.desc)}</span>
+                </div>
+            `).join("");
+            acBox.querySelectorAll(".bb-ac-item").forEach((el) => {
+                el.onclick = () => {
+                    cmdInput.value = el.dataset.cmd;
+                    acBox.classList.add("hidden");
+                    window.bbExecuteCommand(cmdInput.value);
+                };
+            });
+            acBox.classList.remove("hidden");
+        };
+
+        if (cmdInput) {
+            cmdInput.addEventListener("input", () => renderAc(cmdInput.value));
+            cmdInput.addEventListener("keydown", (ev) => {
+                const items = acBox && !acBox.classList.contains("hidden") ? Array.from(acBox.querySelectorAll(".bb-ac-item")) : [];
+                if (ev.key === "ArrowDown" && items.length) {
+                    ev.preventDefault();
+                    acActiveIdx = (acActiveIdx + 1) % items.length;
+                    items.forEach((el, i) => el.classList.toggle("bb-ac-active", i === acActiveIdx));
+                    return;
+                }
+                if (ev.key === "ArrowUp" && items.length) {
+                    ev.preventDefault();
+                    acActiveIdx = (acActiveIdx - 1 + items.length) % items.length;
+                    items.forEach((el, i) => el.classList.toggle("bb-ac-active", i === acActiveIdx));
+                    return;
+                }
+                if (ev.key === "ArrowUp" && !items.length && cmdHistory.length) {
+                    ev.preventDefault();
+                    cmdHistIdx = Math.min(cmdHistory.length - 1, cmdHistIdx + 1);
+                    cmdInput.value = cmdHistory[cmdHistIdx];
+                    return;
+                }
+                if (ev.key === "ArrowDown" && !items.length && cmdHistory.length) {
+                    ev.preventDefault();
+                    cmdHistIdx = Math.max(-1, cmdHistIdx - 1);
+                    cmdInput.value = cmdHistIdx >= 0 ? cmdHistory[cmdHistIdx] : "";
+                    return;
+                }
+                if (ev.key === "Enter") {
+                    ev.preventDefault();
+                    if (acActiveIdx >= 0 && items[acActiveIdx]) {
+                        cmdInput.value = items[acActiveIdx].dataset.cmd;
+                    }
+                    if (acBox) acBox.classList.add("hidden");
+                    window.bbExecuteCommand(cmdInput.value);
+                } else if (ev.key === "Escape") {
+                    if (acBox) acBox.classList.add("hidden");
+                    cmdInput.blur();
+                }
+            });
+            document.addEventListener("click", (ev) => {
+                if (acBox && !cmdInput.contains(ev.target) && !acBox.contains(ev.target)) {
+                    acBox.classList.add("hidden");
+                }
+            });
+        }
+
+        // Global Terminal Shortcuts & Bloomberg Type-Anywhere Command Capture
+        document.addEventListener("keydown", (ev) => {
+            const tag = (ev.target && ev.target.tagName || "").toLowerCase();
+            const isTyping = tag === "input" || tag === "textarea" || tag === "select";
+
+            if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "k") {
+                ev.preventDefault();
+                if (cmdInput) { cmdInput.focus(); cmdInput.select(); }
+                return;
+            }
+            if (!isTyping && ev.key === "/") {
+                ev.preventDefault();
+                if (cmdInput) { cmdInput.focus(); cmdInput.select(); }
+                return;
+            }
+            if (ev.key === "Escape") {
+                const menu = document.getElementById("bb-menu-modal");
+                if (menu && !menu.classList.contains("hidden")) { window.bbToggleMenuModal(false); return; }
+                const help = document.getElementById("bb-help-modal");
+                if (help && !help.classList.contains("hidden")) { window.bbToggleHelpModal(false); return; }
+                const insp = document.getElementById("bb-inspector-drawer");
+                if (insp && !insp.classList.contains("hidden")) { window.bbCloseInspector(); return; }
+                const maxEl = document.querySelector(".bb-panel.bb-maximized");
+                if (maxEl) {
+                    maxEl.classList.remove("bb-maximized");
+                    if (typeof Chart !== "undefined" && Chart.instances) {
+                        Object.values(Chart.instances).forEach((ch) => { try { ch.resize(); } catch (e) {} });
+                    }
+                }
+                return;
+            }
+            if (ev.altKey && ev.key === "ArrowLeft") {
+                ev.preventDefault();
+                window.bbNavBack();
+                return;
+            }
+            if (ev.altKey && ev.key === "ArrowRight") {
+                ev.preventDefault();
+                window.bbNavForward();
+                return;
+            }
+            if (ev.altKey && ["1", "2", "3", "4", "5"].includes(ev.key)) {
+                ev.preventDefault();
+                if (ev.key === "1") window.bbSetScreen("intel");
+                else if (ev.key === "2") window.bbSetScreen("ops");
+                else if (ev.key === "3") window.location.href = "/dashboard/project";
+                else if (ev.key === "4") window.bbSetScreen("grid");
+                else if (ev.key === "5") window.bbExecuteCommand("QUAD");
+                return;
+            }
+            if (!isTyping && ["F2", "F3", "F4", "F5", "F6", "F7", "F8"].includes(ev.key)) {
+                ev.preventDefault();
+                const fMap = { F2: "supabase", F3: "bank", F4: "keyword", F5: "berita", F6: "sosmed", F7: "project" };
+                if (ev.key === "F8") { window.location.href = "/analytics"; return; }
+                const target = fMap[ev.key];
+                if (target) {
+                    if (typeof window.ddcGoPage === "function") window.ddcGoPage(target);
+                    else window.location.href = "/dashboard/" + target;
+                }
+                return;
+            }
+            if (!isTyping) {
+                const rows = window.__BB_CURRENT_ROWS || [];
+                const hasRowSel = Number.isInteger(window.__BB_SELECTED_ROW_IDX) && window.__BB_SELECTED_ROW_IDX >= 0;
+                if ((ev.key === "ArrowDown" || (hasRowSel && (ev.key === "j" || ev.key === "J"))) && rows.length) {
+                    ev.preventDefault();
+                    const cur = hasRowSel ? window.__BB_SELECTED_ROW_IDX : -1;
+                    window.bbSelectTableRow(Math.min(rows.length - 1, cur + 1), false);
+                    return;
+                }
+                if ((ev.key === "ArrowUp" || (hasRowSel && (ev.key === "k" || ev.key === "K"))) && rows.length) {
+                    ev.preventDefault();
+                    const cur = hasRowSel ? window.__BB_SELECTED_ROW_IDX : 0;
+                    window.bbSelectTableRow(Math.max(0, cur - 1), false);
+                    return;
+                }
+                if (ev.key === "Enter" && hasRowSel) {
+                    ev.preventDefault();
+                    window.bbOpenInspector(window.__BB_SELECTED_ROW_IDX);
+                    return;
+                }
+                if (ev.key === "?") {
+                    ev.preventDefault();
+                    window.bbToggleHelpModal();
+                    return;
+                }
+                // Type-anywhere Bloomberg CMD capture
+                if (!ev.ctrlKey && !ev.metaKey && !ev.altKey && ev.key.length === 1 && /^[a-zA-Z0-9#]$/.test(ev.key) && cmdInput) {
+                    cmdInput.focus();
+                    cmdInput.value = ev.key;
+                    renderAc(cmdInput.value);
+                    ev.preventDefault();
+                }
+            }
+        });
+
+        // Execute any cross-page pending command from CMD <GO>
+        try {
+            const pending = sessionStorage.getItem("ddc_pending_cmd");
+            if (pending) {
+                sessionStorage.removeItem("ddc_pending_cmd");
+                setTimeout(() => window.bbExecuteCommand(pending), 350);
+            }
+        } catch (e) {}
+    };
+
+    // 9. BLOOMBERG <MENU> FUNCTION DIRECTORY
+    window.bbRenderMenuModal = function () {
+        const grid = document.getElementById("bb-menu-grid");
+        if (!grid) return;
+        const groups = [
+            {
+                title: "1. NEWS WIRE (PORTAL BERITA)",
+                color: "text-[var(--bb-green)]",
+                items: [
+                    ["NW <topik>", "Scrape Berita Kombine (Newsdata + Diffbot)"],
+                    ["NWS <topik>", "Scrape Berita Cepat via Newsdata.io"],
+                    ["NWD <topik/url>", "Scrape Full Text + Sentimen Diffbot AI"],
+                    ["SUPA BERITA <kw>", "Cari Arsip Berita Live di Supabase"]
+                ]
+            },
+            {
+                title: "2. SOCIAL MEDIA MONITORING",
+                color: "text-[var(--bb-cyan)]",
+                items: [
+                    ["IG <#tag/kw>", "Scrape Instagram Hashtag / Konten"],
+                    ["TT <kw>", "Scrape TikTok Viral & Engagement"],
+                    ["FB <page/kw>", "Scrape Facebook Page / Post"],
+                    ["TW <kw>", "Scrape Twitter / X"],
+                    ["LI <role>", "Scrape Profil LinkedIn (Bright Data)"]
+                ]
+            },
+            {
+                title: "3. JOB HUNTER (GEEKGARDEN FIT)",
+                color: "text-[var(--bb-amber-bright)]",
+                items: [
+                    ["JOB <stack>", "Hunt Project & Hitung Geekgarden Fit (≥80%)"],
+                    ["FIT", "Buka Job Hunter Desk (/dashboard/project)"],
+                    ["KW <keyword>", "Keyword Related Queries"],
+                    ["TRD <kategori>", "Google Trends Rising Topics"]
+                ]
+            },
+            {
+                title: "4. TERMINAL LAUNCHPAD & SYSTEM",
+                color: "text-[var(--bb-yellow)]",
+                items: [
+                    ["QUAD", "4-Pane Launchpad (News + Sosmed + Job + Watchlist)"],
+                    ["WATC", "Buka Watchlist & Topic Broadcaster"],
+                    ["CSV <kat>", "Eksplorasi Bank Data CSV Lokal"],
+                    ["ANL", "Global Analytics Matrix (/analytics)"],
+                    ["CRON RUN", "Trigger Batch Cron 1.000 Baris"]
+                ]
+            }
+        ];
+        grid.innerHTML = groups.map((g) => `
+            <div class="p-2.5 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1.5">
+                <div class="font-bold ${g.color} border-b border-[var(--bb-border)] pb-1">${esc(g.title)}</div>
+                ${g.items.map(([cmd, desc]) => `
+                    <div onclick="bbToggleMenuModal(false); bbExecuteCommand('${esc(cmd.replace(/<[^>]+>/g, '').trim())}')"
+                         class="flex items-center justify-between gap-2 p-1 hover:bg-[var(--bb-panel-hover)] cursor-pointer">
+                        <span class="text-[var(--bb-amber)] font-bold shrink-0">${esc(cmd)}</span>
+                        <span class="text-[var(--bb-text-muted)] text-[10px] truncate">${esc(desc)}</span>
+                    </div>
+                `).join("")}
+            </div>
+        `).join("");
+    };
+
+    // 10. COLOR-CODED PANEL LINKING & TOPIC BROADCAST
+    function applyLinkPillStyle(el, grp) {
+        if (!el) return;
+        const dot = el.querySelector(".bb-link-dot");
+        const txt = el.querySelector("span:last-child");
+        if (dot) {
+            dot.className = "bb-link-dot " + (grp === "AMBER" ? "bg-[var(--bb-amber)]" : grp === "CYAN" ? "bg-[var(--bb-cyan)]" : "bg-[var(--bb-text-dim)]");
+        }
+        if (txt) txt.textContent = (el.id === "bb-global-link-btn" ? "LINK:" : "") + grp;
+    }
+
+    window.bbCycleActiveLinkGroup = function () {
+        const idx = (LINK_GROUPS.indexOf(globalLinkGroup) + 1) % LINK_GROUPS.length;
+        globalLinkGroup = LINK_GROUPS[idx];
+        applyLinkPillStyle(document.getElementById("bb-global-link-btn"), globalLinkGroup);
+        window.bbLogTerminal(`Global Link Group -> ${globalLinkGroup}`, "info");
+    };
+
+    window.bbCycleQuadLink = function (qid) {
+        const cur = quadLinks[qid] || "AMBER";
+        const next = LINK_GROUPS[(LINK_GROUPS.indexOf(cur) + 1) % LINK_GROUPS.length];
+        quadLinks[qid] = next;
+        applyLinkPillStyle(document.getElementById(`bb-${qid}-link`), next);
+        window.bbLogTerminal(`${qid.toUpperCase()} Link Group -> ${next}`, "info");
+    };
+
+    window.bbBroadcastTopic = function (topic, group = "AMBER") {
+        const q = String(topic || "").trim();
+        if (!q || group === "NONE") return;
+        window.bbLogTerminal(`BROADCAST [${group}] -> "${q}"`, "cmd");
+        ["q1", "q2", "q3"].forEach((qid) => {
+            if (quadLinks[qid] === group) {
+                const inp = document.getElementById(`bb-${qid}-input`);
+                if (inp) inp.value = q;
+                window.bbQuadRun(qid, false);
+            }
+        });
+        const sb = document.getElementById("sb-search");
+        if (sb && document.body?.dataset?.page === "dashboard") {
+            sb.value = q;
+            if (typeof window.applyClientFilters === "function") window.applyClientFilters();
+        }
+    };
+
+    // 11. 4-QUADRANT LIVE TERMINAL LAUNCHPAD (NEWS + SOSMED + JOB + WATCHLIST)
+    window.bbQuadRun = async function (qid, doLiveScrape = false) {
+        const body = document.getElementById(`bb-${qid}-body`);
+        const inp = document.getElementById(`bb-${qid}-input`);
+        if (!body) return;
+        const q = (inp ? inp.value : "").trim();
+
+        body.innerHTML = `<div class="p-3 text-[var(--bb-amber)]">${doLiveScrape ? "⏳ SCRAPING LIVE..." : "⏳ LOADING..."}</div>`;
+        try {
+            let rows = [];
+            if (qid === "q1") {
+                if (doLiveScrape && q) {
+                    const r = await fetch("/api/v1/berita/kombine", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ keyword_or_url: q, max_results: 15 })
+                    }).then(res => res.json());
+                    rows = r.data || [];
+                } else {
+                    const r = await fetch(`/api/v1/warehouse/records?category=berita&search_query=${encodeURIComponent(q)}&limit=40`).then(res => res.json());
+                    rows = r.data || [];
+                }
+                quadCache.q1 = rows;
+                body.innerHTML = rows.length ? rows.slice(0, 30).map((row, i) => {
+                    const sent = Number(row.sentimen_diffbot ?? row.sentiment ?? 0);
+                    const sCls = sent > 0.1 ? "text-[var(--bb-green)]" : sent < -0.1 ? "text-[var(--bb-red)]" : "text-[var(--bb-text-muted)]";
+                    const title = row.judul || row.title || "(Tanpa Judul)";
+                    const src = row.sumber || row.source || row.platform || "NEWS";
+                    return `
+                        <div class="bb-quad-row" onclick='bbOpenRawInspectorRow(window.__BB_QUAD_Q1[${i}], "NEWS")'>
+                            <div class="flex items-center justify-between gap-2 text-[10px]">
+                                <span class="text-[var(--bb-cyan)] font-bold truncate">${esc(src)}</span>
+                                <span class="${sCls} font-bold shrink-0">${isNaN(sent) ? "-" : sent.toFixed(2)}</span>
+                            </div>
+                            <div class="text-[var(--bb-text)] truncate mt-0.5">${esc(title)}</div>
+                        </div>
+                    `;
+                }).join("") : `<div class="p-3 text-[var(--bb-text-muted)]">Tidak ada berita cocok.</div>`;
+                window.__BB_QUAD_Q1 = rows;
+            } else if (qid === "q2") {
+                const pf = (document.getElementById("bb-q2-platform")?.value || "instagram");
+                if (doLiveScrape && q) {
+                    const payload = pf === "linkedin"
+                        ? { keyword: q, region_indonesia: true, max_results: 10, search_mode: "profile" }
+                        : pf === "facebook"
+                        ? { keyword_or_url: q, engine: "apify", mode_apify: "bersih", max_results: 15 }
+                        : (pf === "instagram" || pf === "tiktok")
+                        ? { keyword_or_hashtag: q, engine: "apify", max_results: 15 }
+                        : { keyword: q, engine: "apify", max_results: 15 };
+                    const r = await fetch(`/api/v1/sosmed/${pf}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    }).then(res => res.json());
+                    rows = r.data || [];
+                } else {
+                    const r = await fetch(`/api/v1/warehouse/records?category=${encodeURIComponent(pf)}&search_query=${encodeURIComponent(q)}&limit=40`).then(res => res.json());
+                    rows = r.data || [];
+                }
+                quadCache.q2 = rows;
+                body.innerHTML = rows.length ? rows.slice(0, 30).map((row, i) => {
+                    const user = row.username || row.Username || row.author || row.Nama || `@${pf}`;
+                    const txt = row.teks || row.Teks || row.text || row.caption || row.content || row.Pekerjaan_Saat_Ini || "-";
+                    const eng = row.likes ?? row.Likes ?? row.like ?? row.Koneksi ?? 0;
+                    return `
+                        <div class="bb-quad-row" onclick='bbOpenRawInspectorRow(window.__BB_QUAD_Q2[${i}], "SOSMED")'>
+                            <div class="flex items-center justify-between gap-2 text-[10px]">
+                                <span class="text-[var(--bb-cyan)] font-bold truncate">${esc(user)}</span>
+                                <span class="text-[var(--bb-amber)] shrink-0">♥ ${esc(eng)}</span>
+                            </div>
+                            <div class="text-[var(--bb-text)] truncate mt-0.5">${esc(txt)}</div>
+                        </div>
+                    `;
+                }).join("") : `<div class="p-3 text-[var(--bb-text-muted)]">Tidak ada data ${esc(pf)} cocok.</div>`;
+                window.__BB_QUAD_Q2 = rows;
+            } else if (qid === "q3") {
+                if (doLiveScrape && q) {
+                    const r = await fetch("/api/v1/project/search", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ keyword: q, project_sources: "all", region_indonesia: true, max_results: 20 })
+                    }).then(res => res.json());
+                    rows = r.data || [];
+                } else {
+                    const r = await fetch("/api/v1/project/records?limit=120").then(res => res.json());
+                    rows = r.data || [];
+                    if (q) {
+                        const ql = q.toLowerCase();
+                        rows = rows.filter((row) => Object.values(row || {}).join(" ").toLowerCase().includes(ql));
+                    }
+                }
+                quadCache.q3 = rows;
+                body.innerHTML = rows.length ? rows.slice(0, 30).map((row, i) => {
+                    const sc = Number(row.confidence_score) || 0;
+                    const sCls = sc >= 80 ? "text-[var(--bb-green)]" : sc >= 40 ? "text-[var(--bb-amber)]" : "text-[var(--bb-red)]";
+                    return `
+                        <div class="bb-quad-row" onclick='bbOpenRawInspectorRow(window.__BB_QUAD_Q3[${i}], "JOB_FIT")'>
+                            <div class="flex items-center justify-between gap-2 text-[10px]">
+                                <span class="text-[var(--bb-cyan)] truncate">${esc(row.source_platform || row.platform || "LEAD")} · ${esc(row.budget || "-")}</span>
+                                <span class="${sCls} font-bold shrink-0">FIT ${sc}%</span>
+                            </div>
+                            <div class="text-[var(--bb-text)] truncate mt-0.5">${esc(row.title || "-")}</div>
+                        </div>
+                    `;
+                }).join("") : `<div class="p-3 text-[var(--bb-text-muted)]">Tidak ada project cocok.</div>`;
+                window.__BB_QUAD_Q3 = rows;
+            }
+            window.bbRenderWatchlist();
+        } catch (err) {
+            body.innerHTML = `<div class="p-3 text-[var(--bb-red)]">ERR: ${esc(err.message || err)}</div>`;
+        }
+    };
+
+    window.bbRenderWatchlist = function () {
+        const body = document.getElementById("bb-q4-body");
+        if (!body) return;
+        const terms = getWatchlist();
+        const countHits = (arr, t) => {
+            const ql = t.toLowerCase();
+            return (arr || []).filter(r => Object.values(r || {}).join(" ").toLowerCase().includes(ql)).length;
+        };
+        body.innerHTML = terms.map((term) => {
+            const nC = countHits(quadCache.q1, term);
+            const sC = countHits(quadCache.q2, term);
+            const jC = countHits(quadCache.q3, term);
+            return `
+                <div class="flex items-center justify-between gap-2 p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] hover:border-[var(--bb-amber)] transition">
+                    <div onclick="bbBroadcastTopic('${esc(term)}', 'AMBER')" class="flex-1 min-w-0 cursor-pointer">
+                        <div class="text-[var(--bb-amber-bright)] font-bold truncate">${esc(term.toUpperCase())}</div>
+                        <div class="text-[10px] text-[var(--bb-text-muted)]">
+                            NEWS:<span class="text-[var(--bb-green)]">${nC}</span> · SOC:<span class="text-[var(--bb-cyan)]">${sC}</span> · JOB:<span class="text-[var(--bb-amber)]">${jC}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" onclick="bbBroadcastTopic('${esc(term)}', 'AMBER')" class="bb-btn !py-0.5 !px-1.5 !text-[9px]">SYNC</button>
+                        <button type="button" onclick="bbRemoveWatchlistTerm('${esc(term)}')" class="bb-btn !py-0.5 !px-1.5 !text-[9px] text-[var(--bb-red)]">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    };
+
+    window.bbAddWatchlistTerm = function (val) {
+        const clean = String(val || "").trim().toLowerCase();
+        if (!clean) return;
+        const list = getWatchlist();
+        if (!list.includes(clean)) {
+            list.unshift(clean);
+            saveWatchlist(list.slice(0, 15));
+        }
+        const inp = document.getElementById("bb-wl-add");
+        if (inp) inp.value = "";
+        window.bbRenderWatchlist();
+        window.bbLogTerminal(`Watchlist pinned: "${clean}"`, "ok");
+    };
+
+    window.bbRemoveWatchlistTerm = function (term) {
+        const list = getWatchlist().filter(t => t !== term);
+        saveWatchlist(list);
+        window.bbRenderWatchlist();
+    };
+
+    window.bbRefreshQuadAll = function () {
+        window.bbQuadRun("q1", false);
+        window.bbQuadRun("q2", false);
+        window.bbQuadRun("q3", false);
+        window.bbRenderWatchlist();
+    };
+
+    // 12. ROW INSPECTOR ENTITY BROADCAST / PIVOT
+    window.bbInspectorBroadcast = function (target) {
+        if (!currentInspRow) return;
+        const rawText = String(
+            currentInspRow.Query ||
+            currentInspRow.keyword ||
+            currentInspRow.skills ||
+            currentInspRow.title ||
+            currentInspRow.judul ||
+            currentInspRow.teks ||
+            ""
+        ).trim();
+        const topic = rawText
+            .replace(/https?:\/\/\S+/gi, "")
+            .replace(/[^a-zA-Z0-9#\s]/g, " ")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .join(" ") || "teknologi";
+
+        if (target === "watchlist") {
+            window.bbAddWatchlistTerm(topic);
+            return;
+        }
+        window.bbCloseInspector();
+        if (target === "quad") {
+            window.bbExecuteCommand(`QUAD ${topic}`);
+        } else if (target === "news") {
+            window.bbExecuteCommand(`NW ${topic}`);
+        } else if (target === "sosmed") {
+            window.bbExecuteCommand(`IG ${topic.replace(/^#/, "")}`);
+        } else if (target === "job") {
+            window.bbExecuteCommand(`JOB ${topic}`);
+        }
+    };
 })();

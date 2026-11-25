@@ -86,6 +86,9 @@ CACHED_ROUTE_TTLS = {
     "/api/v1/bank-data/catalog": 300,
     "/api/v1/warehouse/records": 60,
     "/api/v1/bank-data/records": 90,
+    "/api/v1/scheduler/status": 30,
+    "/api/v1/warehouse/stats": 60,
+    "/api/v1/project/records": 30,
 }
 
 
@@ -177,7 +180,14 @@ def apply_10m_db_optimizations(conn) -> Dict[str, Any]:
                 sch, tbl, col, dtype = _rval(_r, 'table_schema', 0), _rval(_r, 'table_name', 1), _rval(_r, 'column_name', 2), _rval(_r, 'data_type', 3)
                 cols_by_table.setdefault((sch, tbl), []).append((col, dtype))
 
-            # 3. Buat indeks B-Tree & GIN secara aman
+            # Ambil daftar indeks yang sudah ada dalam 1 query agar tidak membuang round-trip WAN
+            cur.execute(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = ANY(%s);",
+                (list(TARGET_SCHEMAS),),
+            )
+            existing_indexes = {_rval(_r, 'indexname', 0) for _r in cur.fetchall()}
+
+            # 3. Buat indeks B-Tree & GIN secara aman (hanya jika belum ada)
             for (sch, tbl), cols in cols_by_table.items():
                 q_tbl = f"{_quote_ident(sch)}.{_quote_ident(tbl)}"
                 for col, dtype in cols:
@@ -187,34 +197,70 @@ def apply_10m_db_optimizations(conn) -> Dict[str, Any]:
                     # Indeks waktu (DESC NULLS LAST untuk ORDER BY terbaru & range query)
                     if col_l in TIME_COL_CANDIDATES or "timestamp" in dtype or dtype == "date":
                         idx_name = f"idx_{sch}_{tbl}_{col}_desc"[:60]
-                        sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} ({q_col} DESC NULLS LAST);"
-                        try:
-                            cur.execute(sql)
-                            report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (btree desc)")
-                        except Exception as e:
-                            report["warnings"].append(f"{idx_name}: {e}")
+                        if idx_name not in existing_indexes:
+                            sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} ({q_col} DESC NULLS LAST);"
+                            try:
+                                cur.execute(sql)
+                                report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (btree desc)")
+                            except Exception as e:
+                                report["warnings"].append(f"{idx_name}: {e}")
 
                     # Indeks kolom filter & foreign key
                     elif col_l in FILTER_COL_CANDIDATES or col_l.endswith("_id"):
                         idx_name = f"idx_{sch}_{tbl}_{col}_bt"[:60]
-                        sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} ({q_col});"
-                        try:
-                            cur.execute(sql)
-                            report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (btree)")
-                        except Exception as e:
-                            report["warnings"].append(f"{idx_name}: {e}")
+                        if idx_name not in existing_indexes:
+                            sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} ({q_col});"
+                            try:
+                                cur.execute(sql)
+                                report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (btree)")
+                            except Exception as e:
+                                report["warnings"].append(f"{idx_name}: {e}")
 
                     # Indeks GIN Trigram untuk pencarian teks cepat (ILIKE)
                     if report["pg_trgm_enabled"] and col_l in TEXT_SEARCH_CANDIDATES and ("char" in dtype or dtype == "text"):
                         idx_name = f"idx_{sch}_{tbl}_{col}_trgm"[:60]
-                        sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} USING gin ({q_col} gin_trgm_ops);"
-                        try:
-                            cur.execute(sql)
-                            report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (gin_trgm)")
-                        except Exception as e:
-                            report["warnings"].append(f"{idx_name}: {e}")
+                        if idx_name not in existing_indexes:
+                            sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {q_tbl} USING gin ({q_col} gin_trgm_ops);"
+                            try:
+                                cur.execute(sql)
+                                report["indexes_ensured"].append(f"{sch}.{tbl}.{col} (gin_trgm)")
+                            except Exception as e:
+                                report["warnings"].append(f"{idx_name}: {e}")
 
-                # 4. Perbarui statistik query planner PostgreSQL
+            # 4. Indeks komposit & ekspresi khusus query analitik / warehouse
+            extra_indexes = [
+                (
+                    "idx_social_pm_engagement_desc",
+                    "CREATE INDEX IF NOT EXISTS idx_social_pm_engagement_desc ON social.post_metrics ((COALESCE(likes_count,0)+COALESCE(comments_count,0)+COALESCE(shares_count,0)+COALESCE(views_count,0)+COALESCE((engagement_rate*100)::bigint,0)) DESC);"
+                ),
+                (
+                    "idx_social_posts_type_pub_desc",
+                    "CREATE INDEX IF NOT EXISTS idx_social_posts_type_pub_desc ON social.posts (post_type, published_at DESC NULLS LAST);"
+                ),
+                (
+                    "idx_analytics_sent_ent_time_desc",
+                    "CREATE INDEX IF NOT EXISTS idx_analytics_sent_ent_time_desc ON analytics.sentiment_results (entity_type, entity_id, analyzed_at DESC);"
+                ),
+                (
+                    "idx_keyword_metrics_kw_col_desc",
+                    "CREATE INDEX IF NOT EXISTS idx_keyword_metrics_kw_col_desc ON keyword.keyword_metrics (keyword_id, collected_at DESC);"
+                ),
+                (
+                    "idx_scraper_raw_job_type_col",
+                    "CREATE INDEX IF NOT EXISTS idx_scraper_raw_job_type_col ON scraper.raw_data (collected_at DESC NULLS LAST) WHERE data_type IN ('job_search', 'project_hunter', '/api/v1/project/search');"
+                ),
+            ]
+            for idx_name, sql in extra_indexes:
+                if idx_name not in existing_indexes:
+                    try:
+                        cur.execute(sql)
+                        report["indexes_ensured"].append(f"{idx_name} (custom)")
+                    except Exception as e:
+                        report["warnings"].append(f"{idx_name}: {e}")
+
+            # 5. Perbarui statistik query planner PostgreSQL pada tabel utama
+            for (sch, tbl) in cols_by_table:
+                q_tbl = f"{_quote_ident(sch)}.{_quote_ident(tbl)}"
                 try:
                     cur.execute(f"ANALYZE {q_tbl};")
                     report["analyzed_tables"].append(f"{sch}.{tbl}")

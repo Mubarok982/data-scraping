@@ -1,24 +1,26 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4. Pencarian Project — DDC Portal</title>
+    <title>JOB_HUNTER — DDC//TERM Geekgarden Fit</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <script>
         (function () {
             try {
                 const saved = localStorage.getItem('ddc_theme');
-                if (saved === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
+                if (saved === 'light') {
                     document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
                 }
-            } catch (e) {}
+            } catch (e) {
+                document.documentElement.classList.add('dark');
+            }
         })();
     </script>
 
@@ -29,7 +31,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']
+                        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
                     }
                 }
             }
@@ -39,453 +42,567 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link rel="stylesheet" href="/styles.css?v=20261123_proj_split">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232b2926%22/><text y=%22.9em%22 x=%2214%22 font-size=%2272%22 fill=%22white%22>D</text></svg>">
+    <link rel="stylesheet" href="/styles.css?v=20261125_bb_term">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23000000%22/><rect x=%224%22 y=%224%22 width=%2292%22 height=%2292%22 fill=%22none%22 stroke=%22%23ff8c00%22 stroke-width=%228%22/><text y=%22.76em%22 x=%2214%22 font-family=%22monospace%22 font-weight=%22bold%22 font-size=%2258%22 fill=%22%23ff8c00%22>D%3E</text></svg>">
 </head>
 
-<body data-page="project" class="ddc-page-project bg-[#F8FAFC] text-slate-800 dark:bg-[#0F1117] dark:text-zinc-200 min-h-screen antialiased selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/50 dark:selection:text-indigo-100">
+<body data-page="project" class="ddc-page-project min-h-screen antialiased selection:bg-amber-500/30 selection:text-amber-200">
+
+<!-- Mobile Sidebar Overlay -->
 <div id="ddc-sidebar-overlay" onclick="ddcToggleMobileSidebar(false)"
-     class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"></div>
+     class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px] lg:hidden"></div>
 
+<!-- LEFT SIDEBAR NAVBAR -->
 <aside id="ddc-sidebar"
-       class="fixed inset-y-0 left-0 z-50 w-[16.5rem] bg-white dark:bg-[#14171F] border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
-
-    <div class="p-4 overflow-y-auto space-y-6">
-        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
+       class="fixed inset-y-0 left-0 z-50 w-56 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-150">
+    <div class="p-2.5 overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-[var(--bb-border)]">
             <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
-               class="flex items-center gap-2.5 no-underline group">
-                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs">
-                    <i data-lucide="layers" class="w-4 h-4"></i>
-                </span>
-                <div>
-                    <div class="font-semibold text-sm text-slate-900 dark:text-white leading-tight tracking-tight">DDC Portal</div>
-                    <div class="text-[11px] text-slate-500 dark:text-zinc-400">Data Warehouse</div>
-                </div>
+               class="flex items-center gap-1.5 no-underline">
+                <span class="px-1.5 py-0.5 bg-[var(--bb-amber-soft)] border border-[var(--bb-amber)] text-[var(--bb-amber-bright)] font-mono font-bold text-[11px] tracking-wider">DDC//TERM</span>
             </a>
             <button type="button"
                     onclick="window.innerWidth < 1024 ? ddcToggleMobileSidebar(false) : ddcToggleDesktopSidebar()"
                     title="Lipat Sidebar"
-                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="panel-left-close" class="w-4 h-4"></i>
+                    class="bb-btn !py-0.5 !px-1.5 !text-[10px]">◀</button>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Workspace</div>
+            <button type="button" onclick="bbExecuteCommand('QUAD')" class="ddc-sb-item w-full text-left">
+                <span class="truncate">⊞ 4-Pane Launchpad</span>
+                <span class="text-[9px] text-[var(--bb-green)]">QUAD</span>
             </button>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                Data &amp; Arsip
-            </div>
-            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="database" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">Database Supabase</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Live</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Data &amp; Arsip</div>
+            <a href="/dashboard/supabase" data-ddc-tab="supabase" onclick="return ddcGoPage('supabase', event)" class="ddc-sb-item">
+                <span class="truncate">Database Supabase</span>
+                <span class="text-[9px] text-[var(--bb-green)]">F2</span>
             </a>
-            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="archive" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">Bank Data (CSV)</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">CSV</span>
+            <a href="/dashboard/bank" data-ddc-tab="bank" onclick="return ddcGoPage('bank', event)" class="ddc-sb-item">
+                <span class="truncate">Bank Data (CSV)</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F3</span>
             </a>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                Scraper Manual
-            </div>
-            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="trending-up" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">1. Keyword &amp; Trend</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">KW</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Scraper Manual</div>
+            <a href="/dashboard/keyword" data-ddc-tab="keyword" onclick="return ddcGoPage('keyword', event)" class="ddc-sb-item">
+                <span class="truncate">1. Keyword &amp; Trend</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F4</span>
             </a>
-            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="newspaper" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">2. Portal Berita</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">News</span>
+            <a href="/dashboard/berita" data-ddc-tab="berita" onclick="return ddcGoPage('berita', event)" class="ddc-sb-item">
+                <span class="truncate">2. Portal Berita</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F5</span>
             </a>
-            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="share-2" class="w-4 h-4 shrink-0 opacity-80"></i>
-                    <span class="truncate">3. Social Media</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">Social</span>
+            <a href="/dashboard/sosmed" data-ddc-tab="sosmed" onclick="return ddcGoPage('sosmed', event)" class="ddc-sb-item">
+                <span class="truncate">3. Social Media</span>
+                <span class="text-[9px] text-[var(--bb-text-dim)]">F6</span>
             </a>
         </div>
 
         <div class="space-y-1">
-            <div class="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Project &amp; Lead Hunter
-            </div>
-            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)"
-               class="ddc-sb-item flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-zinc-800 dark:text-white shadow-2xs transition no-underline">
-                <span class="flex items-center gap-2.5 truncate">
-                    <i data-lucide="briefcase" class="w-4 h-4 shrink-0 opacity-90"></i>
-                    <span class="truncate">4. Pencarian Project</span>
-                </span>
-                <span class="ddc-sb-pill text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 shrink-0">Fit</span>
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-green)]">Job Hunter</div>
+            <a href="/dashboard/project" data-ddc-tab="project" onclick="return ddcGoPage('project', event)" class="ddc-sb-item bb-fkey-active">
+                <span class="truncate">4. Pencarian Project</span>
+                <span class="text-[9px] text-[var(--bb-amber)]">F7</span>
+            </a>
+        </div>
+
+        <div class="space-y-1">
+            <div class="px-1.5 pb-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--bb-text-dim)]">Analitik</div>
+            <a href="/analytics" class="ddc-sb-item">
+                <span class="truncate">Global Analytics</span>
+                <span class="text-[9px] text-[var(--bb-cyan)]">F8</span>
             </a>
         </div>
     </div>
 
-    <div class="p-3.5 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
-        <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
-            <span class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Project Fit ≥ 80%</span>
-            </span>
-            <a href="/docs" target="_blank" class="text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium inline-flex items-center gap-1 no-underline">
-                <span>API</span>
-                <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
-            </a>
-        </div>
+    <div class="p-2.5 border-t border-[var(--bb-border)] font-mono text-[10px] flex items-center justify-between text-[var(--bb-text-muted)]">
+        <span>FIT TARGET ≥ 80%</span>
+        <span class="text-[var(--bb-green)]">● LIVE</span>
     </div>
 </aside>
+
+<!-- =========================================================================
+     TOP SYSTEM BAR (BLOOMBERG TERMINAL CHROME)
+     ========================================================================= -->
+<header class="sticky top-0 z-40 border-b border-[var(--bb-border)] bg-[var(--bb-bg)]">
+    <div class="px-2.5 py-1 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-bg-elev)]">
+        <div class="flex items-center gap-2 min-w-0">
+            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Sidebar"
+                    class="lg:hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰</button>
+            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
+                    class="hidden bb-btn !py-0.5 !px-1.5 !text-[10px]">☰ NAV</button>
+
+            <span class="font-mono text-[10px] text-[var(--bb-text-muted)] tracking-wider truncate">
+                JOB_HUNTER · GEEKGARDEN FIT
+            </span>
+
+            <span class="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 border border-[var(--bb-green)]/40 bg-[var(--bb-green-soft)] text-[var(--bb-green)] font-mono text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-green)]"></span>
+                HUNTER:LIVE
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                API:<span id="bb-api-latency" class="text-[var(--bb-cyan)]">--ms</span>
+            </span>
+            <span class="hidden lg:inline font-mono text-[10px] text-[var(--bb-text-muted)]">
+                CRON_NEXT:<span id="bb-cron-countdown" class="text-[var(--bb-amber)]">--:--:--</span>
+            </span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <div class="hidden md:flex items-center gap-1 mr-1" title="Ganti tata letak layar kerja">
+                <span class="font-mono text-[10px] text-[var(--bb-text-dim)] mr-0.5">SCR:</span>
+                <button type="button" id="bb-scr-1" onclick="bbSetScreen('intel')" class="bb-scr-btn bb-scr-active">1:DESK</button>
+                <button type="button" id="bb-scr-2" onclick="bbSetScreen('ops')" class="bb-scr-btn">2:HUNT</button>
+                <button type="button" id="bb-scr-4" onclick="bbSetScreen('grid')" class="bb-scr-btn">4:GRID</button>
+            </div>
+
+            <span id="bb-wib-clock" class="font-mono text-[10px] px-1.5 py-0.5 border border-[var(--bb-border)] bg-[var(--bb-panel)] text-[var(--bb-amber)]">
+                --:--:-- WIB
+            </span>
+
+            <button type="button" onclick="bbToggleHelpModal(true)" title="Daftar Perintah & Shortcut (?)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                ? HELP
+            </button>
+
+            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terminal" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="sun" class="w-3 h-3 hidden dark:inline text-amber-400"></i>
+                <i data-lucide="moon" class="w-3 h-3 inline dark:hidden"></i>
+                <span class="hidden sm:inline">THEME</span>
+            </button>
+
+            <button type="button" onclick="ddcReloadProjectPage()" title="Muat Ulang Project" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                <span class="hidden sm:inline">REFRESH</span>
+            </button>
+
+            <a href="/docs" target="_blank" class="bb-btn bb-btn-amber !py-0.5 !px-2 !text-[10px]">
+                API /DOCS ↗
+            </a>
+        </div>
+    </div>
+
+    <!-- Command Line Bar + Action Keys -->
+    <div class="px-2.5 py-1.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-[var(--bb-border)] bg-[var(--bb-panel)]">
+        <div class="relative flex items-center gap-1.5 flex-1 min-w-0 max-w-2xl">
+            <span class="font-mono text-[11px] font-bold text-[var(--bb-amber)] shrink-0 select-none">CMD&gt;</span>
+            <div class="relative flex-1 min-w-0">
+                <input id="bb-cmd-input" type="text" autocomplete="off" spellcheck="false"
+                       placeholder="Ketik langsung di mana saja: JOB FLUTTER | NW PRABOWO | IG #AI | QUAD | MENU"
+                       class="bb-input !py-1 !px-2 !text-[11px] uppercase placeholder:normal-case placeholder:text-[var(--bb-text-dim)]">
+                <div id="bb-cmd-ac" class="hidden absolute left-0 right-0 top-full mt-0.5 z-50 max-h-64 overflow-y-auto"></div>
+            </div>
+            <button type="button" id="bb-cmd-go" onclick="bbRunCommandFromInput()" class="bb-key-action !py-1 !px-2.5 !text-[11px] shrink-0">
+                &lt;GO&gt; ↵
+            </button>
+        </div>
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 lg:pb-0">
+            <button type="button" id="bb-btn-back" onclick="bbNavBack()" disabled class="bb-key-action">&lt;BACK&gt;</button>
+            <button type="button" id="bb-btn-fwd" onclick="bbNavForward()" disabled class="bb-key-action">&lt;FWD&gt;</button>
+            <button type="button" onclick="bbToggleMenuModal(true)" class="bb-key-action">&lt;MENU&gt;</button>
+            <button type="button" onclick="bbExecuteCommand('QUAD')" class="bb-key-action">&lt;QUAD&gt;</button>
+        </div>
+    </div>
+
+    <!-- Live Ticker Tape -->
+    <div class="bb-ticker-wrap">
+        <div class="bb-ticker-label">
+            <span>JOB_TAPE</span>
+        </div>
+        <div class="bb-ticker-track-viewport">
+            <div id="bb-ticker-track" class="bb-ticker-track">
+                <span class="bb-tick-item text-[var(--bb-text-muted)]">MEMUAT STREAM PELUANG PROJECT &amp; GEEKGARDEN FIT...</span>
+            </div>
+        </div>
+    </div>
+</header>
 
 <div class="hidden" aria-hidden="true">
     <button type="button" id="tab-project"></button>
 </div>
 
-<div class="max-w-[1680px] mx-auto px-4 sm:px-6 pt-4 pb-1">
-    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
-        <div class="flex items-center gap-3 min-w-0">
-            <button type="button" onclick="ddcToggleMobileSidebar(true)" aria-label="Buka Menu"
-                    class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="menu" class="w-4 h-4"></i>
-            </button>
-            <button type="button" id="ddc-sidebar-reopen" onclick="ddcToggleDesktopSidebar()" title="Tampilkan Sidebar"
-                    class="hidden items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-[#14171F] border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
-                <i data-lucide="panel-left-open" class="w-4 h-4"></i>
-            </button>
+<!-- Context Header & 4 KPI Strip -->
+<div class="px-2.5 pt-2 pb-1">
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[var(--bb-border)]">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="px-1.5 py-0.5 bg-[var(--bb-green-soft)] border border-[var(--bb-green)] text-[var(--bb-green)] font-mono text-[10px] font-bold">JOB_DESK</span>
+            <h1 id="ddc-page-title" class="font-mono text-xs sm:text-sm font-bold text-[var(--bb-text)] tracking-tight truncate uppercase">
+                4. Pencarian Project (Job Hunter)
+            </h1>
+            <span class="hidden md:inline text-[var(--bb-text-dim)]">|</span>
+            <p id="ddc-page-desc" class="hidden md:inline font-mono text-[11px] text-[var(--bb-text-muted)] truncate">
+                Pencarian peluang project freelance &amp; klasifikasi kecocokan Geekgarden (Fix ≥ 80%).
+            </p>
+        </div>
+        <div class="font-mono text-[10px] text-[var(--bb-text-muted)] flex items-center gap-2">
+            <span>CLICK KPI / CHART SLICE TO FILTER</span>
+        </div>
+    </div>
 
-            <div class="min-w-0">
-                <h1 id="ddc-page-title" class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight truncate">
-                    4. Pencarian Project
-                </h1>
-                <p id="ddc-page-desc" class="text-xs text-slate-500 dark:text-zinc-400 truncate">
-                    Pencarian peluang project freelance &amp; klasifikasi kecocokan Geekgarden.
-                </p>
+    <!-- 4 Terminal Confidence KPI Cells -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-1.5">
+        <div onclick="ddcQuickProjectConf('fix bisa masuk')" class="bb-kpi-cell cursor-pointer hover:border-[var(--bb-green)]">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-green)]">
+                <span>FIX_BISA_MASUK</span>
+                <span>SKOR ≥ 80%</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="pkpi-fix" class="font-mono text-lg font-bold text-[var(--bb-green)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-text-muted)]">[FILTER]</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Project Hunter Live
-            </span>
+        <div onclick="ddcQuickProjectConf('fifty-fifty')" class="bb-kpi-cell cursor-pointer hover:border-[var(--bb-amber)]">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-amber)]">
+                <span>FIFTY_FIFTY</span>
+                <span>40% – 79%</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="pkpi-fifty" class="font-mono text-lg font-bold text-[var(--bb-amber)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-text-muted)]">[FILTER]</span>
+            </div>
+        </div>
 
-            <button type="button" id="ddc-theme-toggle" onclick="ddcToggleTheme(event)" title="Ganti Tema Terang / Gelap"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
-                <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden"></i>
-                <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
-                <span class="hidden sm:inline dark:hidden">Mode Gelap</span>
-                <span class="hidden dark:sm:inline">Mode Terang</span>
-            </button>
+        <div onclick="ddcQuickProjectConf('tidak bisa')" class="bb-kpi-cell cursor-pointer hover:border-[var(--bb-red)]">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-red)]">
+                <span>TIDAK_BISA</span>
+                <span>&lt; 40%</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="pkpi-no" class="font-mono text-lg font-bold text-[var(--bb-red)]">0</span>
+                <span class="font-mono text-[10px] text-[var(--bb-text-muted)]">[FILTER]</span>
+            </div>
+        </div>
 
-            <button type="button" onclick="ddcReloadProjectPage()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#14171F] text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh</span>
-            </button>
-
-            <a href="/docs" target="_blank"
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 shadow-2xs transition no-underline">
-                <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Swagger API</span>
-            </a>
+        <div onclick="ddcQuickProjectConf('')" class="bb-kpi-cell cursor-pointer hover:border-[var(--bb-cyan)]">
+            <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-cyan)]">
+                <span>AVG_FIT_SCORE</span>
+                <span id="pkpi-total" class="text-[var(--bb-text-muted)]">Memuat...</span>
+            </div>
+            <div class="flex items-baseline justify-between mt-0.5">
+                <span id="pkpi-avg" class="font-mono text-lg font-bold text-[var(--bb-text)]">0%</span>
+                <span class="font-mono text-[10px] text-[var(--bb-cyan)]">[ALL]</span>
+            </div>
         </div>
     </div>
 </div>
 
-<main class="max-w-[1680px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+<!-- =========================================================================
+     MAIN 3-COLUMN MULTI-PANE TERMINAL WORKSPACE
+     ========================================================================= -->
+<main class="px-2.5 py-1.5 grid grid-cols-1 xl:grid-cols-12 gap-1.5 items-start">
 
-    <aside class="xl:col-span-3 min-w-0 space-y-5">
-        <div class="ddc-card bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2 min-w-0">
-                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-slate-500 dark:text-zinc-400 shrink-0"></i>
-                    <span class="text-xs font-semibold text-slate-900 dark:text-white tracking-tight truncate">
-                        Parameter &amp; Filter Project
-                    </span>
+    <!-- LEFT PANE: [P0] JOB HUNTER CONSOLE + [P5] LIVE TERMINAL LOG -->
+    <aside id="bb-left-col" class="xl:col-span-3 min-w-0 space-y-1.5">
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P0] JOB HUNTER CONSOLE</span>
+                <button type="button" onclick="ddcResetProjectFilters()" class="text-[10px] text-[var(--bb-red)] hover:underline font-mono">[RESET]</button>
+            </div>
+            <div class="bb-panel-body space-y-2.5">
+                <div id="form-project" class="space-y-2.5">
+                    <div>
+                        <label for="proj-sources" class="bb-label">1. Sumber Platform Project</label>
+                        <select id="proj-sources" class="ddc-field">
+                            <option value="all">Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
+                            <option value="linkedin">LinkedIn Project Leads</option>
+                            <option value="projects_coid">Projects.co.id (Lokal Indonesia)</option>
+                            <option value="freelancer">Freelancer.com (Public API)</option>
+                            <option value="web_leads">Sribu / Upwork / Fastwork / Portal Lain</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proj-input" class="bb-label">2. Keyword / Tech Stack / Jenis Project</label>
+                        <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="ddc-field">
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <div>
+                            <label for="proj-region" class="bb-label">3. Wilayah</label>
+                            <select id="proj-region" class="ddc-field">
+                                <option value="id">Indonesia</option>
+                                <option value="global">Global</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="proj-limit" class="bb-label">4. Target</label>
+                            <input id="proj-limit" type="number" value="20" min="1" max="50" class="ddc-field">
+                        </div>
+                    </div>
+
+                    <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-2">
+                        <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-green)]">
+                            <span>REALTIME FIT FILTERS</span>
+                            <span>LIVE</span>
+                        </div>
+                        <div>
+                            <label for="proj-filter-conf" class="bb-label">Status Confidence</label>
+                            <select id="proj-filter-conf" onchange="ddcApplyProjectAll()" class="ddc-field">
+                                <option value="">-- Semua Status --</option>
+                                <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
+                                <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
+                                <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="proj-filter-source" class="bb-label">Filter Sumber Hasil</label>
+                            <select id="proj-filter-source" onchange="ddcApplyProjectAll()" class="ddc-field">
+                                <option value="">-- Semua Sumber --</option>
+                                <option value="linkedin">LinkedIn Project Lead</option>
+                                <option value="projects.co.id">Projects.co.id</option>
+                                <option value="freelancer">Freelancer.com</option>
+                                <option value="sribu">Sribu</option>
+                                <option value="upwork">Upwork</option>
+                                <option value="fastwork">Fastwork</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="proj-filter-service" class="bb-label">Tipe Layanan Geekgarden</label>
+                            <select id="proj-filter-service" onchange="ddcApplyProjectAll()" class="ddc-field">
+                                <option value="">-- Semua Tipe Layanan --</option>
+                                <option value="web & mobile">Web & Mobile Development</option>
+                                <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
+                                <option value="ui/ux">UI/UX Design & Product</option>
+                                <option value="qa">QA & Software Testing</option>
+                                <option value="staff augmentation">IT Staff Augmentation</option>
+                                <option value="data, ai">Data, AI & Cloud/DevOps</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" onclick="ddcResetProjectFilters()"
-                        class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition shrink-0">
-                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-                    <span>Reset</span>
+
+                <button type="button" onclick="executeAction(true)" id="btn-run" class="bb-btn bb-btn-amber w-full !py-2">
+                    🎯 HUNT PROJECT &amp; SCORE &lt;GO&gt;
                 </button>
-            </div>
 
-            <div id="form-project" class="space-y-3.5">
-                <div>
-                    <label for="proj-sources" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">1. Sumber Platform Project</label>
-                    <select id="proj-sources" class="ddc-field">
-                        <option value="all">Semua (LinkedIn + Projects.co.id + Freelancer + Web)</option>
-                        <option value="linkedin">LinkedIn Project Leads</option>
-                        <option value="projects_coid">Projects.co.id (Lokal Indonesia)</option>
-                        <option value="freelancer">Freelancer.com (Public API)</option>
-                        <option value="web_leads">Sribu / Upwork / Fastwork / Portal Lain</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="proj-input" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">2. Keyword / Tech Stack / Jenis Project</label>
-                    <input id="proj-input" type="text" value="web developer aplikasi" placeholder="Misal: flutter, erp, website, ui ux, ai..." class="ddc-field">
-                </div>
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div>
-                        <label for="proj-region" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">3. Wilayah</label>
-                        <select id="proj-region" class="ddc-field">
-                            <option value="id">Indonesia</option>
-                            <option value="global">Global</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="proj-limit" class="block text-[11px] font-medium text-slate-600 dark:text-zinc-400 mb-1.5">4. Jumlah Target</label>
-                        <input id="proj-limit" type="number" value="20" min="1" max="50" class="ddc-field tabular-nums">
-                    </div>
-                </div>
-
-                <div class="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2.5">
-                    <div class="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5">
-                            <i data-lucide="target" class="w-3.5 h-3.5"></i>
-                            <span>Filter Hasil &amp; Confidence</span>
+                <div id="scraper-progress-box" class="hidden p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-green)] space-y-1.5">
+                    <div class="flex items-center justify-between font-mono text-[10px]">
+                        <span id="scraper-progress-label" class="text-[var(--bb-green)] font-semibold truncate">
+                            HUNTING PROJECT LEADS...
                         </span>
-                        <span class="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Realtime</span>
+                        <span id="scraper-elapsed-timer" class="font-mono text-[var(--bb-amber)] font-bold shrink-0 ml-2">00:00</span>
                     </div>
-                    <div>
-                        <label for="proj-filter-conf" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Status Confidence</label>
-                        <select id="proj-filter-conf" onchange="ddcApplyProjectAll()" class="ddc-field">
-                            <option value="">-- Semua Status --</option>
-                            <option value="fix bisa masuk">Fix Bisa Masuk (≥ 80%)</option>
-                            <option value="fifty-fifty">Fifty-Fifty (40% – 79%)</option>
-                            <option value="tidak bisa">Tidak Bisa (&lt; 40%)</option>
-                        </select>
+                    <div class="w-full h-1.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] overflow-hidden">
+                        <div id="scraper-progress-bar" class="h-full w-0 bg-[var(--bb-green)] transition-all duration-300"></div>
                     </div>
-                    <div>
-                        <label for="proj-filter-source" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Filter Sumber Hasil</label>
-                        <select id="proj-filter-source" onchange="ddcApplyProjectAll()" class="ddc-field">
-                            <option value="">-- Semua Sumber --</option>
-                            <option value="linkedin">LinkedIn Project Lead</option>
-                            <option value="projects.co.id">Projects.co.id</option>
-                            <option value="freelancer">Freelancer.com</option>
-                            <option value="sribu">Sribu</option>
-                            <option value="upwork">Upwork</option>
-                            <option value="fastwork">Fastwork</option>
-                        </select>
+                    <div class="flex items-center justify-between font-mono text-[10px] text-[var(--bb-text-muted)]">
+                        <span id="scraper-progress-sub" class="truncate">Connecting to project hunter...</span>
+                        <span id="scraper-progress-pct" class="text-[var(--bb-text)] ml-2">0%</span>
                     </div>
-                    <div>
-                        <label for="proj-filter-service" class="block text-[11px] text-slate-600 dark:text-zinc-400 mb-1">Tipe Layanan Geekgarden</label>
-                        <select id="proj-filter-service" onchange="ddcApplyProjectAll()" class="ddc-field">
-                            <option value="">-- Semua Tipe Layanan --</option>
-                            <option value="web & mobile">Web & Mobile Development</option>
-                            <option value="custom software">Custom Software & Enterprise (ERP/CRM)</option>
-                            <option value="ui/ux">UI/UX Design & Product</option>
-                            <option value="qa">QA & Software Testing</option>
-                            <option value="staff augmentation">IT Staff Augmentation</option>
-                            <option value="data, ai">Data, AI & Cloud/DevOps</option>
-                        </select>
-                    </div>
-                    <button type="button" onclick="ddcReloadProjectPage()" id="btn-proj-show"
-                            class="mt-1 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg shadow-2xs transition inline-flex items-center justify-center gap-1.5">
-                        <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
-                        <span>Muat Ulang Hasil &amp; Grafik</span>
-                    </button>
                 </div>
             </div>
+        </div>
 
-            <button type="button" onclick="executeAction(true)" id="btn-run"
-                    class="mt-4 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition">
-                Cari Project &amp; Cek Confidence
-            </button>
-
-            <div id="scraper-progress-box" class="hidden mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0F1117] border border-emerald-200 dark:border-emerald-800/60 space-y-2">
-                <div class="flex items-center justify-between text-[11px]">
-                    <span id="scraper-progress-label" class="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
-                        Scraper Project Berjalan...
-                    </span>
-                    <span id="scraper-elapsed-timer" class="font-mono tabular-nums text-xs font-semibold text-amber-700 dark:text-amber-300 shrink-0 ml-2">
-                        00:00
-                    </span>
-                </div>
-                <div class="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div id="scraper-progress-bar"
-                         class="h-full w-0 bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-300">
-                    </div>
-                </div>
-                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400">
-                    <span id="scraper-progress-sub" class="truncate">Menghubungkan ke endpoint scraper...</span>
-                    <span id="scraper-progress-pct" class="font-mono tabular-nums text-slate-700 dark:text-zinc-200 ml-2">0%</span>
+        <!-- [P5] Live Terminal Log -->
+        <div class="bb-panel">
+            <div class="bb-panel-header">
+                <span>[P5] LIVE TERMINAL LOG</span>
+                <button type="button" onclick="bbClearTerminalLog()" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[CLR]</button>
+            </div>
+            <div class="bb-panel-body !p-1.5">
+                <div id="bb-terminal-log">
+                    <div class="text-[var(--bb-text-muted)]">[BOOT] JOB_HUNTER desk siap.</div>
                 </div>
             </div>
         </div>
     </aside>
 
-    <section class="xl:col-span-6 min-w-0 space-y-5">
-        <div id="project-charts-panel" class="space-y-5">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div onclick="ddcQuickProjectConf('fix bisa masuk')"
-                     class="cursor-pointer bg-emerald-50/80 hover:bg-emerald-50 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 rounded-2xl p-4 transition">
-                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="truncate">Fix Bisa Masuk</span>
+    <!-- CENTER WORKSPACE: [P1] 4 PROJECT CHARTS + [P2] PROJECT DATA GRID -->
+    <section id="bb-center-col" class="xl:col-span-6 min-w-0 space-y-1.5">
+        <div id="bb-charts-container">
+            <div id="project-charts-panel">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                    <div class="bb-panel">
+                        <div class="bb-panel-header">
+                            <span class="truncate">CONFIDENCE DISTRIBUTION</span>
+                            <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                        </div>
+                        <div class="bb-panel-body">
+                            <div class="bb-chart-wrap h-48 relative"><canvas id="chartProjConfidence"></canvas></div>
+                        </div>
                     </div>
-                    <div id="pkpi-fix" class="text-2xl font-bold tabular-nums text-emerald-800 dark:text-emerald-400 mt-1.5">0</div>
-                    <div class="text-[10px] text-emerald-700/80 dark:text-zinc-400 mt-0.5">Skor ≥ 80% (Klik filter)</div>
-                </div>
 
-                <div onclick="ddcQuickProjectConf('fifty-fifty')"
-                     class="cursor-pointer bg-amber-50/80 hover:bg-amber-50 dark:bg-amber-950/25 dark:hover:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 rounded-2xl p-4 transition">
-                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                        <i data-lucide="scale" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="truncate">Fifty-Fifty</span>
+                    <div class="bb-panel">
+                        <div class="bb-panel-header">
+                            <span class="truncate">PLATFORM SOURCE BREAKDOWN</span>
+                            <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                        </div>
+                        <div class="bb-panel-body">
+                            <div class="bb-chart-wrap h-48 relative"><canvas id="chartProjSources"></canvas></div>
+                        </div>
                     </div>
-                    <div id="pkpi-fifty" class="text-2xl font-bold tabular-nums text-amber-800 dark:text-amber-400 mt-1.5">0</div>
-                    <div class="text-[10px] text-amber-700/80 dark:text-zinc-400 mt-0.5">Skor 40–79% (Klik filter)</div>
-                </div>
 
-                <div onclick="ddcQuickProjectConf('tidak bisa')"
-                     class="cursor-pointer bg-rose-50/80 hover:bg-rose-50 dark:bg-rose-950/25 dark:hover:bg-rose-950/40 border border-rose-200/90 dark:border-rose-800/60 rounded-2xl p-4 transition">
-                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-300">
-                        <i data-lucide="x-circle" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="truncate">Tidak Bisa</span>
+                    <div class="bb-panel">
+                        <div class="bb-panel-header">
+                            <span class="truncate">GEEKGARDEN SERVICE FIT</span>
+                            <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                        </div>
+                        <div class="bb-panel-body">
+                            <div class="bb-chart-wrap h-48 relative"><canvas id="chartProjServices"></canvas></div>
+                        </div>
                     </div>
-                    <div id="pkpi-no" class="text-2xl font-bold tabular-nums text-rose-800 dark:text-rose-400 mt-1.5">0</div>
-                    <div class="text-[10px] text-rose-700/80 dark:text-zinc-400 mt-0.5">Skor &lt; 40% (Klik filter)</div>
-                </div>
 
-                <div onclick="ddcQuickProjectConf('')"
-                     class="cursor-pointer bg-white hover:bg-slate-50 dark:bg-[#14171F] dark:hover:bg-zinc-800/70 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 transition">
-                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="truncate">Rata-rata Fit</span>
+                    <div class="bb-panel">
+                        <div class="bb-panel-header">
+                            <span class="truncate">TOP HIGHEST-FIT LEADS</span>
+                            <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
+                        </div>
+                        <div class="bb-panel-body">
+                            <div class="bb-chart-wrap h-48 relative"><canvas id="chartProjTopScores"></canvas></div>
+                        </div>
                     </div>
-                    <div id="pkpi-avg" class="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-1.5">0%</div>
-                    <div id="pkpi-total" class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 tabular-nums">Memuat project...</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                    <div class="mb-3">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Distribusi Confidence Geekgarden</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Proporsi kelayakan project (klik slice untuk filter)</p>
-                    </div>
-                    <div class="h-56 relative"><canvas id="chartProjConfidence"></canvas></div>
-                </div>
-
-                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                    <div class="mb-3">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Sebaran Sumber Platform Project</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Jumlah lead dari LinkedIn, Projects.co.id, Freelancer, dll.</p>
-                    </div>
-                    <div class="h-56 relative"><canvas id="chartProjSources"></canvas></div>
-                </div>
-
-                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                    <div class="mb-3">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Kecocokan Tipe Layanan Geekgarden</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Klasifikasi kebutuhan project berdasarkan layanan</p>
-                    </div>
-                    <div class="h-56 relative"><canvas id="chartProjServices"></canvas></div>
-                </div>
-
-                <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                    <div class="mb-3">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white">Top Project Paling Potensial</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400">Skor confidence tertinggi (klik bar untuk buka link)</p>
-                    </div>
-                    <div class="h-56 relative"><canvas id="chartProjTopScores"></canvas></div>
                 </div>
             </div>
         </div>
 
-        <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-            <div class="flex flex-wrap justify-between items-center gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-zinc-800">
-                <div>
-                    <h2 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="table-2" class="w-4 h-4 text-slate-500 dark:text-zinc-400"></i>
-                        <span>Daftar Peluang Project</span>
-                        <span class="text-[11px] font-medium tabular-nums px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 rounded-full">
-                            <span id="row-count">0</span> baris
-                        </span>
-                    </h2>
-                    <p id="status-text" class="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+        <!-- [P2] Project Leads Data Grid -->
+        <div class="bb-panel">
+            <div class="bb-panel-header flex-wrap">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span>[P2] PROJECT OPPORTUNITIES GRID</span>
+                    <span class="px-1.5 py-0.5 bg-[var(--bb-green-soft)] border border-[var(--bb-green)] text-[var(--bb-green)] text-[10px]">
+                        <span id="row-count">0</span> LEADS
+                    </span>
+                    <span id="status-text" class="bb-panel-sub truncate max-w-[260px]">
                         Memuat data peluang project...
-                    </p>
+                    </span>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="ddcResetProjectFilters()"
-                            class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[11px] font-medium rounded-lg transition">
-                        Reset Filter
-                    </button>
-                    <a id="btn-download" href="#"
-                       class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition no-underline">
-                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                        <span>Download CSV</span>
-                    </a>
+                <div class="flex items-center gap-1.5">
+                    <a id="btn-download" href="#" class="hidden bb-btn bb-btn-green !py-0.5 !px-2 !text-[10px]">↓ CSV</a>
+                    <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[480px] border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#0F1117]">
-                <table class="w-full text-left text-xs text-slate-700 dark:text-zinc-300 tabular-nums">
-                    <thead id="table-head" class="bg-slate-50 dark:bg-[#161a24] text-slate-500 dark:text-zinc-400 uppercase text-[11px] font-semibold sticky top-0 z-10"></thead>
-                    <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-zinc-800/70">
-                        <tr><td class="p-8 text-center text-slate-400 dark:text-zinc-500">Memuat data project...</td></tr>
-                    </tbody>
-                </table>
+            <div class="bb-panel-body !p-0">
+                <div class="bb-table-scroll overflow-x-auto max-h-[450px] bg-[var(--bb-bg)]">
+                    <table class="w-full text-left tabular-nums border-collapse">
+                        <thead id="table-head" class="sticky top-0 z-10 uppercase"></thead>
+                        <tbody id="table-body">
+                            <tr><td class="p-6 text-center text-[var(--bb-text-muted)] font-mono text-xs">MEMUAT PELUANG PROJECT...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
 
-    <aside class="xl:col-span-3 min-w-0">
-        <div id="project-right-charts" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-1 gap-5">
-            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                    <div class="min-w-0">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Top Skill &amp; Tech Stack</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Teknologi paling sering dicari klien</p>
-                    </div>
-                    <i data-lucide="cpu" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+    <!-- RIGHT PANE: [P3] TOP TECH STACK + [P4] SCORE DIST + [P5] INTAKE TIMELINE -->
+    <aside id="bb-right-col" class="xl:col-span-3 min-w-0">
+        <div id="project-right-charts" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-1 gap-1.5">
+            <div class="bb-panel">
+                <div class="bb-panel-header">
+                    <span class="truncate">TOP SKILL &amp; TECH STACK</span>
+                    <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
                 </div>
-                <div class="h-52 relative"><canvas id="chartProjSkills"></canvas></div>
+                <div class="bb-panel-body">
+                    <div class="bb-chart-wrap h-48 relative"><canvas id="chartProjSkills"></canvas></div>
+                </div>
             </div>
 
-            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                    <div class="min-w-0">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Sebaran Skor Confidence</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Distribusi skor fit (klik bar untuk filter)</p>
-                    </div>
-                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+            <div class="bb-panel">
+                <div class="bb-panel-header">
+                    <span class="truncate">SCORE BUCKET DISTRIBUTION</span>
+                    <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
                 </div>
-                <div class="h-48 relative"><canvas id="chartProjScoreDist"></canvas></div>
+                <div class="bb-panel-body">
+                    <div class="bb-chart-wrap h-44 relative"><canvas id="chartProjScoreDist"></canvas></div>
+                </div>
             </div>
 
-            <div class="ddc-card min-w-0 bg-white dark:bg-[#14171F] border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-5 shadow-xs">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                    <div class="min-w-0">
-                        <h3 class="text-xs font-semibold text-slate-900 dark:text-white truncate">Tren Peluang Project Masuk</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 truncate">Total lead vs peluang ≥ 80% per tanggal</p>
-                    </div>
-                    <i data-lucide="activity" class="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0"></i>
+            <div class="bb-panel">
+                <div class="bb-panel-header">
+                    <span class="truncate">LEAD INTAKE TIMELINE</span>
+                    <button type="button" onclick="bbToggleMaximize(this)" class="text-[10px] text-[var(--bb-text-muted)] hover:text-[var(--bb-amber)]">[⛶]</button>
                 </div>
-                <div class="h-48 relative"><canvas id="chartProjTimeline"></canvas></div>
+                <div class="bb-panel-body">
+                    <div class="bb-chart-wrap h-44 relative"><canvas id="chartProjTimeline"></canvas></div>
+                </div>
             </div>
         </div>
     </aside>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/preline@2.7.0/dist/preline.min.js"></script>
-<script src="/app.js?v=20261123_proj_split"></script>
+<!-- ROW DETAIL INSPECTOR DRAWER -->
+<aside id="bb-inspector-drawer" class="hidden fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] flex flex-col">
+    <div class="bb-panel-header !py-2">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="px-1.5 py-0.5 bg-[var(--bb-amber)] text-black text-[10px] font-bold">INSPECT</span>
+            <span id="bb-inspector-title" class="truncate text-[var(--bb-text)]">PROJECT DETAIL</span>
+        </div>
+        <button type="button" onclick="bbCloseInspector()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+    </div>
+
+    <div class="px-3 py-1.5 border-b border-[var(--bb-border)] bg-[var(--bb-bg-elev)] flex items-center justify-between gap-2 font-mono text-[10px]">
+        <div class="flex items-center gap-1">
+            <button type="button" id="bb-insp-tab-read" onclick="bbSetInspectorTab('read')" class="bb-scr-btn bb-scr-active">READABLE</button>
+            <button type="button" id="bb-insp-tab-json" onclick="bbSetInspectorTab('json')" class="bb-scr-btn">RAW_JSON</button>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button type="button" onclick="bbCopyInspectorJson()" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">COPY JSON</button>
+            <a id="bb-inspector-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden bb-btn bb-btn-amber !py-0.5 !px-1.5 !text-[10px]">OPEN URL ↗</a>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3">
+        <div id="bb-inspector-actions" class="flex flex-wrap items-center gap-1.5 pb-2 border-b border-[var(--bb-border)] font-mono text-[10px]">
+            <button type="button" onclick="bbInspectorBroadcast('quad')" class="bb-key-action">⇄ BROADCAST TO QUAD</button>
+            <button type="button" onclick="bbInspectorBroadcast('news')" class="bb-key-sector">SCRAPE NEWS</button>
+            <button type="button" onclick="bbInspectorBroadcast('sosmed')" class="bb-key-sector">SCRAPE SOSMED</button>
+            <button type="button" onclick="bbInspectorBroadcast('watchlist')" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">+ WATCHLIST</button>
+        </div>
+        <div id="bb-inspector-meta" class="grid grid-cols-2 gap-1.5 font-mono text-[10px]"></div>
+        <div id="bb-inspector-readable" class="space-y-2.5 text-xs leading-relaxed"></div>
+        <pre id="bb-inspector-json" class="hidden font-mono text-[10px] leading-relaxed p-2.5 bg-[var(--bb-bg)] border border-[var(--bb-border)] text-[var(--bb-cyan)] overflow-x-auto whitespace-pre-wrap break-all"></pre>
+    </div>
+</aside>
+
+<!-- BLOOMBERG MENU DIRECTORY MODAL (MENU <GO>) -->
+<div id="bb-menu-modal" onclick="if(event.target===this) bbToggleMenuModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-3xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — BLOOMBERG FUNCTION MENU (&lt;MENU&gt; DIRECTORY)</span>
+            <button type="button" onclick="bbToggleMenuModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]" id="bb-menu-grid"></div>
+    </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="bb-help-modal" onclick="if(event.target===this) bbToggleHelpModal(false)"
+     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bb-panel w-full max-w-2xl border-[var(--bb-amber)]">
+        <div class="bb-panel-header">
+            <span>DDC//TERM — COMMAND &amp; SHORTCUT REFERENCE</span>
+            <button type="button" onclick="bbToggleHelpModal(false)" class="bb-btn !py-0.5 !px-1.5 !text-[10px]">✕ ESC</button>
+        </div>
+        <div class="bb-panel-body space-y-3 font-mono text-[11px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1">
+                    <div class="text-[var(--bb-amber)] font-bold mb-1">COMMAND LINE (CMD &gt; ... GO)</div>
+                    <div><span class="text-[var(--bb-cyan)]">JOB [KEYWORD]</span> — Hunt project baru (e.g. <span class="text-[var(--bb-text-muted)]">JOB FLUTTER</span>)</div>
+                    <div><span class="text-[var(--bb-cyan)]">SUPA [DOMAIN] [KW]</span> — Pindah ke Live Supabase</div>
+                    <div><span class="text-[var(--bb-cyan)]">NEWS [ENG] [TOPIK]</span> — Scrape Berita</div>
+                    <div><span class="text-[var(--bb-cyan)]">SOC [PF] [KW]</span> — Scrape Social Media</div>
+                    <div><span class="text-[var(--bb-cyan)]">ANL</span> / <span class="text-[var(--bb-cyan)]">DOCS</span> — Analytics / Swagger</div>
+                </div>
+                <div class="p-2 bg-[var(--bb-bg-elev)] border border-[var(--bb-border)] space-y-1">
+                    <div class="text-[var(--bb-amber)] font-bold mb-1">KEYBOARD SHORTCUTS</div>
+                    <div><span class="text-[var(--bb-green)]">/</span> atau <span class="text-[var(--bb-green)]">Ctrl+K</span> — Fokus Command Bar</div>
+                    <div><span class="text-[var(--bb-green)]">F2..F8</span> — Pindah Modul</div>
+                    <div><span class="text-[var(--bb-green)]">J / K</span> atau <span class="text-[var(--bb-green)]">↑ / ↓</span> — Navigasi Baris Tabel</div>
+                    <div><span class="text-[var(--bb-green)]">Enter</span> — Buka Row Detail Inspector (Fit Reason &amp; JSON)</div>
+                    <div><span class="text-[var(--bb-green)]">Esc</span> — Tutup Inspector / Help / Maximize</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js?v=20261125_bb_term"></script>
 </body>
 </html>
