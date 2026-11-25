@@ -9,3 +9,5 @@ output_csv/output_csv/*.csv
 *.bak
 output_csv/bank_data_export_*.csv
 output_csv/
+switch-to-kantor.sh
+switch-to-supabase.sh
