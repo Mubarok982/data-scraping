@@ -607,6 +607,12 @@ class TwitterRequest(BaseModel):
     max_results: int = Field(default=10, ge=1)
 
 
+class ThreadsRequest(BaseModel):
+    keyword: str = "teknologi"
+    engine: Literal["apify", "diffbot"] = "apify"
+    max_results: int = Field(default=10, ge=1)
+
+
 class LinkedInRequest(BaseModel):
     keyword: str = "Backend Developer"
     region_indonesia: bool = True
