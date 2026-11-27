@@ -420,7 +420,10 @@ def start_scheduler():
         coalesce=True
     )
     _scheduler.start()
-    sync_schedule_record_in_db(next_run_dt=get_next_run_wib())
+    try:
+        sync_schedule_record_in_db(next_run_dt=get_next_run_wib())
+    except Exception as e:
+        print(f"⚠️ [SCHEDULER] Gagal sync jadwal ke DB saat startup (lanjut tanpa DB): {e}")
     return _scheduler
 
 
@@ -595,66 +598,58 @@ def _insert_real_batch_to_supabase(batch_tag: str):
 
 
 def run_real_batch_worker(*args, **kwargs):
+    trigger_source = kwargs.get("trigger_source") or (args[0] if args else "manual_api")
     if not _BATCH_LOCK.acquire(blocking=False):
         print("⚠️ Batch worker sedang berjalan, request diabaikan.")
-        return
+        return {"status": "skipped", "reason": "Batch worker sedang berjalan"}
     try:
-        batch_tag = _dt.now(_tz.utc).strftime("%Y%m%d%H%M%S")
         start_wib = _wib_now_str()
-        print(f"🚀 [CRON WORKER] Memulai ekstraksi & ingesti 1.012 baris ke Supabase (Batch {batch_tag})...")
-
+        print(f"🚀 [CRON WORKER LIVE] Memulai scraping live ({trigger_source}) pada {start_wib}...")
         _LIVE_BATCH_STATE.update({
             "last_run_wib": start_wib,
             "status": "running",
-            "total_rows_collected": 120,
-            "details": {"keyword": 120, "trending": 0, "berita": 0, "sosmed": 0, "job_search": 0}
+            "total_rows_collected": 0,
+            "details": {"keyword": 0, "trending": 0, "berita": 0, "sosmed": 0, "job_search": 0}
         })
         _sync_scheduler_globals()
 
-        total_inserted = _insert_real_batch_to_supabase(batch_tag)
-
-        # TAHAP 4: Job Search / Project Hunter (200 baris per sesi)
-        _LIVE_BATCH_STATE.update({"status": "running", "total_rows_collected": 1050})
-        _sync_scheduler_globals()
-        js_res = _run_cron_job_search_200(batch_tag=batch_tag, target_rows=JOB_SEARCH_TARGET_PER_RUN)
-        js_count = js_res.get("total", JOB_SEARCH_TARGET_PER_RUN)
-        total_all = 1012 + js_count
-
+        res = run_batch_1000_rows(trigger_source=trigger_source)
         finish_wib = _wib_now_str()
-        details = {
-            "keyword": 300,
-            "trending": 300,
-            "berita": 200,
-            "sosmed": 212,
-            "job_search": js_count,
-            "job_search_summary": {
-                "fix_bisa_masuk": js_res.get("fix_bisa_masuk", 0),
-                "fifty_fifty": js_res.get("fifty_fifty", 0),
-                "tidak_bisa": js_res.get("tidak_bisa", 0),
-                "csv_file": js_res.get("csv", "")
-            }
-        }
+        details = (
+            (res or {}).get("details")
+            or (res or {}).get("breakdown")
+            or (_last_run_info.get("details") if "_last_run_info" in globals() else {})
+            or {}
+        )
+        total_all = (
+            (res or {}).get("total_rows_collected")
+            or (res or {}).get("total")
+            or sum(v for v in details.values() if isinstance(v, int))
+        )
+
         _LIVE_BATCH_STATE.update({
             "last_run_wib": finish_wib,
-            "status": "completed",
+            "status": (res or {}).get("status", "completed"),
             "total_rows_collected": total_all,
             "details": details
         })
         _sync_scheduler_globals()
-        print(f"✅ [CRON WORKER] Selesai! {total_all} baris (termasuk {js_count} Job Search) masuk ke Supabase pada {finish_wib}.")
+        print(f"✅ [CRON WORKER LIVE] Selesai! {total_all} baris live masuk ke database kantor pada {finish_wib}.")
 
-        # Kirim notifikasi ke Chattime/Slack & Telegram
         try:
-            import backend.performance as _ddc_perf; _ddc_perf.clear_http_cache()
+            import backend.performance as _ddc_perf
+            _ddc_perf.clear_http_cache()
         except Exception:
             pass
-        _notif.send_all_notifications(finish_wib, details)
+        return res
     except Exception as e:
-        print("❌ [CRON WORKER] Error:", e)
+        print("❌ [CRON WORKER LIVE] Error:", e)
         _LIVE_BATCH_STATE["status"] = "failed"
         _sync_scheduler_globals()
+        return {"status": "failed", "error": str(e)}
     finally:
         _BATCH_LOCK.release()
+
 
 def trigger_turbo_cron_async():
     t = _threading.Thread(target=run_real_batch_worker, daemon=True)

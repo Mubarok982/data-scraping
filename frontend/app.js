@@ -2103,7 +2103,7 @@ window.addEventListener('DOMContentLoaded', () => {
         /^\/dashboard\/project\/?$/i.test(window.location.pathname || "");
 
     const PAGE_META = {
-        supabase: { title: "Database Supabase (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
+        supabase: { title: "Database Kantor (ELT)", desc: "Monitoring data warehouse live, analitik global, dan jadwal cron 8 jam." },
         bank:     { title: "Bank Data (Arsip CSV)", desc: "Eksplorasi arsip CSV terstandarisasi dan grafik reaktif per kategori." },
         keyword:  { title: "1. Keyword & Trend", desc: "Ekstraksi kata kunci terkait dan tren pencarian Google Trends." },
         berita:   { title: "2. Portal Berita", desc: "Penarikan artikel portal berita otomatis (NewsData, Diffbot, Kombine)." },
