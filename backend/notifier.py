@@ -4,7 +4,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone, timedelta
 
-DASHBOARD_URL = "https://huggingface.co/spaces/rizqy123/ddc-scraper-portal"
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://192.168.2.112:7860")
 DEFAULT_CHATTIME_URL = (
     "https://chattime.geekgarden.my.id/api/webhooks/"
     "50deafeb-3b2b-4643-b32e-f18aec60c013/"
