@@ -1727,7 +1727,7 @@
                 const json = await res.json();
                 const sched = json.scheduler || {};
                 const last = sched.last_execution || {};
-                const wh = (json.supabase_warehouse || {}).counts || {};
+                const wh = (json.warehouse || json.supabase_warehouse || {}).counts || {};
 
                 if (document.getElementById('cron-next')) document.getElementById('cron-next').innerText = sched.next_run_wib || '-';
                 if (document.getElementById('cron-last')) document.getElementById('cron-last').innerText = last.last_run_wib || 'Belum jalan';

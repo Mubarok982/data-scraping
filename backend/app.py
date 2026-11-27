@@ -1461,10 +1461,12 @@ def _ensure_scheduler_on_startup():
 
 @app.get("/api/v1/scheduler/status", tags=["4. Cron Scheduler & Supabase"])
 def api_scheduler_status():
+    stats = get_warehouse_summary_stats()
     return {
         "status": "success",
         "scheduler": get_scheduler_status(),
-        "supabase_warehouse": get_warehouse_summary_stats()
+        "warehouse": stats,
+        "supabase_warehouse": stats
     }
 
 
@@ -1511,11 +1513,13 @@ def api_sync_csv_to_supabase():
                 synced_rows += res.get("items_processed", 0)
         except Exception:
             continue
+    stats = get_warehouse_summary_stats()
     return {
         "status": "success",
         "files_synced": synced_files,
         "rows_synced": synced_rows,
-        "supabase_warehouse": get_warehouse_summary_stats()
+        "warehouse": stats,
+        "supabase_warehouse": stats
     }
 
 

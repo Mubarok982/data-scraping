@@ -422,7 +422,7 @@ let currentTab = 'supabase';
 
             const runBtn = document.getElementById('btn-run');
             if (runBtn) {
-                if (tab === 'supabase') runBtn.innerText = "EXECUTE SUPABASE QUERY <GO>";
+                if (tab === 'supabase') runBtn.innerText = "EXECUTE KANTOR QUERY <GO>";
                 else if (tab === 'bank') runBtn.innerText = "FILTER CSV VAULT <GO>";
                 else if (tab === 'project') runBtn.innerText = "🎯 HUNT PROJECT & SCORE <GO>";
                 else runBtn.innerText = "▶ RUN SCRAPER & SAVE DB <GO>";
@@ -1127,7 +1127,7 @@ let currentTab = 'supabase';
                 const json = await res.json();
                 const sched = json.scheduler || {};
                 const last = sched.last_execution || {};
-                const wh = (json.supabase_warehouse || {}).counts || {};
+                const wh = (json.warehouse || json.supabase_warehouse || {}).counts || {};
 
                 if (document.getElementById('cron-next')) document.getElementById('cron-next').innerText = sched.next_run_wib || '-';
                 if (document.getElementById('cron-last')) document.getElementById('cron-last').innerText = last.last_run_wib || 'Belum jalan';
@@ -1399,7 +1399,7 @@ let currentTab = 'supabase';
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    if (currentTab === 'supabase') btn.innerText = "EXECUTE SUPABASE QUERY <GO>";
+                    if (currentTab === 'supabase') btn.innerText = "EXECUTE KANTOR QUERY <GO>";
                     else if (currentTab === 'bank') btn.innerText = "FILTER CSV VAULT <GO>";
                     else if (currentTab === 'project') btn.innerText = "🎯 HUNT PROJECT & SCORE <GO>";
                     else btn.innerText = "▶ RUN SCRAPER & SAVE DB <GO>";
@@ -3890,7 +3890,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 fetch("/api/v1/scheduler/status").then(r => r.ok ? r.json() : {}),
                 fetch("/api/v1/warehouse/analytics").then(r => r.ok ? r.json() : {})
             ]);
-            const wh = (resSt.supabase_warehouse || {}).counts || {};
+            const wh = (resSt.warehouse || resSt.supabase_warehouse || {}).counts || {};
             const sc = resSt.scheduler || {};
             const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? 0; };
 
@@ -3988,7 +3988,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             window.bbLogTerminal("Sync error: " + e.message, "err");
         } finally {
-            if (btn) { btn.disabled = false; btn.textContent = "↻ SYNC ALL CSV → SUPABASE"; }
+            if (btn) { btn.disabled = false; btn.textContent = "↻ SYNC ALL CSV → KANTOR"; }
         }
     };
 
