@@ -515,15 +515,15 @@ def ingest_dataset_to_supabase(
                                 )
 
                             # analytics.sentiment_results (selalu terisi untuk setiap artikel)
-                            s_label, s_conf = classify_sentiment(f"{title} {content}", r.get("sentimen_diffbot"))
-                            cur.execute(
-                                """
-                                INSERT INTO analytics.sentiment_results
-                                    (entity_type, entity_id, model_name, sentiment, confidence, metadata)
-                                VALUES ('news_article', %s, %s, %s, %s, %s)
-                                """,
-                                (article_id, f"{tool}_sentiment", s_label, s_conf, Json({"source": source_code}))
-                            )
+                            # s_label, s_conf = classify_sentiment(f"{title} {content}", r.get("sentimen_diffbot"))
+                            # cur.execute(
+                                # """
+                                # INSERT INTO analytics.sentiment_results
+                                    # (entity_type, entity_id, model_name, sentiment, confidence, metadata)
+                                # VALUES ('news_article', %s, %s, %s, %s, %s)
+                                # """,
+                                # (article_id, f"{tool}_sentiment", s_label, s_conf, Json({"source": source_code}))
+                            # )
 
                         elif category in ("keyword", "trending", "keyword_trending"):
                             kw_text = str(r.get("Query") or r.get("keyword") or r.get("judul") or "").strip()
@@ -723,15 +723,15 @@ def ingest_dataset_to_supabase(
                                 )
 
                             # social.comments & analytics.sentiment_results (untuk post & comment)
-                            s_post_label, s_post_conf = classify_sentiment(teks)
-                            cur.execute(
-                                """
-                                INSERT INTO analytics.sentiment_results
-                                    (entity_type, entity_id, model_name, sentiment, confidence)
-                                VALUES ('social_post', %s, %s, %s, %s)
-                                """,
-                                (post_id, f"{tool}_social_sentiment", s_post_label, s_post_conf)
-                            )
+                            # s_post_label, s_post_conf = classify_sentiment(teks)
+                            # cur.execute(
+                                # """
+                                # INSERT INTO analytics.sentiment_results
+                                    # (entity_type, entity_id, model_name, sentiment, confidence)
+                                # VALUES ('social_post', %s, %s, %s, %s)
+                                # """,
+                                # (post_id, f"{tool}_social_sentiment", s_post_label, s_post_conf)
+                            # )
 
                             comment_text = str(
                                 r.get("top_comment") or r.get("comment_text") or r.get("komentar")
@@ -748,15 +748,15 @@ def ingest_dataset_to_supabase(
                                     (post_id, cmt_ext_id, comment_text, pub_at, Json({"username": uname}))
                                 )
                                 cmt_id = str(cur.fetchone()["id"])
-                                s_cmt_label, s_cmt_conf = classify_sentiment(comment_text)
-                                cur.execute(
-                                    """
-                                    INSERT INTO analytics.sentiment_results
-                                        (entity_type, entity_id, model_name, sentiment, confidence)
-                                    VALUES ('social_comment', %s, %s, %s, %s)
-                                    """,
-                                    (cmt_id, f"{tool}_comment_sentiment", s_cmt_label, s_cmt_conf)
-                                )
+                                # s_cmt_label, s_cmt_conf = classify_sentiment(comment_text)
+                                # cur.execute(
+                                    # """
+                                    # INSERT INTO analytics.sentiment_results
+                                        # (entity_type, entity_id, model_name, sentiment, confidence)
+                                    # VALUES ('social_comment', %s, %s, %s, %s)
+                                    # """,
+                                    # (cmt_id, f"{tool}_comment_sentiment", s_cmt_label, s_cmt_conf)
+                                # )
 
                         # 5. scraper.processing_logs (sukses normalisasi per baris)
                         cur.execute(
@@ -1769,26 +1769,28 @@ def auto_ingest_scraper_pipeline(category_hint: str, rows: list) -> dict:
         c_dom += auto_ingest_to_supabase("social", "posts", soc_items)
 
     # 3. Insert ke analytics.sentiment_results
-    sent_items = []
-    pos_cues = ("sukses", "berhasil", "optimis", "positif", "naik", "tumbuh", "mbg", "inovasi", "apresiasi")
-    neg_cues = ("karhutla", "kebakaran", "banjir", "korupsi", "krisis", "turun", "gagal", "bencana", "konflik")
-    for idx, r in enumerate(rows[:150]):
-        txt = json.dumps(r, default=str).lower()
-        s_val = str((r.get("sentiment") if isinstance(r, dict) else "") or (r.get("sentimen") if isinstance(r, dict) else "") or "").lower()
-        if "pos" in s_val or any(w in txt for w in pos_cues):
-            s_label, conf = "positive", 0.88
-        elif "neg" in s_val or any(w in txt for w in neg_cues):
-            s_label, conf = "negative", 0.84
-        else:
-            s_label, conf = "neutral", 0.79
-        sent_items.append({
-            "entity_type": "news_article" if ("berita" in cat or "news" in cat) else "social_post",
-            "entity_id": _short_hash("ent", f"{tag}_{idx}_{_random.randint(100,999)}"),
-            "model_name": "indobert-v1",
-            "sentiment": s_label,
-            "confidence": conf,
-            "metadata": {"source_category": cat or "batch", "batch": tag}
-        })
-    c_sent = auto_ingest_to_supabase("analytics", "sentiment_results", sent_items)
+    # sent_items = []
+    # pos_cues = ("sukses", "berhasil", "optimis", "positif", "naik", "tumbuh", "mbg", "inovasi", "apresiasi")
+    # neg_cues = ("karhutla", "kebakaran", "banjir", "korupsi", "krisis", "turun", "gagal", "bencana", "konflik")
+    # for idx, r in enumerate(rows[:150]):
+        # txt = json.dumps(r, default=str).lower()
+        # s_val = str((r.get("sentiment") if isinstance(r, dict) else "") or (r.get("sentimen") if isinstance(r, dict) else "") or "").lower()
+        # if "pos" in s_val or any(w in txt for w in pos_cues):
+            # s_label, conf = "positive", 0.88
+        # elif "neg" in s_val or any(w in txt for w in neg_cues):
+            # s_label, conf = "negative", 0.84
+        # else:
+            # s_label, conf = "neutral", 0.79
+        # sent_items.append({
+            # "entity_type": "news_article" if ("berita" in cat or "news" in cat) else "social_post",
+            # "entity_id": _short_hash("ent", f"{tag}_{idx}_{_random.randint(100,999)}"),
+            # "model_name": "indobert-v1",
+            # "sentiment": s_label,
+            # "confidence": conf,
+            # "metadata": {"source_category": cat or "batch", "batch": tag}
+        # })
+    # c_sent = auto_ingest_to_supabase("analytics", "sentiment_results", sent_items)
+    c_sent = 0
+    c_sent = 0  # Auto-sentimen dimatikan, pakai GGAI (Workflow 2)
 
     return {"raw_data": c_raw, "domain": c_dom, "sentiment": c_sent}
