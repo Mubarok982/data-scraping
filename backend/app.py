@@ -282,16 +282,19 @@ def save_platform_csv(rows: list, subfolder: str, prefix: str, ingest_to_db: boo
     filepath = os.path.join(folder_path, f"{safe_prefix}_{ts}.csv")
     pd.DataFrame(rows).to_csv(filepath, index=False)
 
-    # Otomatis kirim ke 7 skema Supabase Data Warehouse (lewati untuk ekspor hasil baca DB)
-    if ingest_to_db:
-        tool_guess = prefix.split("_")[0] if "_" in prefix else "kombine"
-        ingest_dataset_to_supabase(
-            category=subfolder,
-            tool=tool_guess,
-            job_name=f"live_scrape_{safe_prefix}",
-            parameters={"subfolder": subfolder, "prefix": prefix},
-            rows=rows
-        )
+    # Otomatis kirim ke Data Warehouse (aman: tidak bikin endpoint HTTP 500 jika DB nonaktif)
+    if ingest_to_db and os.getenv("DISABLE_DB_INGEST", "0") != "1":
+        try:
+            tool_guess = prefix.split("_")[0] if "_" in prefix else "kombine"
+            ingest_dataset_to_supabase(
+                category=subfolder,
+                tool=tool_guess,
+                job_name=f"live_scrape_{safe_prefix}",
+                parameters={"subfolder": subfolder, "prefix": prefix},
+                rows=rows
+            )
+        except Exception as e_db:
+            print(f"⚠️ [save_platform_csv] Skip DB ingest ({subfolder}/{safe_prefix}): {e_db}")
     return filepath
 
 @app.get("/api/v1/warehouse/stats", tags=["0. Bank Data (Data Warehouse)"])
@@ -1560,7 +1563,7 @@ async def auto_ingest_scraper_middleware(request, call_next):
     response = await call_next(request)
     path = request.url.path.lower()
     # Tangkap semua eksekusi endpoint scraper (keyword, berita, sosmed) secara otomatis
-    if request.method == "POST" and any(p in path for p in ("/api/v1/keyword/", "/api/v1/berita/", "/api/v1/sosmed/")):
+    if os.getenv("DISABLE_DB_INGEST", "0") != "1" and request.method == "POST" and any(p in path for p in ("/api/v1/keyword/", "/api/v1/berita/", "/api/v1/sosmed/")):
         try:
             body_bytes = b""
             async for chunk in response.body_iterator:

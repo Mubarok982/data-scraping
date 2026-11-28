@@ -366,6 +366,174 @@ def scrape_web_freelance_leads(keyword: str, max_results: int = 10, harvest_fn=N
     return rows[:max_results]
 
 
+# === FILTER & SUMBER KHUSUS KLIEN B2B INDONESIA ===
+_B2B_BLOCKED_DOMAINS = (
+    "freelancer.com", "upwork.com", "fiverr.com", "fastwork.id", "guru.com",
+    "peopleperhour.com", "wikipedia.org", "wikimedia.org", "mapcarta.com",
+    "maps.apple.com", "maps.google.com", "jobstreet.", "glints.com", "kalibrr.com",
+    "karir.com", "loker.id", "indeed.com", "glassdoor.com", "dealls.com",
+    "kitalulus.com", "bagitekno.net", "easeus.com", "minitool.com",
+    "sourceforge.net", "xda-developers.com", "asus.com", "liputan6.com", "katadata.co.id"
+)
+
+_B2B_NOISE_RE = re.compile(
+    r"\b(jasa pembuatan|melayani pembuatan|terima jasa|open jasa|mulai\s*rp|"
+    r"skripsi|tugas kuliah|tugas akhir|joki tugas|lowongan kerja|loker|we are hiring|"
+    r"open to work|#opentowork|kirim cv|melamar posisi|cara aktivasi windows|kms-activator)\b",
+    re.IGNORECASE,
+)
+
+_FOREIGN_CURRENCY_RE = re.compile(
+    r"\b(USD|INR|EUR|GBP|AUD|CAD|SGD|MYR|PHP|PKR|NGN)\b|\$\s?\d+|\b(EST|PST|GMT|IST)\b"
+)
+
+_INDO_B2B_SIGNAL_RE = re.compile(
+    r"(\.go\.id|\.co\.id|\.or\.id|\.ac\.id|\.id(/|$)|\b(lpse|lkpp|sirup|inaproc|"
+    r"eproc|tender|lelang|pengadaan|rfp|rfq|prakualifikasi|vendor|software house|"
+    r"bumn|bumd|kementerian|dinas|pemprov|pemkab|pemkot|rsud|pt\.?|cv\.?|tbk|indonesia)\b)",
+    re.IGNORECASE,
+)
+
+
+def _clean_b2b_text(val: str) -> str:
+    s = str(val or "").replace("&nbsp;", " ").replace("Â", "")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _is_valid_indo_b2b(title: str, desc: str, url: str) -> bool:
+    t = _clean_b2b_text(title)
+    d = _clean_b2b_text(desc)
+    u = (url or "").strip()
+    if not t or not u or not u.lower().startswith(("http://", "https://")):
+        return False
+    if t.lower() in ("yahoo", "google", "bing"):
+        return False
+    ul = u.lower()
+    if any(bad in ul for bad in _B2B_BLOCKED_DOMAINS):
+        return False
+    if "linkedin.com/in/" in ul or "linkedin.com/pub/" in ul or "linkedin.com/jobs/" in ul:
+        return False
+    combined = f"{t} {d}"
+    if _B2B_NOISE_RE.search(combined):
+        return False
+    if _FOREIGN_CURRENCY_RE.search(combined) and ".id" not in ul:
+        return False
+    if not _INDO_B2B_SIGNAL_RE.search(f"{combined} {ul}"):
+        return False
+    return True
+
+
+def _collect_dork_b2b(
+    dorks: list[str],
+    source_label: str,
+    keyword: str,
+    budget_label: str,
+    max_results: int,
+    harvest_fn=None,
+    required_url_substrings: tuple[str, ...] = (),
+) -> list[dict]:
+    rows = []
+    seen = set()
+
+    def _add(title, desc, url, pub_date=""):
+        t = _clean_b2b_text(title)
+        d = _clean_b2b_text(desc)
+        u = str(url or "").strip()
+        if required_url_substrings and not any(sub in u.lower() for sub in required_url_substrings):
+            return
+        if not _is_valid_indo_b2b(t, d, u):
+            return
+        key = u.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        # Nilai kecocokan hanya dari title & desc asli (bukan keyword query)
+        fit = evaluate_geekgarden_confidence(t, d, "")
+        rows.append({
+            "platform": "b2b_indonesia",
+            "source_platform": source_label,
+            "title": t,
+            "budget": budget_label,
+            "skills": keyword,
+            "region_indonesia": True,
+            **fit,
+            "content": d[:400],
+            "published_at": pub_date or time.strftime("%Y-%m-%d %H:%M:%S"),
+            "url": u,
+        })
+
+    for dork in dorks:
+        if len(rows) >= max_results:
+            break
+        if callable(harvest_fn):
+            try:
+                for s in (harvest_fn(dork, max_items=max_results * 2) or []):
+                    _add(s.get("title"), s.get("snippet"), s.get("url"))
+                    if len(rows) >= max_results:
+                        break
+            except Exception:
+                pass
+        if len(rows) < max_results:
+            try:
+                for r in (_scrape_rss_query(dork, source_label, keyword, max_results - len(rows)) or []):
+                    _add(r.get("title"), r.get("content"), r.get("url"), r.get("published_at", ""))
+                    if len(rows) >= max_results:
+                        break
+            except Exception:
+                pass
+    return rows[:max_results]
+
+
+def scrape_lpse_tender_leads(keyword: str, max_results: int = 10, harvest_fn=None) -> list[dict]:
+    """Tender & pengadaan IT resmi Indonesia: LPSE, INAPROC, SIRUP LKPP, Tender Indonesia."""
+    dorks = [
+        f'({keyword}) ("pengadaan" OR "tender" OR "lelang" OR "sistem informasi" OR "aplikasi") (site:lpse.go.id OR site:inaproc.id OR site:sirup.lkpp.go.id OR inurl:lpse)',
+        f'({keyword}) ("pengadaan" OR "tender" OR "aplikasi" OR "software" OR "sistem") (site:tender-indonesia.com OR site:pengadaan.info OR site:go.id)',
+    ]
+    return _collect_dork_b2b(
+        dorks=dorks,
+        source_label="LPSE / Pengadaan Pemerintah RI",
+        keyword=keyword,
+        budget_label="APBN / APBD / Tender",
+        max_results=max_results,
+        harvest_fn=harvest_fn,
+        required_url_substrings=(".go.id", "inaproc.id", "lkpp.go.id", "lpse", "tender-indonesia.com", "pengadaan.info"),
+    )
+
+
+def scrape_bumn_corporate_rfp_leads(keyword: str, max_results: int = 10, harvest_fn=None) -> list[dict]:
+    """Pengadaan & RFP IT dari BUMN dan perusahaan korporat Indonesia (.co.id / eproc)."""
+    dorks = [
+        f'({keyword}) ("pengadaan" OR "tender" OR "RFP" OR "RFQ" OR "prakualifikasi") (inurl:eproc OR inurl:procurement OR inurl:tender) (site:co.id OR site:id)',
+        f'({keyword}) ("cari vendor" OR "butuh vendor" OR "undangan tender" OR "pengadaan sistem" OR "pengadaan aplikasi") ("PT" OR "BUMN" OR "Perusahaan") (site:co.id OR site:or.id OR site:ac.id)',
+    ]
+    return _collect_dork_b2b(
+        dorks=dorks,
+        source_label="E-Proc BUMN / Korporat Indonesia",
+        keyword=keyword,
+        budget_label="Korporat / B2B IDR",
+        max_results=max_results,
+        harvest_fn=harvest_fn,
+        required_url_substrings=(".co.id", ".id", ".or.id", ".ac.id", "eproc", "procurement"),
+    )
+
+
+def scrape_linkedin_b2b_posts(keyword: str, max_results: int = 8, harvest_fn=None) -> list[dict]:
+    """Khusus postingan LinkedIn pencarian vendor IT / RFP di Indonesia (bukan profil orang / loker)."""
+    dorks = [
+        f'({keyword}) ("cari vendor" OR "butuh vendor" OR "software house" OR "RFP" OR "pengadaan sistem") "Indonesia" (site:linkedin.com/posts OR site:linkedin.com/feed/update)',
+    ]
+    return _collect_dork_b2b(
+        dorks=dorks,
+        source_label="LinkedIn B2B Indonesia",
+        keyword=keyword,
+        budget_label="Negosiasi / B2B",
+        max_results=max_results,
+        harvest_fn=harvest_fn,
+        required_url_substrings=("linkedin.com/posts/", "linkedin.com/feed/update/"),
+    )
+
+
 def run_project_hunter(
     keyword: str,
     sources: str = "all",
@@ -373,19 +541,22 @@ def run_project_hunter(
     max_results: int = 15,
     harvest_fn=None,
 ) -> list[dict]:
-    """Orkestrator multi-sumber project + scoring confidence Geekgarden."""
+    """Orkestrator sumber project khusus klien B2B Indonesia + scoring confidence Geekgarden."""
     sync_geekgarden_web_keywords()
-    per_source = max(4, max_results if sources != "all" else (max_results // 3) + 2)
+    per_source = max(5, max_results if sources != "all" else (max_results // 2) + 2)
 
     tasks = []
+    if sources in ("all", "lpse", "tender"):
+        tasks.append(lambda: scrape_lpse_tender_leads(keyword, per_source, harvest_fn))
+    if sources in ("all", "bumn", "corporate", "rfp"):
+        tasks.append(lambda: scrape_bumn_corporate_rfp_leads(keyword, per_source, harvest_fn))
     if sources in ("all", "linkedin"):
-        tasks.append(lambda: scrape_linkedin_project_leads(keyword, region_indonesia, per_source, harvest_fn))
+        tasks.append(lambda: scrape_linkedin_b2b_posts(keyword, max(4, per_source // 2), harvest_fn))
     if sources in ("all", "projects_coid"):
-        tasks.append(lambda: scrape_projects_coid(keyword, per_source))
-    if sources in ("all", "freelancer"):
-        tasks.append(lambda: scrape_freelancer_projects(keyword, per_source))
-    if sources in ("all", "web_leads"):
-        tasks.append(lambda: scrape_web_freelance_leads(keyword, per_source, harvest_fn))
+        def _safe_projects_coid():
+            raw = scrape_projects_coid(keyword, per_source) or []
+            return [r for r in raw if _is_valid_indo_b2b(r.get("title", ""), r.get("content", ""), r.get("url", ""))]
+        tasks.append(_safe_projects_coid)
 
     collected = []
     with ThreadPoolExecutor(max_workers=4) as ex:
@@ -396,10 +567,11 @@ def run_project_hunter(
             except Exception:
                 pass
 
-    # Deduplikasi & urutkan berdasarkan confidence_score tertinggi
     dedup = []
     seen = set()
     for r in collected:
+        if not _is_valid_indo_b2b(r.get("title", ""), r.get("content", ""), r.get("url", "")):
+            continue
         key = (r.get("url") or r.get("title") or "").strip().lower()
         if not key or key in seen:
             continue
